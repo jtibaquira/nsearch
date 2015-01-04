@@ -48,13 +48,11 @@ end
 -- tests the functions above
 local file = filePath
 local lines = lines_from(file)
-
 -- print all line numbers and their contents
 
 function printAll(lines)
   for k,v in pairs(lines) do
-    local i = string.find(v, script)
-    if i ~= nil then print('[' .. k .. ']', v) end
+    print('line[' .. k .. ']', v)
   end
 end
 
