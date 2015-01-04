@@ -18,13 +18,15 @@ end
 
 
 function helpMenu()
-  print "#========================================================================#"
-  print "# -h  Display this help menu                                             #"
-  print "# -n  The string to search                                               #"
-  print "# -b  Search by file name, category or both                              #"
-  print "#       filename, category, all  default all                             #"
-  print "# Usage: ./search-script.lua -n foofile -b all -e png                    #"
-  print "#========================================================================#"
+  print "Nse-Script-Search (0.1)"
+  print " USAGE: search-script [Options] string"
+  print " PARAMETERS:"
+  print "   -h  Display this help menu"
+  print "   -n  The string to search"
+  print "   -c  Create a script.db backup for future diff <default name scriptbkp.db>"
+  print " EXAMPLES:"
+  print "   search-script -n http"
+  print "   search-script -c /path/script.db/ /path/for/backup"
 end
 
 -- see if the file exists
@@ -57,10 +59,12 @@ function printAll(lines)
 end
 
 function printResults(lines,script)
+  local count = 0
   for k,v in pairs(lines) do
     local i = string.find(v, script)
-    if i ~= nil then print('[' .. k .. ']', v) end
+    if i ~= nil then print('[' .. k .. ']', v) count = count + 1 end
   end
+  if count == 0 then print("Script not Found") end
 end
 
 function defineArgs()
