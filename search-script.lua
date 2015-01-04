@@ -67,10 +67,7 @@ function defineArgs()
   local string
   for i=1,countArgs()  do
     if arg[i] == "-h" then helpMenu() os.exit() end
-    if arg[i] == "-n" then
-      string = arg[i+1]
-      print(script)
-    end
+    if arg[i] == "-n" then string = arg[i+1] printResults(lines,string) end
   end
   --printResults(lines,script)
 end
