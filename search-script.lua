@@ -70,8 +70,18 @@ end
 function defineArgs()
   local string
   for i=1,countArgs()  do
-    if arg[i] == "-h" then helpMenu() os.exit() end
-    if arg[i] == "-n" then string = arg[i+1] printResults(lines,string) end
+    if arg[i] == "-h" then
+      helpMenu()
+      os.exit()
+    elseif arg[i] == "-n" then
+      string = arg[i+1] printResults(lines,string)
+    elseif arg[i] == "-c" then
+      print("For Create a new backup")
+    else
+      print(arg[i] .." Is not a valid argument, see the help below")
+      helpMenu()
+      os.exit()
+    end
   end
   --printResults(lines,script)
 end
