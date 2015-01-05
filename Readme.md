@@ -11,3 +11,10 @@
 #### EXAMPLES:
 ####  search-script -n http
 ####  search-script -c /path/script.db/ /path/for/backup
+
+# TODO
+*## Searching for Category
+*## Create a backup option
+*## Searching by Author
+*## Create a pretty output
+*## Create a file output
