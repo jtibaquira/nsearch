@@ -3,20 +3,21 @@
 local config = require "config"
 local filePath = config.filePath
 
+-- functions to handler the args values
 function printArgs()
   for k,v in pairs(arg) do
     print(k,v)
   end
 end
 
+-- function to set the total of valid args into the table
 function countArgs()
   count = 0
   for _ in pairs(arg) do count = count + 1 end
   return count - 2
 end
 
-
-
+-- display a Help Menu
 function helpMenu()
   print "Nse-Script-Search (0.1)"
   print " USAGE: search-script [Options] string"
@@ -67,6 +68,7 @@ function printResults(lines,script)
   if count == 0 then print("Script not Found") end
 end
 
+-- set the each of args
 function defineArgs()
   local string
   for i=1,countArgs()  do
@@ -83,9 +85,9 @@ function defineArgs()
       os.exit()
     end
   end
-  --printResults(lines,script)
 end
 
+-- validation of args
 if countArgs() < 1 then
   printAll(lines)
 else
