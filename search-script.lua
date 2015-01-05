@@ -69,6 +69,15 @@ function printResults(lines,script)
   if count == 0 then print("Script not Found") end
 end
 
+-- create a script.db backups
+function createBackup(lines)
+  outfile = io.open(config.fileBackup, "w")
+  for k,v in pairs(lines) do
+    outfile:write(v.."\n")
+  end
+  outfile:close()
+end
+
 -- set the each of args
 function defineArgs()
   local string
@@ -80,7 +89,8 @@ function defineArgs()
       string = arg[i+1] printResults(lines,string)
       os.exit()
     elseif arg[i] == "-c" then
-      print("For Create a new backup")
+      createBackup(lines)
+      os.exit()
     else
       print(arg[i] .." Is not a valid argument, see the help below")
       helpMenu()
