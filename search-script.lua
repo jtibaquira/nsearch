@@ -63,9 +63,7 @@ function printResults(lines,script)
   local count = 0
   for k,v in pairs(lines) do
     local i = string.find(v, script)
-    v = v:gsub('%Entry { filename = "',"")
-    v = v:gsub('", categories = { "',' | ["')
-    v = v:gsub('", } }','"]')
+    v = v:gsub('%Entry { filename = "',""):gsub('", categories = { "',' | ["'):gsub('", } }','"]')
     if i ~= nil then print(v) count = count + 1 end
   end
   if count == 0 then print("Script not Found") end
