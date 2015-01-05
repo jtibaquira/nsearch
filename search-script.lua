@@ -55,7 +55,7 @@ local lines = lines_from(file)
 
 function printAll(lines)
   for k,v in pairs(lines) do
-    print('line[' .. k .. ']', v)
+    print(v)
   end
 end
 
@@ -63,7 +63,7 @@ function printResults(lines,script)
   local count = 0
   for k,v in pairs(lines) do
     local i = string.find(v, script)
-    if i ~= nil then print('[' .. k .. ']', v) count = count + 1 end
+    if i ~= nil then print(v) count = count + 1 end
   end
   if count == 0 then print("Script not Found") end
 end
@@ -77,6 +77,7 @@ function defineArgs()
       os.exit()
     elseif arg[i] == "-n" then
       string = arg[i+1] printResults(lines,string)
+      os.exit()
     elseif arg[i] == "-c" then
       print("For Create a new backup")
     else
