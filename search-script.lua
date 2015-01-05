@@ -24,10 +24,10 @@ function helpMenu()
   print " PARAMETERS:"
   print "   -h  Display this help menu"
   print "   -n  The string to search"
-  print "   -c  Create a script.db backup for future diff <default name scriptbkp.db>"
+  print "   -c  Create a script.db backup for future diff <default name scriptbkp.db> the files name are defined in config.lua"
   print " EXAMPLES:"
   print "   search-script -n http"
-  print "   search-script -c /path/script.db/ /path/for/backup"
+  print "   search-script -c "
 end
 
 -- see if the file exists
@@ -76,6 +76,12 @@ function createBackup(lines)
     outfile:write(v.."\n")
   end
   outfile:close()
+  if not file_exists(config.fileBackup) then
+    print "the backup can not created"
+    os.exit()
+  else
+    print "backup succesfull"
+  end
 end
 
 -- set the each of args
