@@ -1,4 +1,7 @@
-# Script to search into de NSE databases
+# Script to search into the NSE databases
+
+## Description
+#### nse script search is a minimal script to help find a diferentes script into the nse database file
 
 ## Help Menu
 
