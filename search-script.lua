@@ -64,7 +64,7 @@ function printResults(lines,script)
   for k,v in pairs(lines) do
     local i = string.find(v, script)
     v = v:gsub('%Entry { filename = "',"")
-    v = v:gsub('", categories = { "',', ["')
+    v = v:gsub('", categories = { "',' | ["')
     v = v:gsub('", } }','"]')
     if i ~= nil then print(v) count = count + 1 end
   end
