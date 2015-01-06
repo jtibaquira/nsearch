@@ -25,6 +25,7 @@ function dbmodule.InitSetup( scriptdb, method)
   ]]
   sm:step()
   sm:finalize()
+
   local cat = db:prepare [[
   create table categories(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -32,13 +33,23 @@ function dbmodule.InitSetup( scriptdb, method)
   ]]
   cat:step()
   cat:finalize()
+
+  local config.categories = categoriesList
+
+  for i,v in ipairs(categoryList) do
+    print(i,v)
+  end
+
+  -- db:exec'INSERT INTO test VALUES(1,2,4)'
+
   local utable = db:prepare [[
   create table script_category(
     id_category INTEGER NOT NULL,
     id_script INETGER NOT NULL);
-   ]]
-   utable:step()
-   utable:finalize()
+  ]]
+  utable:step()
+  utable:finalize()
+
   db:close()
 end
 
