@@ -2,14 +2,14 @@
 local dbmodule = {}
 
 local config = require "config"
-local sqlite3 = require "sqlite3"
+local sqlite3 = require "lsqlite3"
 
 function connectDB(scriptdb,method)
-  local path = system.pathForFile(scriptdb, system.ResourceDirectory)
+  -- local path = system.pathForFile(scriptdb, system.ResourceDirectory)
   if method then
-    db = sqlite3.open( path, method)
+    db = sqlite3.open( scriptdb, method)
   else
-    db = sqlite3.open( path)
+    db = sqlite3.open(scriptdb)
   end
   return db
 end
@@ -25,15 +25,29 @@ function dbmodule.InitSetup( scriptdb, method)
   ]]
   sm:step()
   sm:finalize()
+  local cat = db:prepare [[
+  create table categories(
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+     name TEXT NOT NULL);
+  ]]
+  cat:step()
+  cat:finalize()
+  local utable = db:prepare [[
+  create table script_category(
+    id_category INTEGER NOT NULL,
+    id_script INETGER NOT NULL);
+   ]]
+   utable:step()
+   utable:finalize()
   db:close()
 end
 
-function dbmodule.InsertScript( ... )
+-- function dbmodule.InsertScript( ... )
   -- body
-end
+-- end
 
-function dbmodule.UpdateScript( ... )
+-- function dbmodule.UpdateScript( ... )
   -- body
-end
+-- end
 
 return dbmodule
