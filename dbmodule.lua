@@ -1,8 +1,8 @@
 -- db module
-local config = require "config"
 local dbmodule = {}
+
+local config = require "config"
 local sqlite3 = require "sqlite3"
-local scriptdb = config.scriptdb
 
 function connectDB(scriptdb,method)
   local path = system.pathForFile(scriptdb, system.ResourceDirectory)
