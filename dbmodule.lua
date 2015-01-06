@@ -37,7 +37,7 @@ function dbmodule.InitSetup( scriptdb, method)
 
   for k,v in ipairs(categoryList) do
     print(v)
-    sql=[["insert into categories (name) Values ("'".. v .. "'");"]]
+    sql=[[insert into categories (name) Values (]].."'".. v .. "'"..[[);]]
     print(sql)
     db:exec(sql)
     db:error_message(sql)
