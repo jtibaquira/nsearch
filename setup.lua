@@ -2,6 +2,9 @@
 
 local config = require "config"
 local categoryList = config.categories
+
+local dbmodule = require "dbmodule"
+scriptdb = config.scriptdb
 local setup = {}
 
 function setup.install(lines)
@@ -16,6 +19,7 @@ function setup.install(lines)
     end
     for key,value in ipairs(t) do
       if t[1] == value then
+       dbmodule.InitSetup( scriptdb, "wc")
        print(value.." it's a scriptdb")
       else
        print(value.." it's a categorie")
