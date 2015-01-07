@@ -2,7 +2,7 @@
 
 local config = require "config"
 local filePath = config.filePath
-
+local categoryList = config.categories
 -- functions to handler the args values
 function printArgs()
   for k,v in pairs(arg) do
@@ -62,7 +62,6 @@ end
 
 function printResults(lines,script)
   local count = 0
-  local categoryList = config.categories
   local t ={}
   for k,v in pairs(lines) do
     local i = string.find(v, script)
