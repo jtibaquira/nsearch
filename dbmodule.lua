@@ -55,13 +55,19 @@ end
 function dbmodule.InsertScript(value,table)
   local db = connectDB(scriptdb,"wc")
   for i,v in ipairs(value) do
-    sql=[[insert into ]]..table..[[ (name) Values (]].."'".. value .. "'"..[[);]]
-    print(db:last_insert_rowid(sql))
+    sql=[[insert into ]]..table..[[ (name) Values (]].."'".. v .. "'"..[[);]]
+    db:exec(sql)
   end
-  db:exec(sql)
-  --print(db:error_message(sql))
-  --print(db:last_insert_rowid(sql))
   db:close()
+  return last_rowid
+end
+
+
+function dbmodule.InsertCategory(id_script,id_category)
+  local db = connectDB(scriptdb,"wc")
+   sql=[[insert into script_category (id_category,id_script) Values (]].. id_category ..",".. id_script ..[[);]]
+   db:exec(sql)
+   db:close()
 end
 
 -- function dbmodule.UpdateScript( ... )
