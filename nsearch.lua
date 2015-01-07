@@ -25,10 +25,11 @@ function helpMenu()
   print "   -s  create the initial scriptdb for future queries"
   print "   -h  Display this help menu"
   print "   -n  The string to search"
-  print "   -c  Create a script.db backup for future diff <default name scriptbkp.db> the files name are defined in config.lua"
+  print "   -c  Create a script.db backup for future diff default name scriptbkp.db the files name are defined in config.lua"
   print " EXAMPLES:"
-  print "   search-script -n http"
-  print "   search-script -c "
+  print "   nsearch -n http"
+  print "   nsearch -c "
+  print "   nsearch -s "
 end
 
 -- see if the file exists

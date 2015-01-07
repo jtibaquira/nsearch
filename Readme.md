@@ -9,12 +9,14 @@
 #### USAGE:
 ##### search-script [Options] string
 #### PARAMETERS:
+#####  -s  create the initial scriptdb for future queries
 #####  -h  Display this help menu
 #####  -n  The string to search
-#####  -c  Create a script.db backup for future diff <default name scriptbkp.db>
+#####  -c  Create a script.db backup for future diff default name scriptbkp.db the files name are defined in config.lua
 #### EXAMPLES:
-#####  search-script -n http
-#####  search-script -c /path/script.db/ /path/for/backup
+#####  nsearch -n http
+#####  nsearch -c /path/script.db/ /path/for/backup
+#####  nsearch.lua -s 
 
 ## TODO
 * Searching for Category
