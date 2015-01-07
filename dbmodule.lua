@@ -54,7 +54,10 @@ end
 
 function dbmodule.InsertScript(value,table)
   local db = connectDB(scriptdb,"wc")
-  sql=[[insert into ]]..table..[[ (name) Values (]].."'".. value .. "'"..[[);]]
+  for i,v in ipairs(value) do
+    sql=[[insert into ]]..table..[[ (name) Values (]].."'".. value .. "'"..[[);]]
+    print(db:last_insert_rowid(sql))
+  end
   db:exec(sql)
   --print(db:error_message(sql))
   --print(db:last_insert_rowid(sql))
