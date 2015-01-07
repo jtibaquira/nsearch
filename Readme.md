@@ -12,10 +12,11 @@
 #####  -s  create the initial scriptdb for future queries
 #####  -h  Display this help menu
 #####  -n  The string to search
-#####  -c  Create a script.db backup for future diff default name scriptbkp.db the files name are defined in config.lua
+#####  -c  Get all script into a category
+#####  -b  Create a script.db backup for future diff default name scriptbkp.db the files name are defined in config.lua
 #### EXAMPLES:
 #####  nsearch -n http
-#####  nsearch -c /path/script.db/ /path/for/backup
+#####  nsearch -c exploit
 #####  nsearch -s
 
 ## TODO
