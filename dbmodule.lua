@@ -21,34 +21,22 @@ function dbmodule.InitSetup(method)
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       name TEXT NOT NULL,
       author TEXT NULL);
-  ]]
-  sm:step()
-  sm:finalize()
-  local cat = db:prepare [[
   create table categories(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
      name TEXT NOT NULL);
+  create table script_category(
+    id_category INTEGER NOT NULL,
+    id_script INETGER NOT NULL);
   ]]
-  cat:step()
-  cat:finalize()
+  sm:step()
+  sm:finalize()
 
   local  categoryList = config.categories
 
   for k,v in ipairs(categoryList) do
     sql=[[insert into categories (name) Values (]].."'".. v .. "'"..[[);]]
     db:exec(sql)
-    --print(db:last_insert_rowid(sql))
-    --print(db:error_message(sql))
   end
-
-  local utable = db:prepare [[
-  create table script_category(
-    id_category INTEGER NOT NULL,
-    id_script INETGER NOT NULL);
-  ]]
-  utable:step()
-  utable:finalize()
-
   db:close()
 end
 
@@ -69,9 +57,5 @@ function dbmodule.InsertCategory(id_script,id_category)
    db:exec(sql)
    db:close()
 end
-
--- function dbmodule.UpdateScript( ... )
-  -- body
--- end
 
 return dbmodule
