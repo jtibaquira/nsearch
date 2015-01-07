@@ -29,7 +29,7 @@ banner=[[
  | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
  \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
 ]]
-  print(banner)
+  print('\27[36m'..banner..'\27[0m')
   print "NSEarch (0.1)"
   print " USAGE: nsearch [Options] string"
   print " PARAMETERS:"
