@@ -15,23 +15,37 @@ end
 
 function dbmodule.InitSetup(method)
   local db = connectDB(scriptdb,method)
+  print("Creating Database :"..scriptdb)
   local sm = db:prepare [[
   create table scripts(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
       name TEXT NOT NULL,
       author TEXT NULL);
-  create table categories(
+  ]]
+  sm:step()
+  print("Creating Table For Script ....")
+  sm:finalize()
+
+  local cat = db:prepare [[
+   create table categories(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
      name TEXT NOT NULL);
+  ]]
+  cat:step()
+  print("Creating Table for Categories .... ")
+  cat:finalize()
+
+  local sc = db:prepare [[
   create table script_category(
     id_category INTEGER NOT NULL,
     id_script INETGER NOT NULL);
   ]]
-  sm:step()
-  sm:finalize()
+  sc:step()
+  print("Creating Table for Scripts per Category ....")
+  sc:finalize()
 
   local  categoryList = config.categories
-
+  print("Upload Categories to Categories Table ...")
   for k,v in ipairs(categoryList) do
     sql=[[insert into categories (name) Values (]].."'".. v .. "'"..[[);]]
     db:exec(sql)
@@ -53,6 +67,7 @@ end
 
 function dbmodule.InsertCategory(id_script,id_category)
   local db = connectDB(scriptdb,"wc")
+  print("Upload Scripts per Category to  Table ...")
    sql=[[insert into script_category (id_category,id_script) Values (]].. id_category ..",".. id_script ..[[);]]
    db:exec(sql)
    db:close()
