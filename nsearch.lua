@@ -19,8 +19,8 @@ end
 
 -- display a Help Menu
 function helpMenu()
-  print "Nse-Script-Search (0.1)"
-  print " USAGE: search-script [Options] string"
+  print "NSEarch (0.1)"
+  print " USAGE: nsearch [Options] string"
   print " PARAMETERS:"
   print "   -s  create the initial scriptdb for future queries"
   print "   -h  Display this help menu"

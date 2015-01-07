@@ -5,9 +5,9 @@
 
 ## Help Menu
 
-### Nse-Script-Search (0.1)
+### NSEarch (0.1)
 #### USAGE:
-##### search-script [Options] string
+##### nsearch [Options] string
 #### PARAMETERS:
 #####  -s  create the initial scriptdb for future queries
 #####  -h  Display this help menu
@@ -16,7 +16,7 @@
 #### EXAMPLES:
 #####  nsearch -n http
 #####  nsearch -c /path/script.db/ /path/for/backup
-#####  nsearch.lua -s 
+#####  nsearch -s
 
 ## TODO
 * Searching for Category
