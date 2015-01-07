@@ -3,6 +3,8 @@
 local config = require "config"
 local filePath = config.filePath
 local categoryList = config.categories
+local setup = require "setup"
+setup.install()
 -- functions to handler the args values
 function printArgs()
   for k,v in pairs(arg) do
@@ -61,11 +63,11 @@ function printAll(lines)
   end
 end
 
-function printResults(lines,script)
+function printResults(lines,string)
   local count = 0
   local t ={}
   for k,v in pairs(lines) do
-    local i = string.find(v, script)
+    local i = string.find(v, string)
     v = v:gsub('%Entry { filename = "',""):gsub('", categories = { "',',"'):gsub('", } }','"'):gsub('", "','","')
     for i,c in ipairs(categoryList) do
       v = v:gsub('"'..c..'"',i)
@@ -116,6 +118,7 @@ function defineArgs()
       os.exit()
     elseif arg[i] == "-s" then
       print("NSEarch Initital setup starting...")
+      setup.install(lines)
     else
       print(arg[i] .." Is not a valid argument, see the help below")
       helpMenu()
