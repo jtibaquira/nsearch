@@ -54,9 +54,12 @@ function dbmodule.InitSetup( scriptdb, method)
   db:close()
 end
 
--- function dbmodule.InsertScript( ... )
-  -- body
--- end
+function dbmodule.InsertScript(value,table)
+  sql=[[insert into ]]..table..[[ (name) Values (]].."'".. value .. "'"..[[);]]
+  --db:exec(sql)
+  --db:error_message(sql)
+  print(sql)
+end
 
 -- function dbmodule.UpdateScript( ... )
   -- body

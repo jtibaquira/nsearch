@@ -8,6 +8,7 @@ scriptdb = config.scriptdb
 local setup = {}
 
 function setup.install(lines)
+  dbmodule.InitSetup( scriptdb, "wc")
   local t ={}
   for k,v in ipairs(lines) do
     v = v:gsub('%Entry { filename = "',""):gsub('", categories = { "',',"'):gsub('", } }','"'):gsub('", "','","')
@@ -19,8 +20,8 @@ function setup.install(lines)
     end
     for key,value in ipairs(t) do
       if t[1] == value then
-       dbmodule.InitSetup( scriptdb, "wc")
-       print(value.." it's a scriptdb")
+        dbmodule.InsertScript(v,"scripts")
+       -- print(value.." it's a scriptdb")
       else
        print(value.." it's a categorie")
       end
