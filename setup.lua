@@ -10,7 +10,7 @@ local setup = {}
 function setup.install(lines)
   dbmodule.InitSetup("wc")
   local t ={}
-  local last_rowid = 0
+  local id_script = 0
   for k,v in ipairs(lines) do
     v = v:gsub('%Entry { filename = "',""):gsub('", categories = { "',',"'):gsub('", } }','"'):gsub('", "','","')
     for i,c in ipairs(categoryList) do
@@ -22,9 +22,9 @@ function setup.install(lines)
     for key,value in ipairs(t) do
       if t[1] == value then
         local val = {value}
-        last_rowid = dbmodule.InsertScript(val,"scripts")
+        id_script = dbmodule.InsertScript(val,"scripts")
       else
-        dbmodule.InsertCategory(last_rowid,value)
+        dbmodule.InsertCategory(id_script,value)
       end
     end
     t = {}

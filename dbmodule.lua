@@ -5,7 +5,6 @@ local config = require "config"
 local sqlite3 = require "lsqlite3"
 scriptdb = config.scriptdb
 function connectDB(method)
-  -- local path = system.pathForFile(scriptdb, system.ResourceDirectory)
   if method then
     db = sqlite3.open( scriptdb, method)
   else
@@ -45,6 +44,7 @@ function dbmodule.InsertScript(value,table)
   for i,v in ipairs(value) do
     sql=[[insert into ]]..table..[[ (name) Values (]].."'".. v .. "'"..[[);]]
     db:exec(sql)
+    last_rowid = db:last_insert_rowid(sql)
   end
   db:close()
   return last_rowid
