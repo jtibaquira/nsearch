@@ -4,6 +4,7 @@ local config = require "config"
 local filePath = config.filePath
 local categoryList = config.categories
 local setup = require "setup"
+local dbmodule = require "dbmodule"
 
 -- functions to handler the args values
 function printArgs()
@@ -36,7 +37,7 @@ banner=[[
   print "   -s  create the initial scriptdb for future queries"
   print "   -h  Display this help menu"
   print "   -n  The string to search"
-  print "   -c  Create a script.db backup for future diff default name scriptbkp.db the files name are defined in config.lua"
+  print "   -b  Create a script.db backup for future diff default name scriptbkp.db the files name are defined in config.lua"
   print " EXAMPLES:"
   print "   nsearch -n http"
   print "   nsearch -c "
@@ -128,8 +129,11 @@ function defineArgs()
     elseif arg[i] == "-s" then
       print("NSEarch Initital setup starting...")
       setup.install(lines)
-    elseif arg[i] == "-c" then
+    elseif arg[i] == "-c" and arg[i+1] ~= nil then
+      category = arg[i+1]
+      print("\n Script into "..category.." Category \n")
       dbmodule.SearchByCat(arg[i+1])
+      os.exit()
     else
       print(arg[i] .." Is not a valid argument, see the help below")
       helpMenu()

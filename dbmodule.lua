@@ -78,7 +78,7 @@ function dbmodule.SearchByCat(catName)
   local db = connectDB("wc")
   for row in db:nrows("select scripts.name from scripts, categories, script_category where categories.name='"..catName.."' and scripts.id=script_category.id_script and categories.id=script_category.id_category") do
     --table.insert(scripts,row)
-    print(row)
+    print(">>"..row.name)
   end
   --sql=[[select scripts.name from scripts, categories, script_category where categories.name="default" and scripts.id=script_category.id_script and categories.id=script_category.id_category;]]
   --db:exec(sql)
