@@ -13,6 +13,14 @@ function connectDB(method)
   return db
 end
 
+function findAll(table)
+  local db = connectDB()
+  for row in db:nrows("Select name from "..table.." ") do
+    print(">>> "..row.name)
+  end
+end
+
+
 function dbmodule.InitSetup(method)
   local db = connectDB(scriptdb,method)
   print("Creating Database :"..scriptdb)
@@ -77,12 +85,23 @@ function dbmodule.SearchByCat(catName)
   scripts = {}
   local db = connectDB("wc")
   for row in db:nrows("select scripts.name from scripts, categories, script_category where categories.name='"..catName.."' and scripts.id=script_category.id_script and categories.id=script_category.id_category") do
-    --table.insert(scripts,row)
-    print(">>"..row.name)
+    table.insert(scripts,row.name)
+  end
+  if #scripts > 0 then
+    print("\nTotal Scripts Found "..#scripts.." into "..catName.." Category\n")
+    for k,v in ipairs(scripts) do
+      print(k.." "..v)
+    end
+   else
+     print("Not Results Found\n")
+     print("=== These are the enabled Categories ===\n")
+     findAll("categories")
   end
   --sql=[[select scripts.name from scripts, categories, script_category where categories.name="default" and scripts.id=script_category.id_script and categories.id=script_category.id_category;]]
   --db:exec(sql)
   db:close()
   --return scripts
 end
+
+
 return dbmodule

@@ -131,7 +131,7 @@ function defineArgs()
       setup.install(lines)
     elseif arg[i] == "-c" and arg[i+1] ~= nil then
       category = arg[i+1]
-      print("\nScript into "..category.." Category \n")
+      --print("\nScript into "..category.." Category \n")
       dbmodule.SearchByCat(arg[i+1])
       os.exit()
     else
