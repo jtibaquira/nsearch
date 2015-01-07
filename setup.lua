@@ -4,11 +4,11 @@ local config = require "config"
 local categoryList = config.categories
 
 local dbmodule = require "dbmodule"
-scriptdb = config.scriptdb
+-- scriptdb = config.scriptdb
 local setup = {}
 
 function setup.install(lines)
-  dbmodule.InitSetup( scriptdb, "wc")
+  dbmodule.InitSetup("wc")
   local t ={}
   for k,v in ipairs(lines) do
     v = v:gsub('%Entry { filename = "',""):gsub('", categories = { "',',"'):gsub('", } }','"'):gsub('", "','","')
@@ -20,10 +20,10 @@ function setup.install(lines)
     end
     for key,value in ipairs(t) do
       if t[1] == value then
-        dbmodule.InsertScript(v,"scripts")
+        dbmodule.InsertScript(value,"scripts")
        -- print(value.." it's a scriptdb")
       else
-       print(value.." it's a categorie")
+       -- print(value.." it's a categorie")
       end
     end
     t = {}
