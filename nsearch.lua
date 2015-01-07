@@ -111,7 +111,8 @@ function defineArgs()
       helpMenu()
       os.exit()
     elseif arg[i] == "-n" then
-      string = arg[i+1] printResults(lines,string)
+      -- string = arg[i+1] printResults(lines,string)
+      print("Searching Script...")
       os.exit()
     elseif arg[i] == "-c" then
       createBackup(lines)
