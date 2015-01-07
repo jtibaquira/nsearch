@@ -22,6 +22,7 @@ function helpMenu()
   print "Nse-Script-Search (0.1)"
   print " USAGE: search-script [Options] string"
   print " PARAMETERS:"
+  print "   -s  create the initial scriptdb for future queries"
   print "   -h  Display this help menu"
   print "   -n  The string to search"
   print "   -c  Create a script.db backup for future diff <default name scriptbkp.db> the files name are defined in config.lua"
@@ -113,6 +114,8 @@ function defineArgs()
     elseif arg[i] == "-c" then
       createBackup(lines)
       os.exit()
+    elseif arg[i] == "-s" then
+      print("NSEarch Initital setup starting...")
     else
       print(arg[i] .." Is not a valid argument, see the help below")
       helpMenu()
