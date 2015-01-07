@@ -62,13 +62,25 @@ end
 function printResults(lines,script)
   local count = 0
   local categoryList = config.categories
+  local t ={}
   for k,v in pairs(lines) do
     local i = string.find(v, script)
-    v = v:gsub('%Entry { filename = "',""):gsub('", categories = { "',' | ["'):gsub('", } }','"]')
+    v = v:gsub('%Entry { filename = "',""):gsub('", categories = { "',',"'):gsub('", } }','"'):gsub('", "','","')
     for i,c in ipairs(categoryList) do
-      v = v:gsub('"'.. c ..'"',i)
+      v = v:gsub('"'..c..'"',i)
     end
-    if i ~= nil then print(v) count = count + 1 end
+    for a in string.gmatch(v,"([^,]+)") do
+      table.insert(t,a)
+    end
+    for key,value in ipairs(t) do
+      if t[1] == value then
+       print(value.." it's a scriptdb")
+      else
+       print(value.." it's a categorie")
+      end
+    end
+    t = {}
+    if i ~= nil then count = count + 1 end
   end
   if count == 0 then print("Script not Found") end
 end
