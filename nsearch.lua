@@ -120,8 +120,9 @@ function defineArgs()
     if arg[i] == "-h" then
       helpMenu()
       os.exit()
-    elseif arg[i] == "-n" then
+    elseif arg[i] == "-n" and arg[i+1] ~= nil then
       print("Searching Script...")
+      dbmodule.findScript(arg[i+1])
       os.exit()
     elseif arg[i] == "-b" then
       createBackup(lines)
@@ -130,8 +131,6 @@ function defineArgs()
       print("NSEarch Initital setup starting...")
       setup.install(lines)
     elseif arg[i] == "-c" and arg[i+1] ~= nil then
-      category = arg[i+1]
-      --print("\nScript into "..category.." Category \n")
       dbmodule.SearchByCat(arg[i+1])
       os.exit()
     else

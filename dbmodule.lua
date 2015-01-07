@@ -75,7 +75,6 @@ end
 
 function dbmodule.InsertCategory(id_script,id_category)
   local db = connectDB(scriptdb,"wc")
-  -- print("Upload Scripts per Category to  Table ...")
    sql=[[insert into script_category (id_category,id_script) Values (]].. id_category ..",".. id_script ..[[);]]
    db:exec(sql)
    db:close()
@@ -97,10 +96,23 @@ function dbmodule.SearchByCat(catName)
      print("=== These are the enabled Categories ===\n")
      findAll("categories")
   end
-  --sql=[[select scripts.name from scripts, categories, script_category where categories.name="default" and scripts.id=script_category.id_script and categories.id=script_category.id_category;]]
-  --db:exec(sql)
   db:close()
-  --return scripts
+end
+
+function dbmodule.findScript(scriptName)
+  local nse = {}
+  local db= connectDB()
+  for row in db:nrows("select name from scripts where name like '%"..scriptName.."%'") do
+    table.insert(nse,row.name)
+  end
+  if #nse > 0 then
+    print("\nTotal Scripts Found "..#nse.."\n")
+    for k,v in ipairs(nse) do
+      print(k.." "..v)
+    end
+  else
+    print("Not Results Found\n")
+  end
 end
 
 
