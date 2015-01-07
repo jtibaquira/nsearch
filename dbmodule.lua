@@ -43,8 +43,6 @@ function dbmodule.InitSetup( scriptdb, method)
     db:error_message(sql)
   end
 
-  -- db:exec'INSERT INTO test VALUES(1,2,4)'
-
   local utable = db:prepare [[
   create table script_category(
     id_category INTEGER NOT NULL,

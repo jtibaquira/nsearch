@@ -1,7 +1,7 @@
-# Script to search into the NSE databases
+# NSEarch
 
 ## Description
-#### nse script search is a minimal script to help find a diferentes script into the nse database file
+#### nsearch is a minimal script to help find a diferentes script into the nse database file
 
 ## Help Menu
 
