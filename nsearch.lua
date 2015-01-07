@@ -4,7 +4,7 @@ local config = require "config"
 local filePath = config.filePath
 local categoryList = config.categories
 local setup = require "setup"
-setup.install()
+
 -- functions to handler the args values
 function printArgs()
   for k,v in pairs(arg) do

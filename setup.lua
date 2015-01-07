@@ -6,7 +6,7 @@ local setup = {}
 
 function setup.install(lines)
   local t ={}
-  for k,v in pairs(lines) do
+  for k,v in ipairs(lines) do
     v = v:gsub('%Entry { filename = "',""):gsub('", categories = { "',',"'):gsub('", } }','"'):gsub('", "','","')
     for i,c in ipairs(categoryList) do
       v = v:gsub('"'..c..'"',i)
@@ -24,10 +24,4 @@ function setup.install(lines)
     t = {}
   end
 end
-
-function setup.update( )
-  -- body
-end
-
-
 return setup
