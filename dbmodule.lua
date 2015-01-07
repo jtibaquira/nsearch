@@ -67,10 +67,21 @@ end
 
 function dbmodule.InsertCategory(id_script,id_category)
   local db = connectDB(scriptdb,"wc")
-  print("Upload Scripts per Category to  Table ...")
+  -- print("Upload Scripts per Category to  Table ...")
    sql=[[insert into script_category (id_category,id_script) Values (]].. id_category ..",".. id_script ..[[);]]
    db:exec(sql)
    db:close()
 end
 
+function dbmodule.SearchByCat(catName)
+  scripts = {}
+  local db = connectDB("wc")
+  for row in db:nrows("SELECT id, quote, favorito FROM list_quotes ORDER BY RANDOM() LIMIT 1") do
+    table.insert(scripts,row)
+  end
+  --sql=[[select scripts.name from scripts, categories, script_category where categories.name="default" and scripts.id=script_category.id_script and categories.id=script_category.id_category;]]
+  --db:exec(sql)
+  db:close()
+  return scripts
+end
 return dbmodule
