@@ -122,12 +122,14 @@ function defineArgs()
     elseif arg[i] == "-n" then
       print("Searching Script...")
       os.exit()
-    elseif arg[i] == "-c" then
+    elseif arg[i] == "-b" then
       createBackup(lines)
       os.exit()
     elseif arg[i] == "-s" then
       print("NSEarch Initital setup starting...")
       setup.install(lines)
+    elseif arg[i] == "-c" then
+      dbmodule.SearchByCat(arg[i+1])
     else
       print(arg[i] .." Is not a valid argument, see the help below")
       helpMenu()

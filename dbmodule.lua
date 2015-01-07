@@ -76,12 +76,13 @@ end
 function dbmodule.SearchByCat(catName)
   scripts = {}
   local db = connectDB("wc")
-  for row in db:nrows("SELECT id, quote, favorito FROM list_quotes ORDER BY RANDOM() LIMIT 1") do
-    table.insert(scripts,row)
+  for row in db:nrows("select scripts.name from scripts, categories, script_category where categories.name='"..catName.."' and scripts.id=script_category.id_script and categories.id=script_category.id_category") do
+    --table.insert(scripts,row)
+    print(row)
   end
   --sql=[[select scripts.name from scripts, categories, script_category where categories.name="default" and scripts.id=script_category.id_script and categories.id=script_category.id_category;]]
   --db:exec(sql)
   db:close()
-  return scripts
+  --return scripts
 end
 return dbmodule
