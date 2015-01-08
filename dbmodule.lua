@@ -143,16 +143,17 @@ function dbmodule.findScript(scriptName)
        if not i then
          print('\27[96m'..v..'\27[0m')
        else
-         break
+        break
        end
       end
     end
   else
     print("Not Results Found\n")
-    io.write("Do you want search again? [y/n] ")
+    io.write("Do you want search again? [y/n]: ")
     local action = io.read()
     if action == 'y' then
-      print("Sorry action disable, try later")
+      io.write("Enter the name of the script: ")
+      findScript(action)
     end
   end
 end
