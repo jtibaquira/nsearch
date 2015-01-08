@@ -139,13 +139,13 @@ function dbmodule.findScript(scriptName)
       local file = config.scriptsPath..nse[option]
       local lines = lines_from(file)
       for k,v in pairs(lines) do
-      local i = string.find(v, "license")
-      if not i then
-        print('\27[95m'..v..'\27[0m')
-      else
-        break
+       local i = string.find(v, "license")
+       if not i then
+         print('\27[95m'..v..'\27[0m')
+       else
+         break
+       end
       end
-  end
     end
   else
     print("Not Results Found\n")
