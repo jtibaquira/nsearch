@@ -2,12 +2,49 @@
 
 local config = require "config"
 local categoryList = config.categories
+local filePath = config.filePath
 local dbmodule = require "dbmodule"
---local helper = require "helper"
--- scriptdb = config.scriptdb
+
 local setup = {}
 
-function setup.install(lines, banner)
+function file_exists(file)
+  local f = io.open(file, "rb")
+  if f then f:close() end
+  return f ~= nil
+end
+
+-- get all lines from a file, returns an empty
+-- list/table if the file does not exist
+function lines_from(file)
+  if not file_exists(file) then print "El archivo no existe" os.exit() end
+  lines = {}
+  for line in io.lines(file) do
+    lines[#lines + 1] = line
+  end
+  return lines
+end
+
+-- tests the functions above
+local file = filePath
+local lines = lines_from(file)
+
+-- create a script.db backups
+function helper.createBackup(banner)
+  print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
+  outfile = io.open(config.fileBackup, "w")
+  for k,v in pairs(lines) do
+    outfile:write(v.."\n")
+  end
+  outfile:close()
+  if not file_exists(config.fileBackup) then
+    print "the backup can not created"
+    os.exit()
+  else
+    print "backup succesfull"
+  end
+end
+
+function setup.install(banner)
   print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
   dbmodule.InitSetup("wc")
   local t ={}

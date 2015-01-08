@@ -1,7 +1,8 @@
 -- Helper Module
 --
-local helper = {}
 local setup = require "setup"
+
+local helper = {}
 
 helper.mainMenu = { h = "Help", s = "Initial Setup", n = "Search by Name of Script", c = "Search by Category", b = "Create script.db backup", q = "Exit"}
 helper.searchMenu ={ s = "Search by Name", m = "Main Menu", q = "Exit"}
@@ -35,6 +36,7 @@ function searchMenu()
   if action == "q" then
     os.exit()
   elseif action == "b" then
+    helper.menu(mainMenu)
     helper.Main(lines)
   elseif action == "s" then
     print("Ready for Search")
@@ -43,18 +45,23 @@ function searchMenu()
   end
 end
 
-function helper.Main(lines)
+function helper.Main()
  io.write('\n What do you want to do? : ')
  local action = io.read()
  if action == "q" then
   os.exit()
  elseif action == "s" then
    os.execute( "clear" )
-  setup.install(lines,helper.banner())
+  setup.install(helper.banner())
  elseif action == "n" then
    os.execute( "clear" )
   helper.menu(helper.searchMenu)
   searchMenu()
+elseif action == "b" then
+  setup.createBackup(helper.banner())
+  os.execute( "clear" )
+  helper.menu(mainMenu)
+  helper.Main()
  else
   os.exit()
  end

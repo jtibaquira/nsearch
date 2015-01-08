@@ -1,9 +1,9 @@
 -- db module
-local dbmodule = {}
-
 local config = require "config"
 local sqlite3 = require "lsqlite3"
 scriptdb = config.scriptdb
+
+local dbmodule = {}
 --local helper = require "helper"
 -- see if the file exists
 function file_exists(file)

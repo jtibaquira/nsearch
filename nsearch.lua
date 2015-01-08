@@ -3,9 +3,10 @@
 local config = require "config"
 local filePath = config.filePath
 local categoryList = config.categories
---local setup = require "setup"
 local dbmodule = require "dbmodule"
 local helper = require "helper"
+
+
 -- functions to handler the args values
 function printArgs()
   for k,v in pairs(arg) do
@@ -35,50 +36,6 @@ function helpMenu()
   print "   nsearch -n http"
   print "   nsearch -c "
   print "   nsearch -s "
-end
-
--- see if the file exists
-function file_exists(file)
-  local f = io.open(file, "rb")
-  if f then f:close() end
-  return f ~= nil
-end
-
--- get all lines from a file, returns an empty
--- list/table if the file does not exist
-function lines_from(file)
-  if not file_exists(file) then print "El archivo no existe" os.exit() end
-  lines = {}
-  for line in io.lines(file) do
-    lines[#lines + 1] = line
-  end
-  return lines
-end
-
--- tests the functions above
-local file = filePath
-local lines = lines_from(file)
--- print all line numbers and their contents
-
-function printAll(lines)
-  for k,v in pairs(lines) do
-    print(v)
-  end
-end
-
--- create a script.db backups
-function createBackup(lines)
-  outfile = io.open(config.fileBackup, "w")
-  for k,v in pairs(lines) do
-    outfile:write(v.."\n")
-  end
-  outfile:close()
-  if not file_exists(config.fileBackup) then
-    print "the backup can not created"
-    os.exit()
-  else
-    print "backup succesfull"
-  end
 end
 
 -- set the each of args
@@ -115,7 +72,7 @@ if countArgs() < 1 then
   local mainMenu = helper.mainMenu
   os.execute( "clear" )
   helper.menu(mainMenu)
-  helper.Main(lines)
+  helper.Main()
 else
   defineArgs()
 end
