@@ -110,10 +110,12 @@ function dbmodule.findScript(scriptName)
     for k,v in ipairs(nse) do
       print(k.." "..v)
     end
-    io.write('Do yo want more info about any script, choose the script using id [1-11] ')
-    local  option = io.read()
-    if option then
-      print("Sorry this option is disable for now, try later")
+    io.write('Do yo want more info about any script, choose the script using id [1-'..#nse..'] ')
+    local option = io.read("*n")
+    print(nse[option])
+    if nse[option]  then
+      print(nse[option])
+      os.execute("cat /usr/local/share/nmap/scripts/"..nse[option].."")
     end
   else
     print("Not Results Found\n")
