@@ -4,7 +4,7 @@ local dbmodule = {}
 local config = require "config"
 local sqlite3 = require "lsqlite3"
 scriptdb = config.scriptdb
-
+local helper = require "helper"
 -- see if the file exists
 function file_exists(file)
   local f = io.open(file, "rb")
@@ -126,14 +126,15 @@ function dbmodule.findScript(scriptName)
     table.insert(nse,row.name)
   end
   if #nse > 0 then
+    print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
     print("\nTotal Scripts Found "..#nse.."\n")
     for k,v in ipairs(nse) do
       print(k.." "..v)
     end
-    io.write('Do yo want more info about any script, choose the script using id [1-'..#nse..'] ')
+    io.write('\nDo yo want more info about any script, choose the script using id [1-'..#nse..'] ')
     local option = io.read("*n")
-    print(nse[option])
     if nse[option]  then
+      print("\n")
       -- tests the functions above
       local file = config.scriptsPath..nse[option]
       local lines = lines_from(file)
