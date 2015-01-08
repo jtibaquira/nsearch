@@ -141,7 +141,7 @@ function dbmodule.findScript(scriptName)
       for k,v in pairs(lines) do
        local i = string.find(v, "license")
        if not i then
-         print('\27[95m'..v..'\27[0m')
+         print('\27[96m'..v..'\27[0m')
        else
          break
        end
