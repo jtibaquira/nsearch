@@ -129,7 +129,7 @@ function dbmodule.findScript(scriptName)
     print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
     print("\nTotal Scripts Found "..#nse.."\n")
     for k,v in ipairs(nse) do
-      print(k.." "..v)
+      print('\27[92m'..k.." "..v..'\27[0m')
     end
     io.write('\nDo yo want more info about any script, choose the script using id [1-'..#nse..'] ')
     local option = io.read("*n")
@@ -141,7 +141,7 @@ function dbmodule.findScript(scriptName)
       for k,v in pairs(lines) do
       local i = string.find(v, "license")
       if not i then
-        print(v)
+        print('\27[95m'..v..'\27[0m')
       else
         break
       end
