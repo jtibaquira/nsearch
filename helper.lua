@@ -5,7 +5,7 @@ local setup = require "setup"
 local helper = {}
 
 helper.mainMenu = { h = "Help", s = "Initial Setup", n = "Search by Name of Script", c = "Search by Category", b = "Create script.db backup", q = "Exit"}
-helper.searchMenu ={ s = "Search by Name", m = "Main Menu", q = "Exit"}
+helper.searchMenu ={ s = "Search by Name", b = "Main Menu", q = "Exit"}
 
 function helper.banner()
 
@@ -36,8 +36,9 @@ function searchMenu()
   if action == "q" then
     os.exit()
   elseif action == "b" then
-    helper.menu(mainMenu)
-    helper.Main(lines)
+   os.execute( "clear" )
+    helper.menu(helper.mainMenu)
+    helper.Main()
   elseif action == "s" then
     print("Ready for Search")
   else

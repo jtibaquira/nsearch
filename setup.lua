@@ -29,7 +29,7 @@ local file = filePath
 local lines = lines_from(file)
 
 -- create a script.db backups
-function helper.createBackup(banner)
+function setup.createBackup(banner)
   print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
   outfile = io.open(config.fileBackup, "w")
   for k,v in pairs(lines) do
