@@ -4,6 +4,26 @@ local dbmodule = {}
 local config = require "config"
 local sqlite3 = require "lsqlite3"
 scriptdb = config.scriptdb
+
+-- see if the file exists
+function file_exists(file)
+  local f = io.open(file, "rb")
+  if f then f:close() end
+  return f ~= nil
+end
+
+-- get all lines from a file, returns an empty
+-- list/table if the file does not exist
+function lines_from(file)
+  if not file_exists(file) then print "El archivo no existe" os.exit() end
+  lines = {}
+  for line in io.lines(file) do
+    lines[#lines + 1] = line
+  end
+  return lines
+end
+
+
 function connectDB(method)
   if method then
     db = sqlite3.open( scriptdb, method)
@@ -114,8 +134,17 @@ function dbmodule.findScript(scriptName)
     local option = io.read("*n")
     print(nse[option])
     if nse[option]  then
-      print(nse[option])
-      os.execute("cat /usr/local/share/nmap/scripts/"..nse[option].."")
+      -- tests the functions above
+      local file = config.scriptsPath..nse[option]
+      local lines = lines_from(file)
+      for k,v in pairs(lines) do
+      local i = string.find(v, "license")
+      if not i then
+        print(v)
+      else
+        break
+      end
+  end
     end
   else
     print("Not Results Found\n")

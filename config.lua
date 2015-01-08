@@ -2,7 +2,8 @@
 
 local config = {}
 
-config.filePath = '/usr/local/share/nmap/scripts/script.db'
+config.scriptsPath = '/usr/local/share/nmap/scripts/'
+config.filePath = config.scriptsPath..'script.db'
 config.fileBackup = 'scriptbkp.db'
 config.scriptdb = 'nmap_scripts.sqlite3'
 config.categories = {
