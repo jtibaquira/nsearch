@@ -110,8 +110,18 @@ function dbmodule.findScript(scriptName)
     for k,v in ipairs(nse) do
       print(k.." "..v)
     end
+    io.write('Do yo want more info about any script, choose the script using id [1-11] ')
+    local  option = io.read()
+    if option then
+      print("Sorry this option is disable for now, try later")
+    end
   else
     print("Not Results Found\n")
+    io.write("Do you want search again? [y/n] ")
+    local action = io.read()
+    if action == 'y' then
+      print("Sorry action disable, try later")
+    end
   end
 end
 
