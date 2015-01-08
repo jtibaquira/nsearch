@@ -29,16 +29,32 @@ function helper.menu(menulist)
   return menulist
 end
 
+function searchMenu()
+  io.write('\n What do you want to do? : ')
+  local action = io.read()
+  if action == "q" then
+    os.exit()
+  elseif action == "b" then
+    helper.Main(lines)
+  elseif action == "s" then
+    print("Ready for Search")
+  else
+    os.execute()
+  end
+end
+
 function helper.Main(lines)
  io.write('\n What do you want to do? : ')
  local action = io.read()
- print(action)
  if action == "q" then
   os.exit()
  elseif action == "s" then
+   os.execute( "clear" )
   setup.install(lines,helper.banner())
  elseif action == "n" then
+   os.execute( "clear" )
   helper.menu(helper.searchMenu)
+  searchMenu()
  else
   os.exit()
  end

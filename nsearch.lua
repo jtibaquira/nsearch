@@ -3,7 +3,7 @@
 local config = require "config"
 local filePath = config.filePath
 local categoryList = config.categories
-local setup = require "setup"
+--local setup = require "setup"
 local dbmodule = require "dbmodule"
 local helper = require "helper"
 -- functions to handler the args values
@@ -90,14 +90,14 @@ function defineArgs()
       os.exit()
     elseif arg[i] == "-n" and arg[i+1] ~= nil then
       print("Searching Script...")
-      dbmodule.findScript(arg[i+1])
+      dbmodule.findScript(arg[i+1],helper.banner())
       os.exit()
     elseif arg[i] == "-b" then
       createBackup(lines)
       os.exit()
     elseif arg[i] == "-s" then
       print("NSEarch Initital setup starting...")
-      setup.install(lines)
+      --setup.install(lines)
     elseif arg[i] == "-c" and arg[i+1] ~= nil then
       dbmodule.SearchByCat(arg[i+1])
       os.exit()
@@ -113,7 +113,9 @@ end
 if countArgs() < 1 then
   -- printAll(lines)
   local mainMenu = helper.mainMenu
+  os.execute( "clear" )
   helper.menu(mainMenu)
+  helper.Main(lines)
 else
   defineArgs()
 end
