@@ -5,6 +5,7 @@ local filePath = config.filePath
 local categoryList = config.categories
 local setup = require "setup"
 local dbmodule = require "dbmodule"
+local helper = require "helper"
 
 -- functions to handler the args values
 function printArgs()
@@ -22,6 +23,8 @@ end
 
 -- display a Help Menu
 function helpMenu()
+
+  helper.banner()
 banner=[[
  _   _  _____  _____                     _
  | \ | |/  ___||  ___|                   | |
