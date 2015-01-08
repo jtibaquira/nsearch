@@ -6,7 +6,7 @@ local helper = {}
 function helper.banner()
 
   banner=[[
-    _   _  _____  _____                     _
+   _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
    |  \| |\ `--. | |__    __ _  _ __   ___ | |__
    | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
@@ -14,7 +14,7 @@ function helper.banner()
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ]]
 
-  print(banner)
+  return banner
 end
 
 return helper

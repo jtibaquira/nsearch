@@ -6,7 +6,6 @@ local categoryList = config.categories
 local setup = require "setup"
 local dbmodule = require "dbmodule"
 local helper = require "helper"
-
 -- functions to handler the args values
 function printArgs()
   for k,v in pairs(arg) do
@@ -23,16 +22,7 @@ end
 
 -- display a Help Menu
 function helpMenu()
-
-  helper.banner()
-banner=[[
- _   _  _____  _____                     _
- | \ | |/  ___||  ___|                   | |
- |  \| |\ `--. | |__    __ _  _ __   ___ | |__
- | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
- | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
- \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-]]
+  local banner = helper.banner()
   print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
   print "NSEarch (0.1)"
   print " USAGE: nsearch [Options] string"
