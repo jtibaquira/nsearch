@@ -3,12 +3,12 @@
 local config = require "config"
 local categoryList = config.categories
 local dbmodule = require "dbmodule"
-local helper = require "helper"
+--local helper = require "helper"
 -- scriptdb = config.scriptdb
 local setup = {}
 
-function setup.install(lines)
-  print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+function setup.install(lines, banner)
+  print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
   dbmodule.InitSetup("wc")
   local t ={}
   local id_script = 0

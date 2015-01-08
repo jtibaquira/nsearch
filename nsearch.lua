@@ -111,7 +111,9 @@ end
 
 -- validation of args
 if countArgs() < 1 then
-  printAll(lines)
+  -- printAll(lines)
+  local mainMenu = helper.mainMenu
+  helper.menu(mainMenu)
 else
   defineArgs()
 end
