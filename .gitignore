@@ -4,3 +4,4 @@
 *.unrar
 .DS_Store
 *.tmp
+*.db
