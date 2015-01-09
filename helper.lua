@@ -89,9 +89,12 @@ function helper.searchConsole()
     os.execute("clear")
     print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
     print("name : search by script's name ")
+    print("category : search by category")
     print("exit : close the console")
     print("back : returns to the main menu")
-    print("\n Usage name:http")
+    print("\n Usage:")
+    print("\n   name:http")
+    print("\n   category:exploit")
     helper.searchConsole()
   elseif string.find(command,"name:") then
     string = command:gsub("name:","")
@@ -103,6 +106,9 @@ function helper.searchConsole()
     os.execute("clear")
     helper.menu(helper.mainMenu)
     helper.Main()
+  elseif string.find(command,"category:") then
+    string = command:gsub("category:","")
+    os.execute("clear")
   else
     helper.searchConsole()
   end
