@@ -125,40 +125,7 @@ function dbmodule.findScript(scriptName,banner)
   for row in db:nrows("select name from scripts where name like '%"..scriptName.."%'") do
     table.insert(nse,row.name)
   end
-  if #nse > 0 then
-    print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
-    print("\nTotal Scripts Found "..#nse.."\n")
-    for k,v in ipairs(nse) do
-      print('\27[92m'..k.." "..v..'\27[0m')
-    end
-    io.write('\nDo yo want more info about any script, choose the script using id [1-'..#nse..'] ')
-    local option = io.read("*n")
-    if nse[option]  then
-      print("\n")
-      -- tests the functions above
-      local file = config.scriptsPath..nse[option]
-      local lines = lines_from(file)
-      for k,v in pairs(lines) do
-       local i = string.find(v, "license")
-       if not i then
-         print('\27[96m'..v..'\27[0m')
-       else
-        break
-       end
-      end
-    end
-  else
-    print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
-    print("\nNot Results Found\n")
-    io.write("Do you want search again? [y/n]: ")
-    local action = io.read()
-    if action == 'y' then
-      io.write("Enter the name of the script: ")
-      local string = io.read()
-      print("\n")
-      dbmodule.findScript(string,banner)
-    end
-  end
+  return nse
 end
 
 
