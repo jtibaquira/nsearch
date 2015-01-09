@@ -7,7 +7,6 @@ scriptdb = config.scriptdb
 local helper = {}
 
 helper.mainMenu = {"Help (h)", "Initial Setup (i)", "Search by Name of Script (s)", "Search by Category (c)", "Create script.db backup (b)", "Exit (q)"}
-helper.searchMenu ={ "Search by Name (s)", "Main Menu (b)", "Exit (q)"}
 
 function helper.banner()
 
@@ -74,6 +73,19 @@ function resultList(nse)
    end
 end
 
+function resultListaCat( scripts )
+  if #scripts > 0 then
+    print("\nTotal Scripts Found "..#scripts.." into "..catName.." Category\n")
+    for k,v in ipairs(scripts) do
+      print(k.." "..v)
+    end
+   else
+     print("Not Results Found\n")
+     print("=== These are the enabled Categories ===\n")
+     dbmodule.findAll("categories")
+  end
+end
+
 function helper.menu(menulist)
   print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
   for key,value in ipairs(menulist) do
@@ -109,26 +121,9 @@ function helper.searchConsole()
   elseif string.find(command,"category:") then
     string = command:gsub("category:","")
     os.execute("clear")
+    resultListaCat( dbmodule.SearchByCat(string))
   else
     helper.searchConsole()
-  end
-end
-
-function searchMenu()
-  io.write('\n What do you want to do? : ')
-  local action = io.read()
-  if action == "q" or action == "3" then
-    os.exit()
-  elseif action == "b" or action == "2" then
-   os.execute( "clear" )
-    helper.menu(helper.mainMenu)
-    helper.Main()
-  elseif action == "s" or action == "1" then
-    os.execute("clear")
-    print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
-    helper.searchConsole()
-  else
-    os.execute()
   end
 end
 
