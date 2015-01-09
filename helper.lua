@@ -24,7 +24,7 @@ function helper.banner()
 end
 
 function getScirptDesc( nse )
-  io.write('\nDo yo want more info about any script, choose the script using id [1-'..#nse..'] or quit (q) ')
+  io.write('\nDo yo want more info about any script, choose the script using id [1-'..#nse..'] or quit (0) ')
   local option = io.read("*n")
   if nse[option]  then
     print("\n")
@@ -38,10 +38,14 @@ function getScirptDesc( nse )
         getScirptDesc(nse)
       end
     end
-  elseif option == "q" then
-    hepler.searchConsole()
+  elseif option == 0 then
+    os.execute("clear")
+    print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+    helper.searchConsole()
   else
-    helper.Main()
+    os.execute("clear")
+     helper.menu(helper.mainMenu)
+     helper.Main()
   end
 end
 
@@ -59,10 +63,15 @@ function resultList(nse)
     io.write("Do you want search again? [y/n]: ")
     local action = io.read()
     if action == 'y' then
-      hepler.searchConsole()
+      os.execute("clear")
+      print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+      helper.searchConsole()
     else
+      os.execute("clear")
+     helper.menu(helper.mainMenu)
       helper.Main()
-  end
+    end
+   end
 end
 
 function helper.menu(menulist)
@@ -73,7 +82,7 @@ function helper.menu(menulist)
   return menulist
 end
 
-function hepler.searchConsole()
+function helper.searchConsole()
   io.write('\nnsearch> ')
   local command = io.read()
   if command == "help" or command == nil then
@@ -83,11 +92,11 @@ function hepler.searchConsole()
     print("exit : close the console")
     print("back : returns to the main menu")
     print("\n Usage name:http")
-    hepler.searchConsole()
+    helper.searchConsole()
   elseif string.find(command,"name:") then
     string = command:gsub("name:","")
     os.execute("clear")
-    dbmodule.findScript(string,helper.banner())
+    resultList(dbmodule.findScript(string,helper.banner()))
   elseif string.find(command,"exit") then
     os.exit()
   elseif string.find(command,"back") then
@@ -95,8 +104,7 @@ function hepler.searchConsole()
     helper.menu(helper.mainMenu)
     helper.Main()
   else
-    print("bad string")
-   hepler.searchConsole()
+    helper.searchConsole()
   end
 end
 
@@ -139,6 +147,5 @@ function helper.Main()
   os.exit()
  end
 end
-
 
 return helper
