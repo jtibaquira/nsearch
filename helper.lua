@@ -31,19 +31,26 @@ function helper.menu(menulist)
 end
 
 function searchConsole()
-  --print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
   io.write('\nnsearch> ')
   local command = io.read()
   if command == "help" or command == nil then
     os.execute("clear")
     print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
-    print("name : to search by script's name ")
+    print("name : search by script's name ")
+    print("exit : close the console")
+    print("back : returns to the main menu")
     print("\n Usage name:http")
     searchConsole()
   elseif string.find(command,"name:") then
     string = command:gsub("name:","")
-    print(string)
+    os.execute("clear")
     dbmodule.findScript(string,helper.banner())
+  elseif string.find(command,"exit") then
+    os.exit()
+  elseif string.find(command,"back") then
+    os.execute("clear")
+    helper.menu(helper.mainMenu)
+    helper.Main()
   else
     print("bad string")
    searchConsole()
@@ -78,8 +85,8 @@ function helper.Main()
   setup.install(helper.banner())
  elseif action == "s" or action == "3" then
    os.execute( "clear" )
-  helper.menu(helper.searchMenu)
-  searchMenu()
+   print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+   searchConsole()
 elseif action == "b" or action == "4" then
   setup.createBackup(helper.banner())
   os.execute( "clear" )
