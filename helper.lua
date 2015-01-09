@@ -23,11 +23,12 @@ function helper.banner()
 end
 
 function getScirptDesc( nse )
-  io.write('\nDo yo want more info about any script, choose the script using id [1-'..#nse..'] or quit (0) ')
-  local option = io.read("*n")
-  if nse[option]  then
+  io.write('\nDo yo want more info about any script, choose the script using id [1-'..#nse..'] or quit (0)')
+  local option  = io.read()
+  key = tonumber(option)
+  if nse[key] then
     print("\n")
-    local file = config.scriptsPath..nse[option]
+    local file = config.scriptsPath..nse[key]
     local lines = lines_from(file)
     for k,v in pairs(lines) do
       local i = string.find(v, "license")
@@ -37,7 +38,7 @@ function getScirptDesc( nse )
         getScirptDesc(nse)
       end
     end
-  elseif option == 0 then
+  elseif option == "0" then
     os.execute("clear")
     print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
     helper.searchConsole()
@@ -97,9 +98,10 @@ function helper.menu(menulist)
 end
 
 function helper.searchConsole()
-  io.write('\nnsearch> ')
+  io.write('nsearch> ')
   local command = io.read()
-  if command == "help" or command == nil then
+  print(string.len(command))
+  if command == "help" then
     os.execute("clear")
     print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
     print("name : search by script's name ")
@@ -122,11 +124,10 @@ function helper.searchConsole()
     helper.Main()
   elseif string.find(command,"category:") then
     string = command:gsub("category:","")
-    print(string)
     os.execute("clear")
     resultListaCat(dbmodule.SearchByCat(string),string)
   else
-    helper.searchConsole()
+   helper.searchConsole()
   end
 end
 
@@ -145,10 +146,12 @@ function helper.Main()
  elseif action == "b" or action == "4" then
   setup.createBackup(helper.banner())
   os.execute( "clear" )
-  helper.menu(mainMenu)
+  helper.menu(helper.mainMenu)
   helper.Main()
  else
-  os.exit()
+   os.execute("clear")
+  helper.menu(helper.mainMenu)
+  helper.Main()
  end
 end
 
