@@ -103,7 +103,7 @@ end
 function dbmodule.SearchByCat(catName)
   scripts = {}
   local db = connectDB("wc")
-  for row in db:nrows("select scripts.name from scripts, categories, script_category where categories name '%"..catName.."%' and scripts.id=script_category.id_script and categories.id=script_category.id_category") do
+  for row in db:nrows("select scripts.name from scripts, categories, script_category where categories.name LIKE '%"..catName.."%' and scripts.id=script_category.id_script and categories.id=script_category.id_category") do
     table.insert(scripts,row.name)
   end
   db:close()

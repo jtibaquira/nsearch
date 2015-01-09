@@ -73,12 +73,14 @@ function resultList(nse)
    end
 end
 
-function resultListaCat( scripts )
+function resultListaCat(scripts,catName)
   if #scripts > 0 then
+    print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
     print("\nTotal Scripts Found "..#scripts.." into "..catName.." Category\n")
     for k,v in ipairs(scripts) do
-      print(k.." "..v)
+      print('\27[92m'..k.." "..v..'\27[0m')
     end
+    getScirptDesc(scripts)
    else
      print("Not Results Found\n")
      print("=== These are the enabled Categories ===\n")
@@ -120,8 +122,9 @@ function helper.searchConsole()
     helper.Main()
   elseif string.find(command,"category:") then
     string = command:gsub("category:","")
+    print(string)
     os.execute("clear")
-    resultListaCat( dbmodule.SearchByCat(string))
+    resultListaCat(dbmodule.SearchByCat(string),string)
   else
     helper.searchConsole()
   end
