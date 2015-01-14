@@ -33,3 +33,21 @@ if [[ $luarockspath ]]; then
 else
   echo "Installing Lua Rocks"
 fi
+
+ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
+
+if [ -f /etc/lsb-release ]; then
+  . /etc/lsb-release
+  OS=$DISTRIB_ID
+  VER=$DISTRIB_RELEASE
+  echo $VER
+  echo $OS
+elif [ -f /etc/debian_version ]; then
+  OS=Debian  # XXX or Ubuntu??
+  VER=$(cat /etc/debian_version)
+elif [ -f /etc/redhat-release ]; then
+  echo "Use Yum"
+else
+  OS=$(uname -s)
+  VER=$(uname -r)
+fi
