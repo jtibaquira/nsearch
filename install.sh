@@ -4,6 +4,21 @@ nmapversion=$(nmap -V 2>/dev/null)
 luaversion=$(lua -v 2>/dev/null)
 luarocks=$(luarocks 2>/dev/null)
 
+function install_nmap(){
+  echo "Installing nmap .... "
+  #cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; su root; make install
+}
+
+function install_lua(){
+  echo "Installing lua ..."
+  #cd /tmp; curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz; tar zxf lua-5.3.0.tar.gz; cd lua-5.3.0; make linux test
+}
+
+function install_luarocks(){
+  echo "Installing luarocks ..."
+  #cd /tmp; curl -O http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure; ./configure --lua-version=5.2; su root; make install
+}
+
 if [[ $nmapversion ]]; then
   echo "Nmap Installed"
   $nmapversion
@@ -11,7 +26,7 @@ else
   while true; do
     read -p "Do you wish to install nmap? " yn
     case $yn in
-      [Yy]* ) cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; su root; make install; break;;
+      [Yy]* ) install_nmap; break;;
       [Nn]* ) break;;
       * ) echo "Please answer yes or no.";;
     esac
@@ -25,7 +40,7 @@ else
   while true; do
     read -p "Do you wish to install lua? " yn
     case $yn in
-      [Yy]* ) cd /tmp; curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz; tar zxf lua-5.3.0.tar.gz; cd lua-5.3.0; make linux test; break;;
+      [Yy]* ) install_lua; break;;
       [Nn]* ) break;;
       * ) echo "Please answer yes or no.";;
     esac
@@ -39,7 +54,7 @@ else
   while true; do
     read -p "Do you wish to install luarocks? " yn
     case $yn in
-      [Yy]* ) cd /tmp; curl -O http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure; ./configure --lua-version=5.2; su root; make install;  break;;
+      [Yy]* ) install_luarocks;  break;;
       [Nn]* ) break;;
       * ) echo "Please answer yes or no.";;
     esac
