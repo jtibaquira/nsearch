@@ -19,6 +19,10 @@
 #####  nsearch -c exploit
 #####  nsearch -s
 
+### Pre-Requeriments
+#### Debian(Ubuntu)
+##### sudo apt-get install libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+
 ## TODO
 * Searching for Category
 * Create a backup option

@@ -4,24 +4,57 @@ nmapversion=$(nmap -V 2>/dev/null)
 luaversion=$(lua -v 2>/dev/null)
 luarocks=$(luarocks 2>/dev/null)
 
+function os_detection(){
+  if [ -f /etc/lsb-release ]; then
+    . /etc/lsb-release
+    sudo make install
+  elif [ -f /etc/debian_version ]; then
+    su root
+    make install
+  elif [ -f /etc/redhat-release ]; then
+    su root
+    make install
+  else
+    su root
+    make install
+  fi
+}
+
 function install_nmap(){
   echo "Installing nmap .... "
-  #cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; su root; make install
+  cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; os_detection
 }
 
 function install_lua(){
-  echo "Installing lua ..."
-  #cd /tmp; curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz; tar zxf lua-5.3.0.tar.gz; cd lua-5.3.0; make linux test
+  if [ -f /etc/lsb-release ]; then
+    sudo apt-get install lua5.2 liblua5.2-dev -y
+  elif [ -f /etc/debian_version ]; then
+    su root
+    apt-get install lua5.2 liblua5.2-dev -y
+    logout
+  elif [ -f /etc/redhat-release ]; then
+    su root
+    yum install lua
+    logout
+  else
+    cd /tmp; curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz; tar zxvf lua-5.3.0.tar.gz -C $HOME/; cd $HOME/lua-5.3.0; make linux test;
+    su root
+    ln -s $HOME/lua-5.3.0/src/lua /usr/local/bin/lua
+    logout
+    source ~/.bashrc
+    source ~/.profile
+  fi
 }
 
 function install_luarocks(){
   echo "Installing luarocks ..."
-  #cd /tmp; curl -O http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure; ./configure --lua-version=5.2; su root; make install
+  curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure --lua-version=5.2; os_detection
+  sudo luarocks install lsqlite3
 }
 
 if [[ $nmapversion ]]; then
   echo "Nmap Installed"
-  $nmapversion
+  nmap -V 2>/dev/null
 else
   while true; do
     read -p "Do you wish to install nmap? " yn
@@ -61,55 +94,15 @@ else
   done
 fi
 
-
-<<COMMENT1
 dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
-nmappath=$(find /usr -type f -name "nmap" 2>/dev/null)
-luapath=$(find /usr -type f -name "lua" 2>/dev/null)
-luarockspath=$(find /usr -type f -name "luarocks*" 2>/dev/null)
 
 if [[ $dbpath ]]; then
   echo $dbpath
-  echo -e "local settings = {} \n" > settings.lua
-  echo -e "settings.scriptsPath='$dbpath'" >> settings.lua
-  echo -e "settings.filePath = settings.scriptsPath..'script.db'" >> settings.lua
-  echo -e "settings.fileBackup = 'scriptbkp.db'" >> settings.lua
-  echo -e "settings.scriptdb = 'nmap_scripts.sqlite3'" >> settings.lua
-  echo -e 'settings.categories = {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> settings.lua
-  echo -e "return settings" >> settings.lua
+  echo -e "local config = {} \n" > config.lua
+  echo -e "config.scriptsPath='$dbpath'" >> config.lua
+  echo -e "config.filePath = config.scriptsPath..'script.db'" >> config.lua
+  echo -e "config.fileBackup = 'scriptbkp.db'" >> config.lua
+  echo -e "config.scriptdb = 'nmap_scripts.sqlite3'" >> config.lua
+  echo -e 'config.categories = {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.lua
+  echo -e "return config" >> config.lua
 fi
-
-if [[ $nmappath ]]; then
-  echo "Nmap Found $nmappath"
-else
-  echo "Installing Nmap"
-fi
-
-if [[ $luapath ]]; then
-  echo "lua Found $nmappath"
-else
-  echo "Installing Lua"
-fi
-
-if [[ $luarockspath ]]; then
-  echo "luarocks Found $luarockspath"
-else
-  echo "Installing Lua Rocks"
-fi
-
-ARCH=$(uname -m | sed 's/x86_//;s/i[3-6]86/32/')
-
-if [ -f /etc/lsb-release ]; then
-  . /etc/lsb-release
-  OS=$DISTRIB_ID
-  VER=$DISTRIB_RELEASE
-elif [ -f /etc/debian_version ]; then
-  OS=Debian  # XXX or Ubuntu??
-  VER=$(cat /etc/debian_version)
-elif [ -f /etc/redhat-release ]; then
-  echo "Use Yum"
-else
-  OS=$(uname -s)
-  VER=$(uname -r)
-fi
-COMMENT1
