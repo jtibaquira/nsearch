@@ -1,4 +1,9 @@
-# NSEarch
+#   _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
 
 ## Description
 #### nsearch is a minimal script to help find a diferentes script into the nse database file
@@ -22,6 +27,8 @@
 ### Pre-Requeriments
 #### Debian(Ubuntu)
 ##### sudo apt-get install libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+#### REDHAT(CentOS)
+##### #yum -y install bzip2 groupinstall "Development Tools"
 
 ## TODO
 * Searching for Category
