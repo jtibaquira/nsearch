@@ -1,9 +1,4 @@
-#   _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+# NSEarch
 
 ## Description
 #### nsearch is a minimal script to help find a diferentes script into the nse database file
