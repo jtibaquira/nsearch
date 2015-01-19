@@ -17,12 +17,15 @@
 
 ### Pre-Requeriments
 #### Debian(Ubuntu)
-##### sudo apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+```bash
+# apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+```
 #### REDHAT(CentOS)
-##### #yum -y install bzip2 groupinstall "Development Tools"
-
+```bash
+#yum -y install bzip2 groupinstall "Development Tools"
+```
 ### Installation
-##### To install the application es necessary run as root the install script (install.sh), the script is only for OS based on debian, for OS based on REHL, MacOSX it's better do it manually.
+##### To install the application is necessary run as root the install script (install.sh), the script is only for OS based on debian, for OS based on REHL, MacOSX it's better do it manually.
 #### Automatic Installation
 ```bash
 # sh install.sh
@@ -58,6 +61,9 @@ $./configure --lua-version=5.3
 
 ### NSEarch (0.1)
 #### USAGE:
+```bash
+$ lua nsearch.lua
+```
 ##### Main Menu
 ```bash
  ================================================
