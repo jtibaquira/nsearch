@@ -216,3 +216,11 @@ Upload Categories to Categories Table ...
 * Create a pretty output
 * Create a file output
 * Version for Windows
+* Set like a favorite script
+
+### FeedBack
+#### Feel free to fork the project, submit any kind of comment, issue or contribution.
+
+* Twitter: @jjtibaquira
+* Email: jko@dragonjar.org
+* Foro: http://comunidad.dragonjar.org
