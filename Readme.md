@@ -15,22 +15,6 @@
 ## Description
 #### nsearch is a minimal script to help find a diferentes script into the nse database file
 
-## Help Menu
-
-### NSEarch (0.1)
-#### USAGE:
-##### nsearch
-#### Main Menu:
-##### 1 Help (h)
-##### 2 Initial Setup (i)
-##### 3 Search by Name of Script (s)
-##### 4 Search by Category (c)
-##### 5 Create script.db backup (b)
-##### 6 Exit (q)
-#### EXAMPLES:
-#####  name:http
-#####  category:exploit
-
 ### Pre-Requeriments
 #### Debian(Ubuntu)
 ##### sudo apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
@@ -71,6 +55,134 @@ $./configure --lua-version=5.3
 # make install
 # luarocks install lsqlite3
 ```
+
+### NSEarch (0.1)
+#### USAGE:
+##### Main Menu
+```bash
+ ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.1     |   @jjtibaquira
+  ================================================
+
+    1 Help (h)
+    2 Initial Setup (i)
+    3 Search by Name of Script (s)
+    4 Search by Category (c)
+    5 Create script.db backup (b)
+    6 Exit (q)
+
+ What do you want to do? :
+```
+
+#### Initial Setup(option 2)
+```bash
+ ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+ ================================================
+   Version 0.1     |   @jjtibaquira
+ ================================================
+
+Creating Database :nmap_scripts.sqlite3
+Creating Table For Script ....
+Creating Table for Categories ....
+Creating Table for Scripts per Category ....
+Upload Categories to Categories Table ...
+```
+
+#### Search by Name(option 3)
+```bash
+ ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.1     |   @jjtibaquira
+  ================================================
+
+    name : search by script's name
+    category : search by category
+    exit : close the console
+    back : returns to the main menu
+
+     Usage:
+
+       name:http
+
+       category:exploit
+    nsearch>
+```
+
+```bash
+   ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.1     |   @jjtibaquira
+  ================================================
+
+  nsearch> name:http
+
+  Total Scripts Found 101
+
+    1 http-adobe-coldfusion-apsa1301.nse
+    2 http-affiliate-id.nse
+    3 http-apache-negotiation.nse
+    4 http-auth-finder.nse
+    5 http-auth.nse
+    6 http-awstatstotals-exec.nse
+    7 http-axis2-dir-traversal.nse
+    8 http-backup-finder.nse
+    9 http-barracuda-dir-traversal.nse
+    .
+    .
+    .
+    100 membase-http-info.nse
+    101 riak-http-info.nse
+
+    Do yo want more info about any script, choose the script using id [1-101] or quit (0) 1
+
+    description = [[
+    Attempts to exploit an authentication bypass vulnerability in Adobe Coldfusion servers (APSA13-01: http://www.adobe.com/support/security/advisories/apsa13-01.html) to retrieve a valid administrator's session cookie.
+    ]]
+
+    ---
+    -- @usage nmap -sV --script http-adobe-coldfusion-apsa1301 <target>
+    -- @usage nmap -p80 --script http-adobe-coldfusion-apsa1301 --script-args basepath=/cf/adminapi/ <target>
+    --
+    -- @output
+    -- PORT   STATE SERVICE
+    -- 80/tcp open  http
+    -- | http-adobe-coldfusion-apsa1301:
+    -- |_  admin_cookie: aW50ZXJhY3RpdmUNQUEyNTFGRDU2NzM1OEYxNkI3REUzRjNCMjJERTgxOTNBNzUxN0NEMA1jZmFkbWlu
+    --
+    -- @args http-adobe-coldfusion-apsa1301.basepath URI path to administrator.cfc. Default: /CFIDE/adminapi/
+    --
+    ---
+
+    author = "Paulino Calderon <calderon@websec.mx>"
+
+    Do yo want more info about any script, choose the script using id [1-101] or quit (0)
+```
+
 ## TODO
 * Fast-Tarck
 * Searching by Author
