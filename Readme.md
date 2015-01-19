@@ -15,19 +15,41 @@
 #####  -c  Get all script into a category
 #####  -b  Create a script.db backup for future diff default name scriptbkp.db the files name are defined in config.lua
 #### EXAMPLES:
-#####  nsearch -n http
-#####  nsearch -c exploit
-#####  nsearch -s
+#####  name:http
+#####  category:exploit
 
 ### Pre-Requeriments
 #### Debian(Ubuntu)
-##### sudo apt-get install libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+##### sudo apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
 #### REDHAT(CentOS)
 ##### #yum -y install bzip2 groupinstall "Development Tools"
 
+### Installation
+##### To install the application es necessary run as root the install script (install.sh), the script is only for OS based on debian, for OS based on REHL, MacOSX it's better do it manually.
+#### Automatic Installation
+##### # sh install.sh
+#### Manual Installation
+##### $ curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2
+##### $ bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -
+##### $ cd nmap-6.47
+##### $ ./configure && make
+##### # make install
+##### $ cd /tmp
+##### $ curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz
+##### $ tar zxvf lua-5.3.0.tar.gz -C $HOME/
+##### $ cd $HOME/lua-5.3.0
+##### $ make linux test
+##### # ln -s $HOME/lua-5.3.0/src/lua /usr/local/bin/lua
+##### $ cd /tmp
+##### $ curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz
+##### $ tar xvzf luarocks-2.2.0.tar.gz
+##### $ cd luarocks-2.2.0
+##### $./configure --lua-version=5.3
+##### # make install
+##### # luarocks install lsqlite3
+
 ## TODO
-* Searching for Category
-* Create a backup option
+* Fast-Tarck
 * Searching by Author
 * Create a pretty output
 * Create a file output
