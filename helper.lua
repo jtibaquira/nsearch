@@ -104,7 +104,6 @@ end
 function helper.searchConsole()
   io.write('nsearch> ')
   local command = io.read()
-  print(string.len(command))
   if command == "help" then
     os.execute("clear")
     print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
