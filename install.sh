@@ -20,14 +20,13 @@ luarocks=$(luarocks 2>/dev/null)
 
 function os_detection(){
   if [ -f /etc/lsb-release ]; then
-    . /etc/lsb-release
-    sudo make install
+    make install
   elif [ -f /etc/debian_version ]; then
     make install
   elif [ -f /etc/redhat-release ]; then
-    su - root -c "make install"
+    echo "Please Follow the instructions into the Readme File"
   else
-    su - root -c "make install"
+    echo "Please Follow the instructions into the Readme File"
   fi
 }
 
@@ -38,18 +37,13 @@ function install_nmap(){
 
 function install_lua(){
   if [ -f /etc/lsb-release ]; then
-    sudo apt-get install lua5.2 liblua5.2-dev -y
+    apt-get install lua5.2 liblua5.2-dev -y
   elif [ -f /etc/debian_version ]; then
     apt-get install lua5.2 liblua5.2-dev -y
   elif [ -f /etc/redhat-release ]; then
-    su - root -c "yum install lua"
+    echo "Please Follow the instructions into the Readme File"
   else
-    cd /tmp; curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz; tar zxvf lua-5.3.0.tar.gz -C $HOME/; cd $HOME/lua-5.3.0; make linux test;
-    su root
-    ln -s $HOME/lua-5.3.0/src/lua /usr/local/bin/lua
-    logout
-    source ~/.bashrc
-    source ~/.profile
+    echo "Please Follow the instructions into the Readme File"
   fi
 }
 
@@ -58,26 +52,21 @@ function install_luarocks(){
   cd /tmp; curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure --lua-version=5.2; os_detection
 
   if [ -f /etc/lsb-release ]; then
-    sudo luarocks install lsqlite3
+    luarocks install lsqlite3
   elif [ -f /etc/debian_version ]; then
     luarocks install lsqlite3
   elif [ -f /etc/redhat-release ]; then
-    su - root -c "luarocks install lsqlite3"
+    echo "Please Follow the instructions into the Readme File"
   else
-    cd /tmp; curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz; tar zxvf lua-5.3.0.tar.gz -C $HOME/; cd $HOME/lua-5.3.0; make linux test;
-    su root
-    ln -s $HOME/lua-5.3.0/src/lua /usr/local/bin/lua
-    logout
-    source ~/.bashrc
-    source ~/.profile
+    echo "Please Follow the instructions into the Readme File"
   fi
 }
 
 if [[ $nmapversion ]]; then
-  nmap -V 2>/dev/null
+  echo -e "Nmap already installed :D \n"
 else
   while true; do
-    read -p "Do you wish to install nmap? " yn
+    read -p "\nDo you wish to install nmap? " yn
     case $yn in
       [Yy]* ) install_nmap; break;;
       [Nn]* ) break;;
@@ -87,10 +76,10 @@ else
 fi
 
 if [[ $luaversion ]]; then
-  lua -v 2>/dev/null
+  echo -e "Lua already installed :D \n"
 else
   while true; do
-    read -p "Do you wish to install lua? " yn
+    read -p "\nDo you wish to install lua? " yn
     case $yn in
       [Yy]* ) install_lua; break;;
       [Nn]* ) break;;
@@ -100,10 +89,10 @@ else
 fi
 
 if [[ $luarocks ]]; then
-  luarocks 2>/dev/null
+  echo -e "luarocks already installed :D \n\nNSEarch is ready for be launched uses lua nsearch.lua\n"
 else
   while true; do
-    read -p "Do you wish to install luarocks? " yn
+    read -p "\nDo you wish to install luarocks? " yn
     case $yn in
       [Yy]* ) install_luarocks;  break;;
       [Nn]* ) break;;
@@ -114,12 +103,11 @@ fi
 
 dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
 if [[ $dbpath ]]; then
-  echo $dbpath
   cd $homePath
   echo -e "local config = {} \n" > config.lua
   echo -e "config.scriptsPath='$dbpath'" >> config.lua
   echo -e "config.filePath = config.scriptsPath..'script.db'" >> config.lua
-  echo -e "config.fileBackup = 'scriptbkp.db'" >> config.lua
+  echo -e "config.fileBackup = 'scriptbk.db'" >> config.lua
   echo -e "config.scriptdb = 'nmap_scripts.sqlite3'" >> config.lua
   echo -e 'config.categories = {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.lua
   echo -e "return config" >> config.lua
