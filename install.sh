@@ -1,13 +1,4 @@
 #!/bin/bash
-
-#   _   _  _____                     _
-#  | \ | |/  ___|                   | |
-#  |  \| |\ `--.  ___  __ _ _ __ ___| |__
-#  | . ` | `--. \/ _ \/ _` | '__/ __| '_ \
-#  | |\  |/\__/ /  __/ (_| | | | (__| | | |
-#  \_| \_/\____/ \___|\__,_|_|  \___|_| |_|
-#
-#
 echo -e "\n"
 echo "========================================";
 echo " _   _  _____                     _     ";
@@ -22,6 +13,7 @@ echo " Version 0.1     |   @jjtibaquira       ";
 echo "========================================";
 echo -e "\n"
 
+homePath=$(pwd)
 nmapversion=$(nmap -V 2>/dev/null)
 luaversion=$(lua -v 2>/dev/null)
 luarocks=$(luarocks 2>/dev/null)
@@ -41,7 +33,7 @@ function os_detection(){
 
 function install_nmap(){
   echo "Installing nmap .... "
-  cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; os_detection; rm -rf /tmp/nmap-6.47*
+  cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; os_detection
 }
 
 function install_lua(){
@@ -63,7 +55,7 @@ function install_lua(){
 
 function install_luarocks(){
   echo "Installing luarocks ..."
-  cd /tmp; curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure --lua-version=5.2; os_detection; rm -rf /tmp/lua*
+  cd /tmp; curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure --lua-version=5.2; os_detection
 
   if [ -f /etc/lsb-release ]; then
     sudo luarocks install lsqlite3
@@ -123,6 +115,7 @@ fi
 dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
 if [[ $dbpath ]]; then
   echo $dbpath
+  cd $homePath
   echo -e "local config = {} \n" > config.lua
   echo -e "config.scriptsPath='$dbpath'" >> config.lua
   echo -e "config.filePath = config.scriptsPath..'script.db'" >> config.lua
@@ -131,5 +124,6 @@ if [[ $dbpath ]]; then
   echo -e 'config.categories = {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.lua
   echo -e "return config" >> config.lua
   chmod 777 config.lua
-  ln -s ./nsearch.lua /usr/bin/nsearch
+  rm -rf /tmp/lua*
+  rm -rf /tmp/nmap-6.47*
 fi
