@@ -63,10 +63,10 @@ function install_luarocks(){
 }
 
 if [[ $nmapversion ]]; then
-  nmap -V 2>/dev/null
+  echo -e "Nmap already installed :D \n"
 else
   while true; do
-    read -p "Do you wish to install nmap? " yn
+    read -p "\nDo you wish to install nmap? " yn
     case $yn in
       [Yy]* ) install_nmap; break;;
       [Nn]* ) break;;
@@ -76,10 +76,10 @@ else
 fi
 
 if [[ $luaversion ]]; then
-  lua -v 2>/dev/null
+  echo -e "Lua already installed :D \n"
 else
   while true; do
-    read -p "Do you wish to install lua? " yn
+    read -p "\nDo you wish to install lua? " yn
     case $yn in
       [Yy]* ) install_lua; break;;
       [Nn]* ) break;;
@@ -89,10 +89,10 @@ else
 fi
 
 if [[ $luarocks ]]; then
-  luarocks 2>/dev/null
+  echo -e "luarocks already installed :D \n\nNSEarch is ready for be launched uses lua nsearch.lua\n"
 else
   while true; do
-    read -p "Do you wish to install luarocks? " yn
+    read -p "\nDo you wish to install luarocks? " yn
     case $yn in
       [Yy]* ) install_luarocks;  break;;
       [Nn]* ) break;;
@@ -107,7 +107,7 @@ if [[ $dbpath ]]; then
   echo -e "local config = {} \n" > config.lua
   echo -e "config.scriptsPath='$dbpath'" >> config.lua
   echo -e "config.filePath = config.scriptsPath..'script.db'" >> config.lua
-  echo -e "config.fileBackup = 'scriptbkp.db'" >> config.lua
+  echo -e "config.fileBackup = 'scriptbk.db'" >> config.lua
   echo -e "config.scriptdb = 'nmap_scripts.sqlite3'" >> config.lua
   echo -e 'config.categories = {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.lua
   echo -e "return config" >> config.lua
