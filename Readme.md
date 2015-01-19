@@ -12,29 +12,39 @@
 ```
 ### Nmap Script Enginee Search
 
-## Description
+### Description
 #### nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name or category , it is also possible to see the documentation of the scripts found.
 
 ### Version
 0.1
 
 ### Requeriments
+
 #### Debian(Ubuntu)
+
 ```bash
 # apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
 ```
+
 #### REDHAT(CentOS)
+
 ```bash
 #yum -y install bzip2 groupinstall "Development Tools"
 ```
+
 ### Installation
-##### To install the application is necessary run as root user the installation script (install.sh), for the time, the script is only for OS based on debian, for OS based on Red Hat (CentOS), MacOSX or other UNIX  it's better do the installation for each dependency manually.
+#### To install the application is necessary run as root user the installation script (install.sh), for the time, the script is only for OS based on debian, for OS based on Red Hat (CentOS), MacOSX or other UNIX  it's better do the installation for each dependency manually.
+
 #### Automatic Installation
+
 ```bash
 # sh install.sh
 ```
+
 #### Manual Installation
+
 ##### Nmap Installation
+
 ```bash
 $ curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2
 $ bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -
@@ -42,7 +52,9 @@ $ cd nmap-6.47
 $ ./configure && make
 # make install
 ```
+
 ##### Lua Installation
+
 ```bash
 $ cd /tmp
 $ curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz
@@ -51,7 +63,9 @@ $ cd $HOME/lua-5.3.0
 $ make linux test
 # ln -s $HOME/lua-5.3.0/src/lua /usr/local/bin/lua
 ```
+
 ##### Luarocks Installation
+
 ```bash
 $ cd /tmp
 $ curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz
@@ -62,12 +76,14 @@ $./configure --lua-version=5.3
 # luarocks install lsqlite3
 ```
 
-### NSEarch (0.1)
-#### USAGE:
+### USAGE:
+
 ```bash
 $ lua nsearch.lua
 ```
-##### Main Menu
+
+#### Main Menu
+
 ```bash
  ================================================
     _   _  _____  _____                     _
@@ -90,6 +106,7 @@ $ lua nsearch.lua
 ```
 
 #### Initial Setup(option 2)
+
 ```bash
  ================================================
     _   _  _____  _____                     _
@@ -110,6 +127,7 @@ Upload Categories to Categories Table ...
 ```
 
 #### Search by Name(option 3)
+
 ```bash
  ================================================
     _   _  _____  _____                     _
@@ -191,7 +209,7 @@ Upload Categories to Categories Table ...
     Do yo want more info about any script, choose the script using id [1-101] or quit (0)
 ```
 
-## TODO
+### TODO
 * Fast-Tarck
 * Searching by Author
 * Serching by name, category, author in the same query
