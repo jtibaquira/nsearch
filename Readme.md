@@ -13,9 +13,12 @@
 ### Nmap Script Enginee Search
 
 ## Description
-#### nsearch is a minimal script to help find a diferentes script into the nse database file
+#### nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name or category , it is also possible to see the documentation of the scripts found.
 
-### Pre-Requeriments
+### Version
+0.1
+
+### Requeriments
 #### Debian(Ubuntu)
 ```bash
 # apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
@@ -25,7 +28,7 @@
 #yum -y install bzip2 groupinstall "Development Tools"
 ```
 ### Installation
-##### To install the application is necessary run as root the install script (install.sh), the script is only for OS based on debian, for OS based on REHL, MacOSX it's better do it manually.
+##### To install the application is necessary run as root user the installation script (install.sh), for the time, the script is only for OS based on debian, for OS based on Red Hat (CentOS), MacOSX or other UNIX  it's better do the installation for each dependency manually.
 #### Automatic Installation
 ```bash
 # sh install.sh
@@ -194,3 +197,4 @@ Upload Categories to Categories Table ...
 * Serching by name, category, author in the same query
 * Create a pretty output
 * Create a file output
+* Version for Windows
