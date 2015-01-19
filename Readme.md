@@ -1,4 +1,4 @@
-```
+```bash
 ================================================
   _   _  _____  _____                     _
  | \ | |/  ___||  ___|                   | |
@@ -40,27 +40,37 @@
 ### Installation
 ##### To install the application es necessary run as root the install script (install.sh), the script is only for OS based on debian, for OS based on REHL, MacOSX it's better do it manually.
 #### Automatic Installation
-##### # sh install.sh
+```bash
+# sh install.sh
+```
 #### Manual Installation
-##### $ curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2
-##### $ bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -
-##### $ cd nmap-6.47
-##### $ ./configure && make
-##### # make install
-##### $ cd /tmp
-##### $ curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz
-##### $ tar zxvf lua-5.3.0.tar.gz -C $HOME/
-##### $ cd $HOME/lua-5.3.0
-##### $ make linux test
-##### # ln -s $HOME/lua-5.3.0/src/lua /usr/local/bin/lua
-##### $ cd /tmp
-##### $ curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz
-##### $ tar xvzf luarocks-2.2.0.tar.gz
-##### $ cd luarocks-2.2.0
-##### $./configure --lua-version=5.3
-##### # make install
-##### # luarocks install lsqlite3
-
+##### Nmap Installation
+```bash
+$ curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2
+$ bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -
+$ cd nmap-6.47
+$ ./configure && make
+# make install
+```
+##### Lua Installation
+```bash
+$ cd /tmp
+$ curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz
+$ tar zxvf lua-5.3.0.tar.gz -C $HOME/
+$ cd $HOME/lua-5.3.0
+$ make linux test
+# ln -s $HOME/lua-5.3.0/src/lua /usr/local/bin/lua
+```
+##### Luarocks Installation
+```bash
+$ cd /tmp
+$ curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz
+$ tar xvzf luarocks-2.2.0.tar.gz
+$ cd luarocks-2.2.0
+$./configure --lua-version=5.3
+# make install
+# luarocks install lsqlite3
+```
 ## TODO
 * Fast-Tarck
 * Searching by Author
