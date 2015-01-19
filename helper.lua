@@ -6,7 +6,7 @@ local config = require "config"
 scriptdb = config.scriptdb
 local helper = {}
 
-helper.mainMenu = {"Help (h)", "Initial Setup (i)", "Search by Name of Script (s)", "Search by Category (c)", "Create script.db backup (b)", "Exit (q)"}
+helper.mainMenu = {"Help (h)", "Initial Setup (i)", "Search Script (s)", "Create script.db backup (b)", "Exit (q)"}
 
 function helper.banner()
 
@@ -113,7 +113,7 @@ function helper.searchConsole()
     print("back : returns to the main menu")
     print("\n Usage:")
     print("\n   name:http")
-    print("\n   category:exploit")
+    print("\n   category:exploit \n")
     helper.searchConsole()
   elseif string.find(command,"name:") then
     string = command:gsub("name:","")
@@ -137,7 +137,7 @@ end
 function helper.Main()
  io.write('\n What do you want to do? : ')
  local action = io.read()
- if action == "q" or action == "6" then
+ if action == "q" or action == "5" then
   os.exit()
  elseif action == "i" or action == "2" then
   os.execute( "clear" )

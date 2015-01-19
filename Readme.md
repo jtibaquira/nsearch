@@ -73,10 +73,9 @@ $./configure --lua-version=5.3
 
     1 Help (h)
     2 Initial Setup (i)
-    3 Search by Name of Script (s)
-    4 Search by Category (c)
-    5 Create script.db backup (b)
-    6 Exit (q)
+    3 Search Script (s)
+    4 Create script.db backup (b)
+    5 Exit (q)
 
  What do you want to do? :
 ```
