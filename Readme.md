@@ -185,5 +185,6 @@ Upload Categories to Categories Table ...
 ## TODO
 * Fast-Tarck
 * Searching by Author
+* Serching by name, category, author in the same query
 * Create a pretty output
 * Create a file output
