@@ -16,7 +16,7 @@ end
 -- get all lines from a file, returns an empty
 -- list/table if the file does not exist
 function lines_from(file)
-  if not file_exists(file) then print "El archivo no existe" os.exit() end
+  if not file_exists(file) then print "File don't exist" os.exit() end
   lines = {}
   for line in io.lines(file) do
     lines[#lines + 1] = line
@@ -29,8 +29,7 @@ local file = filePath
 local lines = lines_from(file)
 
 -- create a script.db backups
-function setup.createBackup(banner)
-  print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
+function createBackup()
   outfile = io.open(config.fileBackup, "w")
   for k,v in pairs(lines) do
     outfile:write(v.."\n")
@@ -67,5 +66,6 @@ function setup.install(banner)
     end
     t = {}
   end
+  createBackup()
 end
 return setup

@@ -6,7 +6,7 @@ local config = require "config"
 scriptdb = config.scriptdb
 local helper = {}
 
-helper.mainMenu = {"Help (h)", "Initial Setup (i)", "Search Script (s)", "Create script.db backup (b)", "Exit (q)"}
+helper.mainMenu = {"Help (h)", "Initial Setup (i)", "Search Script (s)", "Exit (q)"}
 
 function helper.banner()
 
@@ -26,7 +26,7 @@ function helper.banner()
   return banner
 end
 
-function getScirptDesc( nse )
+function getScriptDesc( nse )
   io.write('\nDo yo want more info about any script, choose the script using id [1-'..#nse..'] or quit (0)')
   local option  = io.read()
   key = tonumber(option)
@@ -39,7 +39,7 @@ function getScirptDesc( nse )
       if not i then
         print('\27[96m'..v..'\27[0m')
       else
-        getScirptDesc(nse)
+        getScriptDesc(nse)
       end
     end
   elseif option == "0" then
@@ -60,7 +60,7 @@ function resultList(nse)
     for k,v in ipairs(nse) do
       print('\27[92m'..k.." "..v..'\27[0m')
     end
-    getScirptDesc(nse)
+    getScriptDesc(nse)
   else
     print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
     print("\nNot Results Found\n")
@@ -85,7 +85,7 @@ function resultListaCat(scripts,catName)
     for k,v in ipairs(scripts) do
       print('\27[92m'..k.." "..v..'\27[0m')
     end
-    getScirptDesc(scripts)
+    getScriptDesc(scripts)
    else
      print("Not Results Found\n")
      print("=== These are the enabled Categories ===\n")
@@ -137,7 +137,7 @@ end
 function helper.Main()
  io.write('\n What do you want to do? : ')
  local action = io.read()
- if action == "q" or action == "5" then
+ if action == "q" or action == "4" then
   os.exit()
  elseif action == "i" or action == "2" then
   os.execute( "clear" )
@@ -146,13 +146,8 @@ function helper.Main()
   os.execute( "clear" )
   print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
   helper.searchConsole()
- elseif action == "b" or action == "4" then
-  setup.createBackup(helper.banner())
-  os.execute( "clear" )
-  helper.menu(helper.mainMenu)
-  helper.Main()
  else
-   os.execute("clear")
+  os.execute("clear")
   helper.menu(helper.mainMenu)
   helper.Main()
  end
