@@ -129,7 +129,7 @@ function helper.searchConsole()
     string = command:gsub("category:","")
     os.execute("clear")
     resultListaCat(dbmodule.SearchByCat(string),string)
-  elseif string.find(commnad,"category:") and string.find(command,"name:") then
+  elseif (string.find(command,"name:") and string.find(command,"category:")) then
     print(command)
     os.execute("clear")
     helper.searchConsole()
