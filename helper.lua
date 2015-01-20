@@ -118,7 +118,7 @@ function helper.searchConsole()
   elseif string.find(command,"name:") then
     string = command:gsub("name:","")
     os.execute("clear")
-    resultList(dbmodule.findScript(string,helper.banner()))
+    resultList(dbmodule.findScript(string))
   elseif string.find(command,"exit") then
     os.exit()
   elseif string.find(command,"back") then
@@ -129,6 +129,10 @@ function helper.searchConsole()
     string = command:gsub("category:","")
     os.execute("clear")
     resultListaCat(dbmodule.SearchByCat(string),string)
+  elseif string.find(commnad,"category:") and string.find(command,"name:") then
+    print(command)
+    os.execute("clear")
+    helper.searchConsole()
   else
    helper.searchConsole()
   end
