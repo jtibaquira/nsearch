@@ -76,6 +76,27 @@ $./configure --lua-version=5.3
 # luarocks install lsqlite3
 ```
 
+##### File Configuration
+###### Find the script.db's path, use the command below
+```bash
+$ find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")'
+```
+###### Then create a config.lua file, on the main path of the script
+```bash
+-- config.lua
+local config = {}
+
+config.scriptsPath = '/nmap/scripts/path'
+config.filePath = config.scriptsPath..'script.db'
+config.fileBackup = 'scriptbkp.db'
+config.scriptdb = 'nmap_scripts.sqlite3'
+config.categories = {
+                      "auth","broadcast","brute","default","discovery","dos","exploit",
+                      "external","fuzzer","intrusive","malware","safe","version","vuln"
+                      }
+return config
+```
+
 ### USAGE:
 
 ```bash
