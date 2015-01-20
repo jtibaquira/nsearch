@@ -110,7 +110,7 @@ function dbmodule.SearchByCat(catName)
   return scripts
 end
 
-function dbmodule.findScript(scriptName,banner)
+function dbmodule.findScript(scriptName)
   local nse = {}
   local db= connectDB()
   for row in db:nrows("select name from scripts where name like '%"..scriptName.."%'") do
@@ -118,6 +118,16 @@ function dbmodule.findScript(scriptName,banner)
   end
   db:close()
   return nse
+end
+
+function dbmodule.findAny(scriptName, catName)
+  scripts ={}
+  local db = connectDB("wc")
+  for row in db:nrows("select scripts.name from scripts, categories, script_category where scripts.name LIKE '%"..scriptName.."%' or categories.name LIKE '%"..catName.."%' and scripts.id=script_category.id_script and categories.id=script_category.id_category") do
+    table.insert(scripts,row.name)
+  end
+  db:close()
+  return scripts
 end
 
 
