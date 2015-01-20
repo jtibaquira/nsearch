@@ -115,6 +115,10 @@ function helper.searchConsole()
     print("\n   name:http")
     print("\n   category:exploit \n")
     helper.searchConsole()
+  elseif (string.find(command,"name:") and string.find(command,"category:")) then
+    print(command)
+    os.execute("clear")
+    helper.searchConsole()
   elseif string.find(command,"name:") then
     string = command:gsub("name:","")
     os.execute("clear")
@@ -129,10 +133,6 @@ function helper.searchConsole()
     string = command:gsub("category:","")
     os.execute("clear")
     resultListaCat(dbmodule.SearchByCat(string),string)
-  elseif (string.find(command,"name:") and string.find(command,"category:")) then
-    print(command)
-    os.execute("clear")
-    helper.searchConsole()
   else
    helper.searchConsole()
   end
