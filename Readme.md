@@ -16,7 +16,7 @@
 #### nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name or category , it is also possible to see the documentation of the scripts found.
 
 ### Version
-0.1
+0.2
 
 ### Requeriments
 
