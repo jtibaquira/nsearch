@@ -18,6 +18,12 @@ nmapversion=$(nmap -V 2>/dev/null)
 luaversion=$(lua -v 2>/dev/null)
 luarocks=$(luarocks 2>/dev/null)
 
+#Check if is it root
+if [ $EUID -ne 0 ]; then
+ echo "You must be root."
+ exit 1
+fi
+
 function os_detection(){
   if [ -f /etc/lsb-release ]; then
     make install
