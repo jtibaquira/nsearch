@@ -7,7 +7,7 @@
  | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
  \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
 ================================================
- Version 0.1     |   @jjtibaquira
+ Version 0.2     |   @jjtibaquira
 ================================================
 ```
 ### Nmap Script Enginee Search
@@ -114,14 +114,13 @@ $ lua nsearch.lua
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.1     |   @jjtibaquira
+   Version 0.2     |   @jjtibaquira
   ================================================
 
     1 Help (h)
     2 Initial Setup (i)
     3 Search Script (s)
-    4 Create script.db backup (b)
-    5 Exit (q)
+    4 Exit (q)
 
  What do you want to do? :
 ```
@@ -137,7 +136,7 @@ $ lua nsearch.lua
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
  ================================================
-   Version 0.1     |   @jjtibaquira
+   Version 0.2     |   @jjtibaquira
  ================================================
 
 Creating Database :nmap_scripts.sqlite3
@@ -158,7 +157,7 @@ Upload Categories to Categories Table ...
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.1     |   @jjtibaquira
+   Version 0.2     |   @jjtibaquira
   ================================================
 
     name : search by script's name
@@ -183,7 +182,7 @@ Upload Categories to Categories Table ...
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.1     |   @jjtibaquira
+   Version 0.2     |   @jjtibaquira
   ================================================
 
   nsearch> name:http
