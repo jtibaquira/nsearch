@@ -241,6 +241,6 @@ Upload Categories to Categories Table ...
 ### FeedBack
 #### Feel free to fork the project, submit any kind of comment, issue or contribution.
 
-* Twitter: @jjtibaquira
+* Twitter: [@jjtibaquira](https://twitter.com/jjtibaquira)
 * Email: jko@dragonjar.org
 * Foro: http://comunidad.dragonjar.org
