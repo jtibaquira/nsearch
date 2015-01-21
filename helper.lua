@@ -117,7 +117,6 @@ function helper.searchConsole()
     helper.searchConsole()
   elseif (string.find(command,"name:") and string.find(command,"category:")) then
     print(command)
-    os.execute("clear")
     helper.searchConsole()
   elseif string.find(command,"name:") then
     string = command:gsub("name:","")
