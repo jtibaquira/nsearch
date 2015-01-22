@@ -102,7 +102,7 @@ function helper.menu(menulist)
 end
 
 function helper.searchConsole()
-  if not setup.file_exists(config.scriptdb) then setup.install(helper.banner()) end
+  if not setup.file_exists(config.scriptdb) then setup.install() end
   io.write('nsearch> ')
   local command = io.read()
   if command == "help" then
