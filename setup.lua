@@ -43,7 +43,6 @@ function createBackup()
 end
 
 function setup.install()
-  -- print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
   dbmodule.InitSetup("wc")
   local t ={}
   local id_script = 0
