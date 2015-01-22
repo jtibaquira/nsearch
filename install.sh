@@ -9,7 +9,7 @@ echo "| |\  |/\__/ /  __/ (_| | | | (__| | | |";
 echo "\_| \_/\____/ \___|\__,_|_|  \___|_| |_|";
 echo "                                        ";
 echo "========================================";
-echo " Version 0.1     |   @jjtibaquira       ";
+echo " Version 0.2     |   @jjtibaquira       ";
 echo "========================================";
 echo -e "\n"
 
@@ -17,6 +17,12 @@ homePath=$(pwd)
 nmapversion=$(nmap -V 2>/dev/null)
 luaversion=$(lua -v 2>/dev/null)
 luarocks=$(luarocks 2>/dev/null)
+
+#Check if is it root
+if [ $EUID -ne 0 ]; then
+ echo "You must be root."
+ exit 1
+fi
 
 function os_detection(){
   if [ -f /etc/lsb-release ]; then
