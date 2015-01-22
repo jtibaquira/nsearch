@@ -70,7 +70,7 @@ end
 if countArgs() < 1 then
   -- printAll(lines)
   os.execute( "clear" )
-  print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+--  print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
   helper.searchConsole()
 else
   defineArgs()
