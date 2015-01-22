@@ -69,10 +69,9 @@ end
 -- validation of args
 if countArgs() < 1 then
   -- printAll(lines)
-  local mainMenu = helper.mainMenu
   os.execute( "clear" )
-  helper.menu(mainMenu)
-  helper.Main()
+  print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+  helper.searchConsole()
 else
   defineArgs()
 end

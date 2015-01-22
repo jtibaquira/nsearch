@@ -7,7 +7,7 @@ local dbmodule = require "dbmodule"
 
 local setup = {}
 
-function file_exists(file)
+function setup.file_exists(file)
   local f = io.open(file, "rb")
   if f then f:close() end
   return f ~= nil
@@ -16,7 +16,7 @@ end
 -- get all lines from a file, returns an empty
 -- list/table if the file does not exist
 function lines_from(file)
-  if not file_exists(file) then print "File don't exist" os.exit() end
+  if not setup.file_exists(file) then print "File don't exist" os.exit() end
   lines = {}
   for line in io.lines(file) do
     lines[#lines + 1] = line
@@ -35,9 +35,8 @@ function createBackup()
     outfile:write(v.."\n")
   end
   outfile:close()
-  if not file_exists(config.fileBackup) then
+  if not setup.file_exists(config.fileBackup) then
     print "the backup can not created"
-    os.exit()
   else
     print "backup succesfull"
   end

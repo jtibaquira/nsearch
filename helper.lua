@@ -102,6 +102,7 @@ function helper.menu(menulist)
 end
 
 function helper.searchConsole()
+  if not setup.file_exists(config.scriptdb) then setup.install(helper.banner()) end
   io.write('nsearch> ')
   local command = io.read()
   if command == "help" then
@@ -144,7 +145,6 @@ function helper.Main()
   os.exit()
  elseif action == "i" or action == "2" then
   os.execute( "clear" )
-  setup.install(helper.banner())
  elseif action == "s" or action == "3" then
   os.execute( "clear" )
   print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
