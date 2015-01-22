@@ -6,8 +6,6 @@ local config = require "config"
 scriptdb = config.scriptdb
 local helper = {}
 
-helper.mainMenu = {"Help (h)", "Initial Setup (i)", "Search Script (s)", "Exit (q)"}
-
 function helper.banner()
 
   banner=[[
@@ -48,8 +46,8 @@ function getScriptDesc( nse )
     helper.searchConsole()
   else
     os.execute("clear")
-     helper.menu(helper.mainMenu)
-     helper.Main()
+    print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+    helper.searchConsole()
   end
 end
 
@@ -72,8 +70,8 @@ function resultList(nse)
       helper.searchConsole()
     else
       os.execute("clear")
-     helper.menu(helper.mainMenu)
-      helper.Main()
+      print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+      helper.searchConsole()
     end
    end
 end
@@ -93,13 +91,6 @@ function resultListaCat(scripts,catName)
   end
 end
 
-function helper.menu(menulist)
-  print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
-  for key,value in ipairs(menulist) do
-    print(key.." "..value)
-  end
-  return menulist
-end
 
 function helper.searchConsole()
   if not setup.file_exists(config.scriptdb) then setup.install() end
@@ -108,10 +99,10 @@ function helper.searchConsole()
   if command == "help" then
     os.execute("clear")
     print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
-    print("name : search by script's name ")
-    print("category : search by category")
-    print("exit : close the console")
-    print("back : returns to the main menu")
+    print("\tname     : Search by script's name")
+    print("\tcategory : Search by category")
+    print("\texit     : Close the console")
+    print("\tclear    : Clean the console")
     print("\n Usage:")
     print("\n   name:http")
     print("\n   category:exploit \n")
@@ -125,10 +116,10 @@ function helper.searchConsole()
     resultList(dbmodule.findScript(string))
   elseif string.find(command,"exit") then
     os.exit()
-  elseif string.find(command,"back") then
+  elseif string.find(command,"clear") then
     os.execute("clear")
-    helper.menu(helper.mainMenu)
-    helper.Main()
+    print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
+    helper.searchConsole()
   elseif string.find(command,"category:") then
     string = command:gsub("category:","")
     os.execute("clear")
@@ -136,24 +127,6 @@ function helper.searchConsole()
   else
    helper.searchConsole()
   end
-end
-
-function helper.Main()
- io.write('\n What do you want to do? : ')
- local action = io.read()
- if action == "q" or action == "4" then
-  os.exit()
- elseif action == "i" or action == "2" then
-  os.execute( "clear" )
- elseif action == "s" or action == "3" then
-  os.execute( "clear" )
-  print('\27[1m \27[36m'..helper.banner()..'\27[21m \27[0m')
-  helper.searchConsole()
- else
-  os.execute("clear")
-  helper.menu(helper.mainMenu)
-  helper.Main()
- end
 end
 
 return helper
