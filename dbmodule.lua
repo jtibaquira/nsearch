@@ -43,7 +43,7 @@ end
 
 function dbmodule.InitSetup(method)
   local db = connectDB(scriptdb,method)
-  print("Creating Database :"..scriptdb)
+  print("\tCreating Database :"..scriptdb)
   local sm = db:prepare [[
   create table scripts(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -51,7 +51,7 @@ function dbmodule.InitSetup(method)
       author TEXT NULL);
   ]]
   sm:step()
-  print("Creating Table For Script ....")
+  print("\tCreating Table For Script ....")
   sm:finalize()
 
   local cat = db:prepare [[
@@ -69,11 +69,11 @@ function dbmodule.InitSetup(method)
     id_script INETGER NOT NULL);
   ]]
   sc:step()
-  print("Creating Table for Scripts per Category ....")
+  print("\tCreating Table for Scripts per Category ....")
   sc:finalize()
 
   local  categoryList = config.categories
-  print("Upload Categories to Categories Table ...")
+  print("\tUpload Categories to Categories Table ...")
   for k,v in ipairs(categoryList) do
     sql=[[insert into categories (name) Values (]].."'".. v .. "'"..[[);]]
     db:exec(sql)
