@@ -86,7 +86,7 @@ end
 function returnConsole()
   os.execute("clear")
   print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
-  searchConsole()
+  mainConsole()
 end
 
 function getScriptDesc( nse )
@@ -149,7 +149,7 @@ function resultListaCat(scripts,catName)
 end
 
 
-function searchConsole()
+function mainConsole()
   if not file_exists(config.scriptdb) then install() end
   io.write('nsearch> ')
   local command = io.read()
@@ -163,10 +163,10 @@ function searchConsole()
     print("\n\t Usage:")
     print("\t   name:http")
     print("\t   category:exploit \n")
-    searchConsole()
+    mainConsole()
   elseif (string.find(command,"name:") and string.find(command,"category:")) then
     print(command)
-    searchConsole()
+    mainConsole()
   elseif string.find(command,"name:") then
     string = command:gsub("name:","")
     os.execute("clear")
@@ -181,7 +181,7 @@ function searchConsole()
     os.execute("clear")
     resultListaCat(dbmodule.SearchByCat(string),string)
   else
-   searchConsole()
+   mainConsole()
   end
 end
 
