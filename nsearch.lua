@@ -5,9 +5,8 @@ local dbmodule = require "dbmodule"
 local config = require "config"
 scriptdb = config.scriptdb
 
-function banner()
 
-  banner=[[
+local banner=[[
   ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
@@ -20,7 +19,11 @@ function banner()
   ================================================
   ]]
 
-  return banner
+
+function returnSearchConsole()
+  os.execute("clear")
+  print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
+  searchConsole()
 end
 
 function getScriptDesc( nse )
@@ -40,44 +43,36 @@ function getScriptDesc( nse )
       end
     end
   elseif option == "0" then
-    os.execute("clear")
-    print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
-    searchConsole()
+    returnSearchConsole()
   else
-    os.execute("clear")
-    print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
-    searchConsole()
+    returnSearchConsole()
   end
 end
 
 function resultList(nse)
   if #nse > 0 then
-    print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
+    print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
     print("\nTotal Scripts Found "..#nse.."\n")
     for k,v in ipairs(nse) do
       print('\27[92m'..k.." "..v..'\27[0m')
     end
     getScriptDesc(nse)
   else
-    print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
+    print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
     print("\nNot Results Found\n")
     io.write("Do you want search again? [y/n]: ")
     local action = io.read()
     if action == 'y' then
-      os.execute("clear")
-      print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
-      searchConsole()
+      returnSearchConsole()
     else
-      os.execute("clear")
-      print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
-      searchConsole()
+      returnSearchConsole()
     end
    end
 end
 
 function resultListaCat(scripts,catName)
   if #scripts > 0 then
-    print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
+    print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
     print("\nTotal Scripts Found "..#scripts.." into "..catName.." Category\n")
     for k,v in ipairs(scripts) do
       print('\27[92m'..k.." "..v..'\27[0m')
@@ -97,7 +92,7 @@ function searchConsole()
   local command = io.read()
   if command == "help" then
     os.execute("clear")
-    print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
+    print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
     print("\tname     : Search by script's name")
     print("\tcategory : Search by category")
     print("\texit     : Close the console")
@@ -117,7 +112,7 @@ function searchConsole()
     os.exit()
   elseif string.find(command,"clear") then
     os.execute("clear")
-    print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
+    print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
     searchConsole()
   elseif string.find(command,"category:") then
     string = command:gsub("category:","")
@@ -137,17 +132,14 @@ end
 
 -- display a Help Menu
 function helpMenu()
-  local banner = banner()
+  local banner = banner
   print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
   print " USAGE: lua nsearch.lua or ./nsearch.lua"
 end
 
-
 -- validation of args
 if countArgs() < 1 then
-  os.execute( "clear" )
-  print('\27[1m \27[36m'..banner()..'\27[21m \27[0m')
-  searchConsole()
+  returnSearchConsole()
 else
   helpMenu()
 end
