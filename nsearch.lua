@@ -112,8 +112,7 @@ function searchConsole()
     os.exit()
   elseif string.find(command,"clear") then
     os.execute("clear")
-    print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
-    searchConsole()
+    returnSearchConsole()
   elseif string.find(command,"category:") then
     string = command:gsub("category:","")
     os.execute("clear")
@@ -132,7 +131,6 @@ end
 
 -- display a Help Menu
 function helpMenu()
-  local banner = banner
   print('\27[1m \27[36m'..banner..'\27[21m \27[0m')
   print " USAGE: lua nsearch.lua or ./nsearch.lua"
 end
