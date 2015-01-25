@@ -1,6 +1,5 @@
 #!/usr/bin/env lua
 
-local setup = require "setup"
 local dbmodule = require "dbmodule"
 local config = require "config"
 local categoryList = config.categories
