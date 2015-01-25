@@ -1,9 +1,5 @@
 #!/usr/bin/env lua
 
-local config = require "config"
-local filePath = config.filePath
-local categoryList = config.categories
-local dbmodule = require "dbmodule"
 local helper = require "helper"
 
 -- function to set the total of valid args into the table
