@@ -24,6 +24,9 @@ if [ $EUID -ne 0 ]; then
  exit 1
 fi
 
+echo -e "Checking Dependencies ....\n"
+apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+
 function os_detection(){
   if [ -f /etc/lsb-release ]; then
     make install
@@ -72,7 +75,8 @@ if [[ $nmapversion ]]; then
   echo -e "Nmap already installed :D \n"
 else
   while true; do
-    read -p "\nDo you wish to install nmap? " yn
+    echo -e "\n"
+    read -p "Do you wish to install nmap? " yn
     case $yn in
       [Yy]* ) install_nmap; break;;
       [Nn]* ) break;;
@@ -85,7 +89,8 @@ if [[ $luaversion ]]; then
   echo -e "Lua already installed :D \n"
 else
   while true; do
-    read -p "\nDo you wish to install lua? " yn
+    echo -e "\n"
+    read -p "Do you wish to install lua? " yn
     case $yn in
       [Yy]* ) install_lua; break;;
       [Nn]* ) break;;
@@ -98,7 +103,8 @@ if [[ $luarocks ]]; then
   echo -e "luarocks already installed :D \n\nNSEarch is ready for be launched uses lua nsearch.lua\n"
 else
   while true; do
-    read -p "\nDo you wish to install luarocks? " yn
+    echo -e "\n"
+    read -p "Do you wish to install luarocks? " yn
     case $yn in
       [Yy]* ) install_luarocks;  break;;
       [Nn]* ) break;;
