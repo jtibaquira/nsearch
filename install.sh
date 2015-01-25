@@ -72,7 +72,7 @@ function install_luarocks(){
 }
 
 if [[ $nmapversion ]]; then
-  echo -e "Nmap already installed :D \n"
+  echo -e "\nNmap already installed :D \n"
 else
   while true; do
     echo -e "\n"
