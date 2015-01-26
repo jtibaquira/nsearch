@@ -1,4 +1,4 @@
-```bash
+```
 ================================================
   _   _  _____  _____                     _
  | \ | |/  ___||  ___|                   | |
@@ -22,14 +22,14 @@
 
 #### Debian(Ubuntu)
 
-```bash
+```
 # apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
 ```
 
 #### REDHAT(CentOS)
 
-```bash
-#yum -y install bzip2 groupinstall "Development Tools"
+```
+# yum -y install bzip2 groupinstall "Development Tools"
 ```
 
 ### Installation
@@ -37,7 +37,7 @@
 
 #### Automatic Installation
 
-```bash
+```
 # sh install.sh
 ```
 
@@ -45,7 +45,7 @@
 
 ##### Nmap Installation
 
-```bash
+```
 $ curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2
 $ bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -
 $ cd nmap-6.47
@@ -55,7 +55,7 @@ $ ./configure && make
 
 ##### Lua Installation
 
-```bash
+```
 $ cd /tmp
 $ curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz
 $ tar zxvf lua-5.3.0.tar.gz -C $HOME/
@@ -66,7 +66,7 @@ $ make linux test
 
 ##### Luarocks Installation
 
-```bash
+```
 $ cd /tmp
 $ curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz
 $ tar xvzf luarocks-2.2.0.tar.gz
@@ -78,11 +78,11 @@ $./configure --lua-version=5.3
 
 ##### File Configuration
 ###### Find the script.db's path, use the command below
-```bash
+```
 $ find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")'
 ```
 ###### Then create a config.lua file, on the main path of the script
-```bash
+```
 -- config.lua
 local config = {}
 
@@ -99,35 +99,14 @@ return config
 
 ### USAGE:
 
-```bash
+```
 $ lua nsearch.lua
 ```
 
 #### Main Menu
+#### Initial Setup
 
-```bash
- ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.2     |   @jjtibaquira
-  ================================================
-
-    1 Help (h)
-    2 Initial Setup (i)
-    3 Search Script (s)
-    4 Exit (q)
-
- What do you want to do? :
 ```
-
-#### Initial Setup(option 2)
-
-```bash
  ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
@@ -146,9 +125,9 @@ Creating Table for Scripts per Category ....
 Upload Categories to Categories Table ...
 ```
 
-#### Search by Name(option 3)
+#### Main Console
 
-```bash
+```
  ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
@@ -160,20 +139,19 @@ Upload Categories to Categories Table ...
    Version 0.2     |   @jjtibaquira
   ================================================
 
-    name : search by script's name
+    name     : search by script's name
     category : search by category
-    exit : close the console
-    back : returns to the main menu
+    clear    : Clean the console
+    exit     : Close the Application
 
      Usage:
-
        name:http
-
        category:exploit
+
     nsearch>
 ```
 
-```bash
+```
    ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
