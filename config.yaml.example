@@ -1,0 +1,9 @@
+
+#Configuration File
+
+config:
+  scriptsPath: "/usr/local/share/nmap/scripts/"
+  filePath: "/usr/local/share/nmap/scripts/script.db"
+  fileBackup: 'scriptbk.db'
+  scriptdb: "nmap_scripts.sqlite3"
+  categories: ["auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"]
