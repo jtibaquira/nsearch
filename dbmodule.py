@@ -31,15 +31,31 @@ def initSetup(dbname, categories):
     cursor.execute('''
       INSERT INTO categories (name) VALUES (?)
       ''',(category,))
-    print(category+" Inserted Into the Database")
     db.commit()
   db.close()
 
 def insertScript(dbname,script):
   db = lite.connect(dbname)
+  cursor = db.cursor()
   cursor.execute('''
     Insert into scripts (name) values (?)
-    ''',(script))
+    ''',(script,))
   db.commit()
-  return cursor.lastrowid()
+  db.close()
+  return cursor.lastrowid
 
+def insertScriptCategory(dbname,scriptid,categoryid):
+  db = lite.connect(dbname)
+  cursor = db.cursor()
+  cursor.execute('''
+    Insert into script_category (id_category,id_script) values (?,?)
+    ''',(categoryid,scriptid,))
+  db.commit()
+  db.close()
+
+def searchScript(dbname,script):
+  db = lite.connect(dbname)
+
+def searchCategory(dbname,category):
+  db = lite.connect(dbname)
+  cursor = db.cursor()
