@@ -52,3 +52,12 @@ docs/_build/
 
 # PyBuilder
 target/
+
+#sqlite
+*.sqlite3
+*.tar.gz
+*.zip
+*.unrar
+.DS_Store
+*.tmp
+*.db
