@@ -27,6 +27,7 @@ def initSetup(dbname, categories):
   ''')
   print("Creating Table for Scripts per Category ....")
   db.commit()
+  print("Upload Categories to Categories Table ...")
   for category in categories:
     cursor.execute('''
       INSERT INTO categories (name) VALUES (?)
@@ -55,7 +56,18 @@ def insertScriptCategory(dbname,scriptid,categoryid):
 
 def searchScript(dbname,script):
   db = lite.connect(dbname)
+  cursor = db.cursor()
+  cursor.execute("select name from scripts where name like '%"+script+"%'")
+  all_rows = cursor.fetchall()
+  for row in all_rows:
+    # row[0] returns the first column in the query (name), row[1] returns email column.
+    print('{0}'.format(row[0]))
 
 def searchCategory(dbname,category):
   db = lite.connect(dbname)
   cursor = db.cursor()
+  cursor.execute("select name from categories where name like '%"+category+"%'")
+  all_rows = cursor.fetchall()
+  for row in all_rows:
+    # row[0] returns the first column in the query (name), row[1] returns email column.
+    print('{0}'.format(row[0]))

@@ -28,11 +28,21 @@ banner ='''
 '''
 
 def createBackUp():
-  print "createBackUp"
+  print("Creating Script.db Backup ... ")
+  scriptFile = open(filePath,'r')
+  for line in scriptFile:
+    script = open(fileBackup,'a')
+    script.write(line,)
+  if os.path.isfile(fileBackup):
+    print "The Backup was created successfully"
+    script.close()
+    scriptFile.close()
+  else:
+    print "The Backup was not created"
 
 
 def install():
-  print(banner)
+  print('\033[0;36m'+banner+'\033[0m')
   if not os.path.isfile(dbname):
     dbmodule.initSetup(dbname, categories)
     scriptFile = open(filePath,'r')
@@ -46,7 +56,10 @@ def install():
           lastrowid = dbmodule.insertScript(dbname,value)
         else:
           dbmodule.insertScriptCategory(dbname,lastrowid,value)
+    scriptFile.close()
+    createBackUp()
   else:
     print("Exist: "+ dbname)
+
 
 install()
