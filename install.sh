@@ -32,8 +32,6 @@ function os_detection(){
     make install
   elif [ -f /etc/debian_version ]; then
     make install
-  elif [ -f /etc/redhat-release ]; then
-    echo "Please Follow the instructions into the Readme File"
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -49,8 +47,6 @@ function install_lua(){
     apt-get install lua5.2 liblua5.2-dev -y
   elif [ -f /etc/debian_version ]; then
     apt-get install lua5.2 liblua5.2-dev -y
-  elif [ -f /etc/redhat-release ]; then
-    echo "Please Follow the instructions into the Readme File"
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -64,8 +60,6 @@ function install_luarocks(){
     luarocks install lsqlite3
   elif [ -f /etc/debian_version ]; then
     luarocks install lsqlite3
-  elif [ -f /etc/redhat-release ]; then
-    echo "Please Follow the instructions into the Readme File"
   else
     echo "Please Follow the instructions into the Readme File"
   fi
