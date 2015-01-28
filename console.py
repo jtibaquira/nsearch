@@ -70,7 +70,7 @@ class Console(cmd.Cmd):
        Despite the claims in the Cmd documentaion, Cmd.postloop() is not a stub.
     """
     cmd.Cmd.postloop(self)   ## Clean up command completion
-    print "Exiting..."
+    print '\033[0;36m Exiting ... :D\033[0m'
 
   def precmd(self, line):
     """ This method is called after the line has been input but before
