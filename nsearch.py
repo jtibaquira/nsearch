@@ -6,6 +6,7 @@ import dbmodule
 import os
 import sys
 import subprocess
+import console
 
 stream = open("config.yaml", 'r')
 item = yaml.load(stream)
@@ -92,5 +93,6 @@ def mainConsole():
   else:
     mainConsole()
 
-if __name__ == "__main__":
-  main()
+if __name__ == '__main__':
+  console = console.Console()
+  console.cmdloop()
