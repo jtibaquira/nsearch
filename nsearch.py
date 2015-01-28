@@ -5,7 +5,6 @@ import yaml
 import dbmodule
 import os
 import sys
-import subprocess
 import console
 
 stream = open("config.yaml", 'r')
@@ -30,11 +29,6 @@ banner ='''
   ================================================
 '''
 
-def main():
-  os.system("clear")
-  print('\033[0;36m'+banner+'\033[0m')
-  mainConsole()
-
 def createBackUp():
   print("Creating Script.db Backup ... ")
   scriptFile = open(filePath,'r')
@@ -50,6 +44,7 @@ def createBackUp():
 
 
 def install():
+  print('\033[0;36m'+banner+'\033[0m')
   dbmodule.initSetup(dbname, categories)
   scriptFile = open(filePath,'r')
   for line in scriptFile:
@@ -65,34 +60,9 @@ def install():
   scriptFile.close()
   createBackUp()
 
-
-def mainConsole():
+if __name__ == '__main__':
   if not os.path.isfile(dbname):
     install()
-
-  command = raw_input('nsearch> ')
-
-  if command.startswith('help'):
-    print("\tname     : Search by script's name")
-    print("\tcategory : Search by category")
-    print("\texit     : Close the console")
-    print("\tclear    : Clean the console")
-    print("\n\t Usage:")
-    print("\t   name:http")
-    print("\t   category:exploit \n")
-    mainConsole()
-  elif command.startswith('exit'):
-    sys.exit(0)
-  elif command.startswith('clear'):
     os.system("clear")
-    main()
-  elif command.startswith('run'):
-    subprocess.call(["nmap", "-version"])
-    print("\n")
-    mainConsole()
-  else:
-    mainConsole()
-
-if __name__ == '__main__':
   console = console.Console()
   console.cmdloop()
