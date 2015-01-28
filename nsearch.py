@@ -5,6 +5,7 @@ import yaml
 import dbmodule
 import os
 import sys
+import subprocess
 
 stream = open("config.yaml", 'r')
 item = yaml.load(stream)
@@ -67,15 +68,10 @@ def install():
 def mainConsole():
   if not os.path.isfile(dbname):
     install()
-  is_valid=0
-  while not is_valid :
-    try :
-      command = raw_input('nsearch> ')
-      is_valid = 1 ## set it to 1 to validate input and to terminate the while..not loop
-    except ValueError, e :
-      print ("'%s' is not a valid command." % e.args[0].split(": ")[1])
-      mainConsole()
-  if command == "help":
+
+  command = raw_input('nsearch> ')
+
+  if command.startswith('help'):
     print("\tname     : Search by script's name")
     print("\tcategory : Search by category")
     print("\texit     : Close the console")
@@ -84,11 +80,15 @@ def mainConsole():
     print("\t   name:http")
     print("\t   category:exploit \n")
     mainConsole()
-  elif command == "exit":
+  elif command.startswith('exit'):
     sys.exit(0)
-  elif command == "clear":
+  elif command.startswith('clear'):
     os.system("clear")
     main()
+  elif command.startswith('run'):
+    subprocess.call(["nmap", "-version"])
+    print("\n")
+    mainConsole()
   else:
     mainConsole()
 
