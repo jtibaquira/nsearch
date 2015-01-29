@@ -4,6 +4,7 @@
 import os
 import cmd
 import readline
+import dbmodule
 
 banner ='''
   ================================================
@@ -97,17 +98,24 @@ class Console(cmd.Cmd):
 
   def do_banner(self, args):
     """ Display Banner """
-    print('\033[0;36m'+banner+'\033[0m')
+    print('\033[1;36m'+banner+'\033[0m')
 
   def do_search(self, args):
     """ Search """
     if not args:
-      help_search(self)
+      for row in dbmodule.searchAll():
+        print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
     else:
       if args.startswith('name:'):
-        print "Buscar Script"
+        criterial= args.split(":")[1]
+        criterial.split(" ")[0]
+        for row in dbmodule.searchScript(criterial):
+          print('\033[1;32m'+row[0]+'\033[0m')
       elif args.startswith("category:"):
-        print "Search by Category"
+        criterial= args.split(":")[1]
+        criterial.split(" ")[0]
+        for row in dbmodule.searchCategory(criterial):
+          print('\033[1;32m'+row[0]+'\033[0m')
       else:
         print "Search all Scripts"
 

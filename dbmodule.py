@@ -1,8 +1,19 @@
 # -*- coding: utf-8 -*-
 import sqlite3 as lite
 import sys
+import yaml
 
-def initSetup(dbname, categories):
+stream = open("config.yaml", 'r')
+item = yaml.load(stream)
+
+dbname = item["config"]["scriptdb"]
+categories = item["config"]["categories"]
+filePath = item["config"]["filePath"]
+fileBackup = item["config"]["fileBackup"]
+scriptsPath = item["config"]["scriptsPath"]
+
+
+def initSetup():
   print("Creating Database: "+dbname)
   db = lite.connect(dbname)
   cursor = db.cursor()
@@ -35,7 +46,7 @@ def initSetup(dbname, categories):
     db.commit()
   db.close()
 
-def insertScript(dbname,script):
+def insertScript(script):
   db = lite.connect(dbname)
   cursor = db.cursor()
   cursor.execute('''
@@ -45,7 +56,7 @@ def insertScript(dbname,script):
   db.close()
   return cursor.lastrowid
 
-def insertScriptCategory(dbname,scriptid,categoryid):
+def insertScriptCategory(scriptid,categoryid):
   db = lite.connect(dbname)
   cursor = db.cursor()
   cursor.execute('''
@@ -54,18 +65,22 @@ def insertScriptCategory(dbname,scriptid,categoryid):
   db.commit()
   db.close()
 
-def searchScript(dbname,script):
+def searchScript(script):
   db = lite.connect(dbname)
   cursor = db.cursor()
   cursor.execute("select name from scripts where name like '%"+script+"%'")
-  all_rows = cursor.fetchall()
-  for row in all_rows:
-    print('{0}'.format(row[0]))
+  return cursor.fetchall()
+  db.close()
 
-def searchCategory(dbname,category):
+def searchCategory(category):
   db = lite.connect(dbname)
   cursor = db.cursor()
-  cursor.execute("select name from categories where name like '%"+category+"%'")
-  all_rows = cursor.fetchall()
-  for row in all_rows:
-    print('{0}'.format(row[0]))
+  cursor.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category")
+  return cursor.fetchall()
+  db.close()
+
+def searchAll():
+  db = lite.connect(dbname)
+  cursor = db.cursor()
+  cursor.execute("select id, name from scripts ")
+  return cursor.fetchall()

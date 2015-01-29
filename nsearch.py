@@ -1,20 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import yaml
 import dbmodule
 import os
 import sys
 import console
 
-stream = open("config.yaml", 'r')
-item = yaml.load(stream)
-
-dbname = item["config"]["scriptdb"]
-categories = item["config"]["categories"]
-filePath = item["config"]["filePath"]
-fileBackup = item["config"]["fileBackup"]
-scriptsPath = item["config"]["scriptsPath"]
 
 banner ='''
   ================================================
@@ -31,11 +22,11 @@ banner ='''
 
 def createBackUp():
   print("Creating Script.db Backup ... ")
-  scriptFile = open(filePath,'r')
+  scriptFile = open(dbmodule.filePath,'r')
   for line in scriptFile:
-    script = open(fileBackup,'a')
+    script = open(dbmodule.fileBackup,'a')
     script.write(line,)
-  if os.path.isfile(fileBackup):
+  if os.path.isfile(dbmodule.fileBackup):
     print "The Backup was created successfully"
     script.close()
     scriptFile.close()
@@ -44,25 +35,25 @@ def createBackUp():
 
 
 def install():
-  print('\033[0;36m'+banner+'\033[0m')
-  dbmodule.initSetup(dbname, categories)
-  scriptFile = open(filePath,'r')
+  print('\033[1;36m'+banner+'\033[0m')
+  dbmodule.initSetup()
+  scriptFile = open(dbmodule.filePath,'r')
   for line in scriptFile:
     line = line.replace('Entry { filename = "',"").replace('", categories = { "',',"').replace('", } }','"').replace('", "','","')
-    for i, j in enumerate(categories):
+    for i, j in enumerate(dbmodule.categories):
       line = line.replace('"'+j+'"',str(i+1))
     newarray = line.split(",")
     for key,value in enumerate(newarray):
       if value == newarray[0]:
-        lastrowid = dbmodule.insertScript(dbname,value)
+        lastrowid = dbmodule.insertScript(value)
       else:
-        dbmodule.insertScriptCategory(dbname,lastrowid,value)
+        dbmodule.insertScriptCategory(lastrowid,value)
   scriptFile.close()
   createBackUp()
 
 if __name__ == '__main__':
-  if not os.path.isfile(dbname):
+  if not os.path.isfile(dbmodule.dbname):
     install()
-    os.system("clear")
+  os.system("clear")
   console = console.Console()
   console.cmdloop()
