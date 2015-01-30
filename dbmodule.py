@@ -84,3 +84,4 @@ def searchAll():
   cursor = db.cursor()
   cursor.execute("select id, name from scripts ")
   return cursor.fetchall()
+  db.close()
