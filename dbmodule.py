@@ -69,24 +69,14 @@ def searchScript(script):
   db = lite.connect(dbname)
   cursor = db.cursor()
   cursor.execute("select name from scripts where name like '%"+script+"%'")
-  scriptlist = {};
-  i = 1
-  for row in cursor.fetchall():
-    scriptlist.update({i:row[0]})
-    i = i+1
-  return scriptlist
+  return fetchScript(cursor.fetchall())
   db.close()
 
 def searchCategory(category):
   db = lite.connect(dbname)
   cursor = db.cursor()
   cursor.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category")
-  scriptlist = {};
-  i = 1
-  for row in cursor.fetchall():
-    scriptlist.update({i:row[0]})
-    i = i+1
-  return scriptlist
+  return fetchScript(cursor.fetchall())
   db.close()
 
 def searchAll():
@@ -95,3 +85,11 @@ def searchAll():
   cursor.execute("select id, name from scripts ")
   return cursor.fetchall()
   db.close()
+
+def fetchScript(fetchall):
+  i = 1
+  fetchlist = {};
+  for row in fetchall:
+    fetchlist.update({i:row[0]})
+    i = i+1
+  return fetchlist
