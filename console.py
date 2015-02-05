@@ -4,7 +4,7 @@
 import os
 import cmd
 import readline
-import dbmodule
+import helper
 
 banner ='''
   ================================================
@@ -102,24 +102,7 @@ class Console(cmd.Cmd):
 
   def do_search(self, args):
     """ Search """
-    if not args:
-      for row in dbmodule.searchAll():
-        print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
-    else:
-      if args.startswith('name:'):
-        criterial= args.split(":")[1]
-        criterial.split(" ")[0]
-        scriptlist = dbmodule.searchScript(criterial)
-        for k,v in scriptlist.items():
-          print('\033[1;32m'+str(k)+"."+v+'\033[0m')
-      elif args.startswith("category:"):
-        criterial= args.split(":")[1]
-        criterial.split(" ")[0]
-        scriptlist = dbmodule.searchCategory(criterial)
-        for k,v in scriptlist.items():
-          print('\033[1;32m'+str(k)+"."+v+'\033[0m')
-      else:
-        print "Search all Scripts"
+    helper.process(args)
 
   def help_search(self):
     print '\n'.join([ "\n\tname     : Search by script's name",
