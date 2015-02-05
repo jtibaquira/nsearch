@@ -113,6 +113,10 @@ class Console(cmd.Cmd):
       '\t\tsearch category:exploit',
       '\t\tsearch name:http category:exploit'])
 
+  def do_last(self,args):
+    search = helper.Helper()
+    search.last()
+
   def default(self, line):
     """Called on an input line when the command prefix is not recognized.
        In that case we execute the line as Python code.

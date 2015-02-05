@@ -3,7 +3,7 @@ import dbmodule
 
 class Helper:
 
-  def __init__(self,args):
+  def __init__(self,args=""):
     self.args = args
 
   def process(self):
@@ -11,8 +11,7 @@ class Helper:
       for row in dbmodule.searchAll():
         print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
     else:
-      criterial = self.args.split(":")[1]
-      criterial.split(" ")[0]
+      criterial = self.args.split(":")[1].split(" ")[0]
       if self.args.startswith('name:'):
         scriptlist = dbmodule.searchScript(criterial)
         for k,v in scriptlist.items():
