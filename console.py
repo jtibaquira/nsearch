@@ -109,13 +109,15 @@ class Console(cmd.Cmd):
       if args.startswith('name:'):
         criterial= args.split(":")[1]
         criterial.split(" ")[0]
-        for row in dbmodule.searchScript(criterial):
-          print('\033[1;32m'+row[0]+'\033[0m')
+        scriptlist = dbmodule.searchScript(criterial)
+        for k,v in scriptlist.items():
+          print('\033[1;32m'+str(k)+"."+v+'\033[0m')
       elif args.startswith("category:"):
         criterial= args.split(":")[1]
         criterial.split(" ")[0]
-        for row in dbmodule.searchCategory(criterial):
-          print('\033[1;32m'+row[0]+'\033[0m')
+        scriptlist = dbmodule.searchCategory(criterial)
+        for k,v in scriptlist.items():
+          print('\033[1;32m'+str(k)+"."+v+'\033[0m')
       else:
         print "Search all Scripts"
 
