@@ -102,7 +102,8 @@ class Console(cmd.Cmd):
 
   def do_search(self, args):
     """ Search """
-    helper.process(args)
+    search = helper.Helper(args)
+    search.process()
 
   def help_search(self):
     print '\n'.join([ "\n\tname     : Search by script's name",
