@@ -11,7 +11,7 @@ categories = item["config"]["categories"]
 filePath = item["config"]["filePath"]
 fileBackup = item["config"]["fileBackup"]
 scriptsPath = item["config"]["scriptsPath"]
-
+lastresults = {};
 
 def initSetup():
   print("Creating Database: "+dbname)
@@ -69,14 +69,14 @@ def searchScript(script):
   db = lite.connect(dbname)
   cursor = db.cursor()
   cursor.execute("select name from scripts where name like '%"+script+"%'")
-  return fetchScript(cursor.fetchall())
+  return __fetchScript(cursor.fetchall())
   db.close()
 
 def searchCategory(category):
   db = lite.connect(dbname)
   cursor = db.cursor()
   cursor.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category")
-  return fetchScript(cursor.fetchall())
+  return __fetchScript(cursor.fetchall())
   db.close()
 
 def searchAll():
@@ -86,7 +86,7 @@ def searchAll():
   return cursor.fetchall()
   db.close()
 
-def fetchScript(fetchall):
+def __fetchScript(fetchall):
   i = 1
   fetchlist = {};
   for row in fetchall:

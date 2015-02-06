@@ -114,6 +114,7 @@ class Console(cmd.Cmd):
       '\t\tsearch name:http category:exploit'])
 
   def do_last(self,args):
+    """ Print the last Result of the Query """
     search = helper.Helper()
     search.last()
 
