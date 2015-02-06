@@ -29,4 +29,16 @@ class Helper:
       print('\033[1;32m'+str(k)+"."+v+'\033[0m')
 
   def displayDoc(self):
-    pass
+    scriptFile = open(dbmodule.scriptsPath+self.args,'r')
+    lines = scriptFile.read().splitlines()
+    for line in lines:
+      if line.startswith("license"):
+        break
+      print('\033[1;96m'+line+'\033[0m')
+  def resultitems(self):
+    i = 0
+    items = []
+    for k,v in dbmodule.lastresults.items():
+      items.insert(i,v)
+      i = i + 1
+    return items

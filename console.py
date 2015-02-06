@@ -1,5 +1,4 @@
 ## console.py
-# -*- coding: utf-8 -*-
 
 import os
 import cmd
@@ -112,6 +111,24 @@ class Console(cmd.Cmd):
       '\t\tsearch name:http',
       '\t\tsearch category:exploit',
       '\t\tsearch name:http category:exploit'])
+
+  def do_doc(self, args):
+    """ Display Script Documentaion"""
+    doc = helper.Helper(args)
+    doc.displayDoc()
+
+  def complete_doc(self, args, line, begidx, endidx):
+    """ Autocomplete over the last result """
+    resultitems = helper.Helper()
+    if not args:
+      completions = resultitems.resultitems()
+    else:
+      completions = [ f
+                        for f in resultitems.resultitems()
+                          if f.startswith(args)
+                   ]
+    return completions
+
 
   def do_last(self,args):
     """ Print the last Result of the Query """
