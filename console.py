@@ -29,6 +29,7 @@ class Console(cmd.Cmd):
     self.undoc_header = 'Other Commands'
     self.ruler = '='
 
+  serachCommands = [ 'name', 'category', 'help']
   ## Command definitions ##
   def do_history(self, args):
     """Print a list of commands that have been entered"""
@@ -104,6 +105,16 @@ class Console(cmd.Cmd):
     search = helper.Helper(args)
     search.process()
 
+  def complete_search(self, text, line, begidx, endidx):
+    if not text:
+      commands = self.serachCommands[:]
+    else:
+      commands = [ f
+                      for f in self.serachCommands
+                      if f.startswith(text)
+                  ]
+    return commands
+
   def help_search(self):
     print '\n'.join([ "\n\tname     : Search by script's name",
       "\tcategory : Search by category",
@@ -125,7 +136,7 @@ class Console(cmd.Cmd):
     else:
       completions = [ f
                         for f in resultitems.resultitems()
-                          if f.startswith(args)
+                        if f.startswith(args)
                    ]
     return completions
 
