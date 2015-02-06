@@ -35,6 +35,7 @@ class Helper:
       if line.startswith("license"):
         break
       print('\033[1;96m'+line+'\033[0m')
+
   def resultitems(self):
     i = 0
     items = []

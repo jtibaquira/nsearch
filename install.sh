@@ -9,14 +9,14 @@ echo "| |\  |/\__/ /  __/ (_| | | | (__| | | |";
 echo "\_| \_/\____/ \___|\__,_|_|  \___|_| |_|";
 echo "                                        ";
 echo "========================================";
-echo " Version 0.2     |   @jjtibaquira       ";
+echo " Version 0.3     |   @jjtibaquira       ";
 echo "========================================";
 echo -e "\n"
 
 homePath=$(pwd)
 nmapversion=$(nmap -V 2>/dev/null)
-luaversion=$(lua -v 2>/dev/null)
-luarocks=$(luarocks 2>/dev/null)
+paythonversion=$(python -V)
+pipversion=$(pip -V 2>/dev/null)
 
 #Check if is it root
 if [ $EUID -ne 0 ]; then
@@ -42,24 +42,25 @@ function install_nmap(){
   cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; os_detection
 }
 
-function install_lua(){
+function install_pyhon(){
   if [ -f /etc/lsb-release ]; then
-    apt-get install lua5.2 liblua5.2-dev -y
+    apt-get install python-dev -y
   elif [ -f /etc/debian_version ]; then
-    apt-get install lua5.2 liblua5.2-dev -y
+    apt-get install python-dev -y
   else
     echo "Please Follow the instructions into the Readme File"
   fi
 }
 
-function install_luarocks(){
-  echo "Installing luarocks ..."
-  cd /tmp; curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure --lua-version=5.2; os_detection
+function install_pip(){
+  echo "Installing pip ..."
 
   if [ -f /etc/lsb-release ]; then
-    luarocks install lsqlite3
+    apt-get install python-pip -y
+    pip install sqlite3 yaml
   elif [ -f /etc/debian_version ]; then
-    luarocks install lsqlite3
+    apt-get install python-pip -y
+    pip install sqlite3 yaml
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -79,28 +80,28 @@ else
   done
 fi
 
-if [[ $luaversion ]]; then
-  echo -e "Lua already installed :D \n"
+if [[ $paythonversion ]]; then
+  echo -e "Python already installed :D \n"
 else
   while true; do
     echo -e "\n"
-    read -p "Do you wish to install lua? " yn
+    read -p "Do you wish to install python? " yn
     case $yn in
-      [Yy]* ) install_lua; break;;
+      [Yy]* ) install_pyhon; break;;
       [Nn]* ) break;;
       * ) echo "Please answer yes or no.";;
     esac
   done
 fi
 
-if [[ $luarocks ]]; then
-  echo -e "luarocks already installed :D \n\nNSEarch is ready for be launched uses lua nsearch.lua\n"
+if [[ $pipversion ]]; then
+  echo -e "Python already installed :D \n\nNSEarch is ready for be launched uses python nsearch.py\n"
 else
   while true; do
     echo -e "\n"
-    read -p "Do you wish to install luarocks? " yn
+    read -p "Do you wish to install pip? " yn
     case $yn in
-      [Yy]* ) install_luarocks;  break;;
+      [Yy]* ) install_pip;  break;;
       [Nn]* ) break;;
       * ) echo "Please answer yes or no.";;
     esac
@@ -117,6 +118,5 @@ if [[ $dbpath ]]; then
   echo -e "\tconfig.scriptdb: 'nmap_scripts.sqlite3'" >> config.yaml
   echo -e '\tconfig.categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
   chmod 777 config.yaml
-  rm -rf /tmp/lua*
   rm -rf /tmp/nmap-6.47*
 fi
