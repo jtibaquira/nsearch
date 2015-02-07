@@ -83,13 +83,17 @@ def searchAll():
   db = lite.connect(dbname)
   cursor = db.cursor()
   cursor.execute("select id, name from scripts ")
-  return cursor.fetchall()
+  return __fetchScript(cursor.fetchall(),True)
   db.close()
 
-def __fetchScript(fetchall):
-  i = 1
+def __fetchScript(fetchall,total=False):
   fetchlist = {};
-  for row in fetchall:
-    fetchlist.update({i:row[0]})
-    i = i+1
+  if total:
+    for row in fetchall:
+      fetchlist.update({row[0]:row[1]})
+  else:
+    i = 1
+    for row in fetchall:
+      fetchlist.update({i:row[0]})
+      i = i+1
   return fetchlist

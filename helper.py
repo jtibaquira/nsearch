@@ -8,7 +8,8 @@ class Helper:
 
   def process(self):
     if not self.args:
-      for row in dbmodule.searchAll():
+      dbmodule.lastresults = dbmodule.searchAll()
+      for row in dbmodule.lastresults.items():
         print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
     else:
       if self.args.startswith('name:'):

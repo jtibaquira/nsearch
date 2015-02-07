@@ -62,7 +62,7 @@ class Console(cmd.Cmd):
        Despite the claims in the Cmd documentaion, Cmd.preloop() is not a stub.
     """
     cmd.Cmd.preloop(self)   ## sets up command completion
-    self._history = []      ## No historyory yet
+    self._history = ""      ## No historyory yet
     self._locals  = {}      ## Initialize execution namespace for user
     self._globals = {}
 
@@ -78,7 +78,7 @@ class Console(cmd.Cmd):
         it has been interpreted. If you want to modifdy the input line
         before execution (for example, variable substitution) do it here.
     """
-    self._history += [line.strip()]
+    self._history += line.strip()+" "
     return line
 
   def postcmd(self, stop, line):
