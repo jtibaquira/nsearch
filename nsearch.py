@@ -6,7 +6,7 @@ import sys
 import console
 
 
-banner ='''
+banner ='\033[0;36m'+'''
   ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
@@ -17,7 +17,7 @@ banner ='''
   ================================================
    Version 0.3     |   @jjtibaquira
   ================================================
-'''
+'''+'\033[0m'
 
 def createBackUp():
   print("Creating Script.db Backup ... ")
@@ -34,7 +34,7 @@ def createBackUp():
 
 
 def install():
-  print('\033[1;36m'+banner+'\033[0m')
+  print banner
   dbmodule.initSetup()
   scriptFile = open(dbmodule.filePath,'r')
   for line in scriptFile:

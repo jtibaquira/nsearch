@@ -5,7 +5,7 @@ import cmd
 import readline
 import helper
 
-banner ='''
+banner ='\033[0;36m'+'''
   ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
@@ -16,14 +16,14 @@ banner ='''
   ================================================
    Version 0.3     |   @jjtibaquira
   ================================================
-'''
+'''+'\033[0m'
 
 class Console(cmd.Cmd):
 
   def __init__(self):
     cmd.Cmd.__init__(self)
     self.prompt = "nsearch> "
-    self.intro  = '\033[0;36m'+banner+'\033[0m'  ## defaults to None
+    self.intro  =banner  ## defaults to None
     self.doc_header = 'Nsearch Commands'
     self.misc_header = 'Nsearch Plugins'
     self.undoc_header = 'Other Commands'
@@ -98,7 +98,7 @@ class Console(cmd.Cmd):
 
   def do_banner(self, args):
     """ Display Banner """
-    print('\033[1;36m'+banner+'\033[0m')
+    print banner
 
   def do_search(self, args):
     """ Search """
