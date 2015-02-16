@@ -22,9 +22,9 @@ if ! [ $(id -u) = 0 ]; then
 fi
 
 homePath=$(pwd)
-nmapversion=$(nmap -V 2>/dev/null)
-paythonversion=$(python -V)
-pipversion=$(pip -V 2>/dev/null)
+nmapversion=$(which nmap 2>/dev/null)
+paythonversion=$(which python 2>/dev/null)
+pipversion=$(which pip 2>/dev/null)
 
 if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
   printf "Checking Dependencies ....\n"
