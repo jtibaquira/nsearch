@@ -30,7 +30,7 @@ printf "Checking Dependencies ....\n"
 if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
   apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
 elif [ -f /etc/redhat-release ]; then
-  cat /etc/redhat-release
+  yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel -y
 else
   echo "Please Follow the instructions into the Readme File"
 fi
@@ -52,7 +52,7 @@ function install_pyhon(){
   if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
     apt-get install python -y
   elif [ -f /etc/redhat-release ]; then
-    cat /etc/redhat-release
+    yum install python -y
   else
     echo "Please Follow the instructions into the Readme File"
   fi
