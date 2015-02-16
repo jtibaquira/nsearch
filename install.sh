@@ -26,9 +26,11 @@ nmapversion=$(which nmap 2>/dev/null)
 paythonversion=$(which python 2>/dev/null)
 pipversion=$(which pip 2>/dev/null)
 
+printf "Checking Dependencies ....\n"
 if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
-  printf "Checking Dependencies ....\n"
   apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+elif [ -f /etc/redhat-release ]; then
+  cat /etc/redhat-release
 else
   echo "Please Follow the instructions into the Readme File"
 fi
@@ -38,6 +40,8 @@ function install_nmap(){
   echo "Installing nmap .... "
   if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
     apt-get install nmap -y
+  elif [ -f /etc/redhat-release ]; then
+    yum install nmap -y
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -47,6 +51,8 @@ function install_pyhon(){
   echo "Installing python ..."
   if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
     apt-get install python -y
+  elif [ -f /etc/redhat-release ]; then
+    cat /etc/redhat-release
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -56,8 +62,9 @@ function install_pip(){
   echo "Installing pip ..."
 
   if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
-    apt-get install python-pip -y
-    pip install PyYAML
+    apt-get install python-pip -y; pip install PyYAML
+  elif [ -f /etc/redhat-release ]; then
+    rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update; yum -y install python-pip; pip install PyYAML
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -85,13 +92,14 @@ else
     read -p "Do you wish to install python? " yn
     case $yn in
       [Yy]* ) install_pyhon; break;;
-      [Nn]* ) pip install PyYAML; break;;
+      [Nn]* ) break;;
       * ) echo "Please answer yes or no.";;
     esac
   done
 fi
 
 if [[ $pipversion ]]; then
+  pip install PyYAML
   printf "Python already installed :D \n\nNSEarch is ready for be launched uses python nsearch.py\n"
 else
   while true; do
@@ -107,13 +115,13 @@ fi
 
 dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
 if [[ $dbpath ]]; then
+  filePath=$dbpath'script.db'
   cd $homePath
   printf "config: \n" > config.yaml
-  printf "\tconfig.scriptsPath:'$dbpath'" >> config.yaml
-  printf "\tconfig.filePath: config.scriptsPath..'script.db'" >> config.yaml
-  printf "\tconfig.fileBackup: 'scriptbk.db'" >> config.yaml
-  printf "\tconfig.scriptdb: 'nmap_scripts.sqlite3'" >> config.yaml
-  printf '\tconfig.categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
+  printf "  scriptsPath: '$dbpath'\n" >> config.yaml
+  printf "  filePath: '$filePath'\n" >> config.yaml
+  printf "  fileBackup: 'scriptbk.db'\n" >> config.yaml
+  printf "  scriptdb: 'nmap_scripts.sqlite3'\n" >> config.yaml
+  printf '  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
   chmod 777 config.yaml
-  rm -rf /tmp/nmap-6.47*
 fi
