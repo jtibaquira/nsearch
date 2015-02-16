@@ -1,5 +1,5 @@
 #!/bin/bash
-echo -e "\n"
+echo "\n";
 echo "========================================";
 echo " _   _  _____                     _     ";
 echo "| \ | |/  ___|                   | |    ";
@@ -11,18 +11,20 @@ echo "                                        ";
 echo "========================================";
 echo " Version 0.3     |   @jjtibaquira       ";
 echo "========================================";
-echo -e "\n"
+echo "\n";
+
+
+
+#Check if is it root
+if ! [ $(id -u) = 0 ]; then
+   echo "You must be a root user" 2>&1
+   exit 1
+fi
 
 homePath=$(pwd)
 nmapversion=$(nmap -V 2>/dev/null)
 paythonversion=$(python -V)
 pipversion=$(pip -V 2>/dev/null)
-
-#Check if is it root
-if [ $EUID -ne 0 ]; then
- echo "You must be root."
- exit 1
-fi
 
 echo -e "Checking Dependencies ....\n"
 apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
