@@ -57,7 +57,7 @@ function install_pip(){
 
   if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
     apt-get install python-pip -y
-    pip install sqlite3 yaml
+    pip install PyYAML
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -85,7 +85,7 @@ else
     read -p "Do you wish to install python? " yn
     case $yn in
       [Yy]* ) install_pyhon; break;;
-      [Nn]* ) break;;
+      [Nn]* ) pip install PyYAML; break;;
       * ) echo "Please answer yes or no.";;
     esac
   done
