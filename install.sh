@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "\n";
+printf "\n"
 echo "========================================";
 echo " _   _  _____                     _     ";
 echo "| \ | |/  ___|                   | |    ";
@@ -11,7 +11,7 @@ echo "                                        ";
 echo "========================================";
 echo " Version 0.3     |   @jjtibaquira       ";
 echo "========================================";
-echo "\n";
+printf "\n"
 
 
 
@@ -26,29 +26,27 @@ nmapversion=$(nmap -V 2>/dev/null)
 paythonversion=$(python -V)
 pipversion=$(pip -V 2>/dev/null)
 
-echo -e "Checking Dependencies ....\n"
-apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+  printf "Checking Dependencies ....\n"
+  apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+else
+  echo "Please Follow the instructions into the Readme File"
+fi
 
-function os_detection(){
-  if [ -f /etc/lsb-release ]; then
-    make install
-  elif [ -f /etc/debian_version ]; then
-    make install
+
+function install_nmap(){
+  echo "Installing nmap .... "
+  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+    apt-get install nmap -y
   else
     echo "Please Follow the instructions into the Readme File"
   fi
 }
 
-function install_nmap(){
-  echo "Installing nmap .... "
-  cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; os_detection
-}
-
 function install_pyhon(){
-  if [ -f /etc/lsb-release ]; then
-    apt-get install python-dev -y
-  elif [ -f /etc/debian_version ]; then
-    apt-get install python-dev -y
+  echo "Installing python ..."
+  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+    apt-get install python -y
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -57,10 +55,7 @@ function install_pyhon(){
 function install_pip(){
   echo "Installing pip ..."
 
-  if [ -f /etc/lsb-release ]; then
-    apt-get install python-pip -y
-    pip install sqlite3 yaml
-  elif [ -f /etc/debian_version ]; then
+  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
     apt-get install python-pip -y
     pip install sqlite3 yaml
   else
@@ -69,10 +64,10 @@ function install_pip(){
 }
 
 if [[ $nmapversion ]]; then
-  echo -e "\nNmap already installed :D \n"
+  printf "\nNmap already installed :D \n"
 else
   while true; do
-    echo -e "\n"
+    printf "\n"
     read -p "Do you wish to install nmap? " yn
     case $yn in
       [Yy]* ) install_nmap; break;;
@@ -83,10 +78,10 @@ else
 fi
 
 if [[ $paythonversion ]]; then
-  echo -e "Python already installed :D \n"
+  printf "Python already installed :D \n"
 else
   while true; do
-    echo -e "\n"
+    printf "\n"
     read -p "Do you wish to install python? " yn
     case $yn in
       [Yy]* ) install_pyhon; break;;
@@ -97,10 +92,10 @@ else
 fi
 
 if [[ $pipversion ]]; then
-  echo -e "Python already installed :D \n\nNSEarch is ready for be launched uses python nsearch.py\n"
+  printf "Python already installed :D \n\nNSEarch is ready for be launched uses python nsearch.py\n"
 else
   while true; do
-    echo -e "\n"
+    printf "\n"
     read -p "Do you wish to install pip? " yn
     case $yn in
       [Yy]* ) install_pip;  break;;
@@ -113,12 +108,12 @@ fi
 dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
 if [[ $dbpath ]]; then
   cd $homePath
-  echo -e "config: \n" > config.yaml
-  echo -e "\tconfig.scriptsPath:'$dbpath'" >> config.yaml
-  echo -e "\tconfig.filePath: config.scriptsPath..'script.db'" >> config.yaml
-  echo -e "\tconfig.fileBackup: 'scriptbk.db'" >> config.yaml
-  echo -e "\tconfig.scriptdb: 'nmap_scripts.sqlite3'" >> config.yaml
-  echo -e '\tconfig.categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
+  printf "config: \n" > config.yaml
+  printf "\tconfig.scriptsPath:'$dbpath'" >> config.yaml
+  printf "\tconfig.filePath: config.scriptsPath..'script.db'" >> config.yaml
+  printf "\tconfig.fileBackup: 'scriptbk.db'" >> config.yaml
+  printf "\tconfig.scriptdb: 'nmap_scripts.sqlite3'" >> config.yaml
+  printf '\tconfig.categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
   chmod 777 config.yaml
   rm -rf /tmp/nmap-6.47*
 fi
