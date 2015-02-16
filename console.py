@@ -39,15 +39,6 @@ class Console(cmd.Cmd):
     """Exits from the console"""
     return -1
 
-  ## Command definitions to support Cmd object functionality ##
-  def do_EOF(self, args):
-    """Exit on system end of file character"""
-    return self.do_exit(args)
-
-  def do_shell(self, args):
-    """Pass command to a system shell when line begins with '!'"""
-    os.system(args)
-
   def do_help(self, args):
     """Get help on commands
        'help' or '?' with no arguments prints a list of commands for which help is available
@@ -96,10 +87,6 @@ class Console(cmd.Cmd):
     os.system("clear")
     print self.intro
 
-  def do_banner(self, args):
-    """ Display Banner """
-    print banner
-
   def do_search(self, args):
     """ Search """
     search = helper.Helper(args)
@@ -120,13 +107,16 @@ class Console(cmd.Cmd):
       "\tcategory : Search by category",
       '\tUsage:',
       '\t\tsearch name:http',
-      '\t\tsearch category:exploit',
-      '\t\tsearch name:http category:exploit'])
+      '\t\tsearch category:exploit'])
 
   def do_doc(self, args):
     """ Display Script Documentaion"""
     doc = helper.Helper(args)
     doc.displayDoc()
+
+  def help_doc(self):
+    print("\tUsage:")
+    print("\t\tdoc <script's name, including .nse>")
 
   def complete_doc(self, args, line, begidx, endidx):
     """ Autocomplete over the last result """
