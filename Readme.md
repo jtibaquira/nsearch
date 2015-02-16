@@ -20,6 +20,10 @@
 
 ### Requeriments
 
+```
+$ pip install pyyaml
+```
+
 #### Debian(Ubuntu)
 
 ```

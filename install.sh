@@ -1,5 +1,5 @@
 #!/bin/bash
-echo -e "\n"
+printf "\n"
 echo "========================================";
 echo " _   _  _____                     _     ";
 echo "| \ | |/  ___|                   | |    ";
@@ -9,67 +9,72 @@ echo "| |\  |/\__/ /  __/ (_| | | | (__| | | |";
 echo "\_| \_/\____/ \___|\__,_|_|  \___|_| |_|";
 echo "                                        ";
 echo "========================================";
-echo " Version 0.2     |   @jjtibaquira       ";
+echo " Version 0.3     |   @jjtibaquira       ";
 echo "========================================";
-echo -e "\n"
+printf "\n"
 
-homePath=$(pwd)
-nmapversion=$(nmap -V 2>/dev/null)
-luaversion=$(lua -v 2>/dev/null)
-luarocks=$(luarocks 2>/dev/null)
+
 
 #Check if is it root
-if [ $EUID -ne 0 ]; then
- echo "You must be root."
- exit 1
+if ! [ $(id -u) = 0 ]; then
+   echo "You must be a root user" 2>&1
+   exit 1
 fi
 
-echo -e "Checking Dependencies ....\n"
-apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+homePath=$(pwd)
+nmapversion=$(which nmap 2>/dev/null)
+paythonversion=$(which python 2>/dev/null)
+pipversion=$(which pip 2>/dev/null)
 
-function os_detection(){
-  if [ -f /etc/lsb-release ]; then
-    make install
-  elif [ -f /etc/debian_version ]; then
-    make install
-  else
-    echo "Please Follow the instructions into the Readme File"
-  fi
-}
+printf "Checking Dependencies ....\n"
+if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+  apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+elif [ -f /etc/redhat-release ]; then
+  yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel -y
+else
+  echo "Please Follow the instructions into the Readme File"
+fi
+
 
 function install_nmap(){
   echo "Installing nmap .... "
-  cd /tmp; curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2; bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -; cd nmap-6.47; ./configure; make; os_detection
-}
-
-function install_lua(){
-  if [ -f /etc/lsb-release ]; then
-    apt-get install lua5.2 liblua5.2-dev -y
-  elif [ -f /etc/debian_version ]; then
-    apt-get install lua5.2 liblua5.2-dev -y
+  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+    apt-get install nmap -y
+  elif [ -f /etc/redhat-release ]; then
+    yum install nmap -y
   else
     echo "Please Follow the instructions into the Readme File"
   fi
 }
 
-function install_luarocks(){
-  echo "Installing luarocks ..."
-  cd /tmp; curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz; tar xvzf luarocks-2.2.0.tar.gz; cd luarocks-2.2.0; ./configure --lua-version=5.2; os_detection
+function install_pyhon(){
+  echo "Installing python ..."
+  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+    apt-get install python -y
+  elif [ -f /etc/redhat-release ]; then
+    yum install python -y
+  else
+    echo "Please Follow the instructions into the Readme File"
+  fi
+}
 
-  if [ -f /etc/lsb-release ]; then
-    luarocks install lsqlite3
-  elif [ -f /etc/debian_version ]; then
-    luarocks install lsqlite3
+function install_pip(){
+  echo "Installing pip ..."
+
+  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
+    apt-get install python-pip -y; pip install PyYAML
+  elif [ -f /etc/redhat-release ]; then
+    rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update; yum -y install python-pip; pip install PyYAML
   else
     echo "Please Follow the instructions into the Readme File"
   fi
 }
 
 if [[ $nmapversion ]]; then
-  echo -e "\nNmap already installed :D \n"
+  printf "\nNmap already installed :D \n"
 else
   while true; do
-    echo -e "\n"
+    printf "\n"
     read -p "Do you wish to install nmap? " yn
     case $yn in
       [Yy]* ) install_nmap; break;;
@@ -79,28 +84,29 @@ else
   done
 fi
 
-if [[ $luaversion ]]; then
-  echo -e "Lua already installed :D \n"
+if [[ $paythonversion ]]; then
+  printf "Python already installed :D \n"
 else
   while true; do
-    echo -e "\n"
-    read -p "Do you wish to install lua? " yn
+    printf "\n"
+    read -p "Do you wish to install python? " yn
     case $yn in
-      [Yy]* ) install_lua; break;;
+      [Yy]* ) install_pyhon; break;;
       [Nn]* ) break;;
       * ) echo "Please answer yes or no.";;
     esac
   done
 fi
 
-if [[ $luarocks ]]; then
-  echo -e "luarocks already installed :D \n\nNSEarch is ready for be launched uses lua nsearch.lua\n"
+if [[ $pipversion ]]; then
+  pip install PyYAML
+  printf "Python already installed :D \n\nNSEarch is ready for be launched uses python nsearch.py\n"
 else
   while true; do
-    echo -e "\n"
-    read -p "Do you wish to install luarocks? " yn
+    printf "\n"
+    read -p "Do you wish to install pip? " yn
     case $yn in
-      [Yy]* ) install_luarocks;  break;;
+      [Yy]* ) install_pip;  break;;
       [Nn]* ) break;;
       * ) echo "Please answer yes or no.";;
     esac
@@ -109,15 +115,13 @@ fi
 
 dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
 if [[ $dbpath ]]; then
+  filePath=$dbpath'script.db'
   cd $homePath
-  echo -e "local config = {} \n" > config.lua
-  echo -e "config.scriptsPath='$dbpath'" >> config.lua
-  echo -e "config.filePath = config.scriptsPath..'script.db'" >> config.lua
-  echo -e "config.fileBackup = 'scriptbk.db'" >> config.lua
-  echo -e "config.scriptdb = 'nmap_scripts.sqlite3'" >> config.lua
-  echo -e 'config.categories = {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.lua
-  echo -e "return config" >> config.lua
-  chmod 777 config.lua
-  rm -rf /tmp/lua*
-  rm -rf /tmp/nmap-6.47*
+  printf "config: \n" > config.yaml
+  printf "  scriptsPath: '$dbpath'\n" >> config.yaml
+  printf "  filePath: '$filePath'\n" >> config.yaml
+  printf "  fileBackup: 'scriptbk.db'\n" >> config.yaml
+  printf "  scriptdb: 'nmap_scripts.sqlite3'\n" >> config.yaml
+  printf '  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
+  chmod 777 config.yaml
 fi
