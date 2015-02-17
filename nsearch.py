@@ -27,13 +27,11 @@ def createBackUp():
     script = open(dbmodule.fileBackup,'a')
     script.write(line,)
   if os.path.isfile(dbmodule.fileBackup):
-    print "The Backup was created successfully"
     print i18n.t("setup.create_backup_ok")
     script.close()
     scriptFile.close()
   else:
     print i18n.t("setup.create_backup_error")
-    print "The Backup was not created"
 
 
 def install():
