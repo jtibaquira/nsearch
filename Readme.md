@@ -7,7 +7,7 @@
  | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
  \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
 ================================================
- Version 0.2     |   @jjtibaquira
+ Version 0.3     |   @jjtibaquira
 ================================================
 ```
 ### Nmap Script Enginee Search
@@ -16,7 +16,7 @@
 #### nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name or category , it is also possible to see the documentation of the scripts found.
 
 ### Version
-0.2
+0.3
 
 ### Requeriments
 
@@ -37,7 +37,7 @@ $ pip install pyyaml
 ```
 
 ### Installation
-#### To install the application is necessary run as root user the installation script (install.sh), for the time, the script is only for OS based on debian, for OS based on Red Hat (CentOS), MacOSX or other UNIX  it's better do the installation for each dependency manually.
+#### To install the application is necessary run as root user the installation script (install.sh), for the time, the script is only for OS based on debian and based on Red Hat (CentOS). MacOSX or other UNIX  it's better do the installation for each dependency manually.
 
 #### Automatic Installation
 
@@ -45,66 +45,26 @@ $ pip install pyyaml
 # sh install.sh
 ```
 
-#### Manual Installation
-
-##### Nmap Installation
-
-```
-$ curl -R -O http://nmap.org/dist/nmap-6.47.tar.bz2
-$ bzip2 -cd nmap-6.47.tar.bz2 | tar xvf -
-$ cd nmap-6.47
-$ ./configure && make
-# make install
-```
-
-##### Lua Installation
-
-```
-$ cd /tmp
-$ curl -R -O http://www.lua.org/ftp/lua-5.3.0.tar.gz
-$ tar zxvf lua-5.3.0.tar.gz -C $HOME/
-$ cd $HOME/lua-5.3.0
-$ make linux test
-# ln -s $HOME/lua-5.3.0/src/lua /usr/local/bin/lua
-```
-
-##### Luarocks Installation
-
-```
-$ cd /tmp
-$ curl -O -R http://luarocks.org/releases/luarocks-2.2.0.tar.gz
-$ tar xvzf luarocks-2.2.0.tar.gz
-$ cd luarocks-2.2.0
-$./configure --lua-version=5.3
-# make install
-# luarocks install lsqlite3
-```
-
 ##### File Configuration
 ###### Find the script.db's path, use the command below
 ```
 $ find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")'
 ```
-###### Then create a config.lua file, on the main path of the script
+###### Then create a config.yaml file, on the main path of the script
 ```
--- config.lua
-local config = {}
+config:
+  scriptsPath: '/usr/local/share/nmap/scripts/'
+  filePath: '/usr/local/share/nmap/scripts/script.db'
+  fileBackup: 'scriptbk.db'
+  scriptdb: 'nmap_scripts.sqlite3'
+  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}
 
-config.scriptsPath = '/nmap/scripts/path'
-config.filePath = config.scriptsPath..'script.db'
-config.fileBackup = 'scriptbkp.db'
-config.scriptdb = 'nmap_scripts.sqlite3'
-config.categories = {
-                      "auth","broadcast","brute","default","discovery","dos","exploit",
-                      "external","fuzzer","intrusive","malware","safe","version","vuln"
-                      }
-return config
 ```
 
 ### USAGE:
 
 ```
-$ lua nsearch.lua
+$ python nsearch.py
 ```
 
 #### Main Menu
@@ -119,7 +79,7 @@ $ lua nsearch.lua
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
  ================================================
-   Version 0.2     |   @jjtibaquira
+   Version 0.3     |   @jjtibaquira
  ================================================
 
 Creating Database :nmap_scripts.sqlite3
@@ -132,83 +92,109 @@ Upload Categories to Categories Table ...
 #### Main Console
 
 ```
- ================================================
+  ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
    |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.2     |   @jjtibaquira
+   Version 0.3     |   @jjtibaquira
   ================================================
 
-    name     : search by script's name
-    category : search by category
-    clear    : Clean the console
-    exit     : Close the Application
-
-     Usage:
-       name:http
-       category:exploit
-
-    nsearch>
+  nsearch>
 ```
 
+#### Basic Commands
+
 ```
-   ================================================
+  ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
    |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.2     |   @jjtibaquira
+   Version 0.3     |   @jjtibaquira
   ================================================
 
-  nsearch> name:http
+  nsearch> help
 
-  Total Scripts Found 101
+  Nsearch Commands
+  ================
+  clear  doc  exit  help  history  last  search
 
-    1 http-adobe-coldfusion-apsa1301.nse
-    2 http-affiliate-id.nse
-    3 http-apache-negotiation.nse
-    4 http-auth-finder.nse
-    5 http-auth.nse
-    6 http-awstatstotals-exec.nse
-    7 http-axis2-dir-traversal.nse
-    8 http-backup-finder.nse
-    9 http-barracuda-dir-traversal.nse
-    .
-    .
-    .
-    100 membase-http-info.nse
-    101 riak-http-info.nse
+  nsearch>
+```
 
-    Do yo want more info about any script, choose the script using id [1-101] or quit (0) 1
+```
+  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.3     |   @jjtibaquira
+  ================================================
 
-    description = [[
-    Attempts to exploit an authentication bypass vulnerability in Adobe Coldfusion servers (APSA13-01: http://www.adobe.com/support/security/advisories/apsa13-01.html) to retrieve a valid administrator's session cookie.
-    ]]
+  nsearch> help search
 
-    ---
-    -- @usage nmap -sV --script http-adobe-coldfusion-apsa1301 <target>
-    -- @usage nmap -p80 --script http-adobe-coldfusion-apsa1301 --script-args basepath=/cf/adminapi/ <target>
-    --
-    -- @output
-    -- PORT   STATE SERVICE
-    -- 80/tcp open  http
-    -- | http-adobe-coldfusion-apsa1301:
-    -- |_  admin_cookie: aW50ZXJhY3RpdmUNQUEyNTFGRDU2NzM1OEYxNkI3REUzRjNCMjJERTgxOTNBNzUxN0NEMA1jZmFkbWlu
-    --
-    -- @args http-adobe-coldfusion-apsa1301.basepath URI path to administrator.cfc. Default: /CFIDE/adminapi/
-    --
-    ---
+  name     : Search by script's name
+  category : Search by category
+  Usage:
+    search name:http
+    search category:exploit
 
-    author = "Paulino Calderon <calderon@websec.mx>"
+  nsearch>
+```
 
-    Do yo want more info about any script, choose the script using id [1-101] or quit (0)
+```
+  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.3     |   @jjtibaquira
+  ================================================
+
+  nsearch> search name:ssh
+  1.ssh-hostkey.nse
+  2.ssh2-enum-algos.nse
+  3.sshv1.nse
+  nsearch>
+```
+
+```
+  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.3     |   @jjtibaquira
+  ================================================
+
+  nsearch> doc ssh <TAB>
+  ssh-hostkey.nse      ssh2-enum-algos.nse  sshv1.nse
+  nsearch> doc sshv1.nse
+  local nmap = require "nmap"
+  local shortport = require "shortport"
+  local string = require "string"
+
+  description = [[
+    Checks if an SSH server supports the obsolete and less secure SSH Protocol Version 1.
+  ]]
+  author = "Brandon Enright"
+  nsearch>
 ```
 
 ### TODO
