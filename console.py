@@ -70,7 +70,7 @@ class Console(cmd.Cmd):
         it has been interpreted. If you want to modifdy the input line
         before execution (for example, variable substitution) do it here.
     """
-    self._history += line.strip()+" "
+    self._history += line.strip()+"\n"
     return line
 
   def postcmd(self, stop, line):
