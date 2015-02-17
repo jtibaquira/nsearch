@@ -124,4 +124,6 @@ if [[ $dbpath ]]; then
   printf "  scriptdb: 'nmap_scripts.sqlite3'\n" >> config.yaml
   printf '  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
   chmod 777 config.yaml
+  printf "Cleanning Lua Version \n"
+  rm -rf *.lua
 fi
