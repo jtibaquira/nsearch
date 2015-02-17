@@ -61,5 +61,4 @@ target/
 .DS_Store
 *.tmp
 *.db
-*.yml
 *.yaml
