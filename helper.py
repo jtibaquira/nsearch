@@ -1,5 +1,13 @@
 import dbmodule
 
+import os
+import re
+import i18n
+
+currentLocale = re.sub('[_].*','',os.environ['LANG'])
+
+i18n.load_path.append('i18n')
+i18n.set('locale',currentLocale)
 
 class Helper:
 

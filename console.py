@@ -4,6 +4,7 @@ import os
 import cmd
 import readline
 import helper
+import i18n
 
 banner ='\033[0;36m'+'''
   ================================================
@@ -23,8 +24,8 @@ class Console(cmd.Cmd):
   def __init__(self):
     cmd.Cmd.__init__(self)
     self.prompt = "nsearch> "
-    self.intro  =banner  ## defaults to None
-    self.doc_header = 'Nsearch Commands'
+    self.intro  = banner
+    self.doc_header = i18n.t("menu.help")
     self.misc_header = 'Nsearch Plugins'
     self.undoc_header = 'Other Commands'
     self.ruler = '='

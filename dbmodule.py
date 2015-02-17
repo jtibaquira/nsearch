@@ -2,6 +2,7 @@
 import sqlite3 as lite
 import sys
 import yaml
+import i18n
 
 stream = open("config.yaml", 'r')
 item = yaml.load(stream)
