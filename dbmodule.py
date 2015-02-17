@@ -14,7 +14,7 @@ scriptsPath = item["config"]["scriptsPath"]
 lastresults = {};
 
 def initSetup():
-  print("Creating Database: "+dbname)
+  print i18n.t("setup.create_db")+" "+dbname
   db = lite.connect(dbname)
   cursor = db.cursor()
   # Create Script Table
@@ -22,23 +22,23 @@ def initSetup():
     create table scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
     author TEXT NULL)
   ''')
-  print("Creating Table For Script ....")
+  print i18n.t("setup.create_script_table")
   db.commit()
   # Create Categories Table
   cursor.execute('''create table categories(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
      name TEXT NOT NULL)
   ''')
-  print("Creating Table for Categories .... ")
+  print i18n.t("setup.create_category_table")
   db.commit()
   # Create Script/Category Table
   cursor.execute('''create table script_category(
     id_category INTEGER NOT NULL,
     id_script INETGER NOT NULL)
   ''')
-  print("Creating Table for Scripts per Category ....")
+  print i18n.t("setup.create_category_script_table")
   db.commit()
-  print("Upload Categories to Categories Table ...")
+  print i18n.t("setup.upload_categories")
   for category in categories:
     cursor.execute('''
       INSERT INTO categories (name) VALUES (?)

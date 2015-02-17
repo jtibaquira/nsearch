@@ -21,16 +21,18 @@ banner ='\033[0;36m'+'''
 '''+'\033[0m'
 
 def createBackUp():
-  print("Creating Script.db Backup ... ")
+  print i18n.t("setup.create_backup")
   scriptFile = open(dbmodule.filePath,'r')
   for line in scriptFile:
     script = open(dbmodule.fileBackup,'a')
     script.write(line,)
   if os.path.isfile(dbmodule.fileBackup):
     print "The Backup was created successfully"
+    print i18n.t("setup.create_backup_ok")
     script.close()
     scriptFile.close()
   else:
+    print i18n.t("setup.create_backup_error")
     print "The Backup was not created"
 
 
