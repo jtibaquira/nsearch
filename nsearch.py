@@ -4,7 +4,8 @@ import dbmodule
 import os
 import sys
 import console
-
+import i18n
+import re
 
 banner ='\033[0;36m'+'''
   ================================================
@@ -51,6 +52,11 @@ def install():
   createBackUp()
 
 if __name__ == '__main__':
+
+  currentLocale = re.sub('[_].*','',os.environ['LANG'])
+  i18n.load_path.append('i18n')
+  i18n.set('locale',currentLocale) if True else i18n.set('fallback','en')
+
   if not os.path.isfile(dbmodule.dbname):
     install()
   os.system("clear")
