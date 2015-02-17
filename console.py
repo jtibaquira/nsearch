@@ -25,9 +25,9 @@ class Console(cmd.Cmd):
     cmd.Cmd.__init__(self)
     self.prompt = "nsearch> "
     self.intro  = banner
-    self.doc_header = i18n.t("menu.help")
-    self.misc_header = 'Nsearch Plugins'
-    self.undoc_header = 'Other Commands'
+    self.doc_header = i18n.t("help.doc_header")
+    self.misc_header = i18n.t("help.misc_header")
+    self.undoc_header = i18n.t("help.undoc_header")
     self.ruler = '='
 
   serachCommands = [ 'name', 'category', 'help']
@@ -116,8 +116,9 @@ class Console(cmd.Cmd):
     doc.displayDoc()
 
   def help_doc(self):
-    print("\tUsage:")
-    print("\t\tdoc <script's name, including .nse>")
+    print " "+i18n.t("help.help_doc")
+    print " "+i18n.t("help.help_doc_usage")
+    print "  "+i18n.t("help.help_doc_exmp")
 
   def complete_doc(self, args, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -133,9 +134,12 @@ class Console(cmd.Cmd):
 
 
   def do_last(self,args):
-    """ Print the last Result of the Query """
+    """ last help"""
     search = helper.Helper()
     search.last()
+
+  def help_last(sefl):
+    print i18n.t("help.help_last")
 
   def default(self, line):
     """Called on an input line when the command prefix is not recognized.
