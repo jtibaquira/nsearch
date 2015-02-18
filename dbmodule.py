@@ -75,7 +75,7 @@ def searchScript(script):
   return __fetchScript(cursor.fetchall())
   db.close()
 
-#Search Category by name
+#get script filter by Category
 def searchCategory(category):
   db = lite.connect(dbname)
   cursor = db.cursor()
