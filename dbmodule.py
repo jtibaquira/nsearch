@@ -86,6 +86,13 @@ def searchAll():
   return __fetchScript(cursor.fetchall(),True)
   db.close()
 
+def searchScriptCategory(script,category):
+  db = lite.connect(dbname)
+  cursor = db.cursor()
+  cursor = db.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category ")
+  return __fetchScript(cursor.fetchall())
+  db.close()
+
 def __fetchScript(fetchall,total=False):
   fetchlist = {};
   if total:

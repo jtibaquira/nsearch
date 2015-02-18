@@ -1,5 +1,6 @@
 import dbmodule
 import i18n
+import re
 
 class Helper:
 
@@ -12,7 +13,17 @@ class Helper:
       for row in dbmodule.lastresults.items():
         print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
     else:
-      if self.args.startswith('name:'):
+      if self.args.find('name:') != -1 and self.args.find('category:') != -1:
+        if self.args.startswith('name:'):
+          script = self.args.split(":")[1].split(" ")[0]
+          category = self.args.split(":")[2].split(" ")[0]
+        elif self.args.startswith('category:'):
+          script = self.args.split(":")[1].split(" ")[0]
+          category = self.args.split(":")[2].split(" ")[0]
+        dbmodule.lastresults = dbmodule.searchScriptCategory(script,category)
+        for k,v in dbmodule.lastresults.items():
+          print('\033[1;32m'+str(k)+"."+v+'\033[0m')
+      elif self.args.startswith('name:'):
         criterial = self.args.split(":")[1].split(" ")[0]
         dbmodule.lastresults = dbmodule.searchScript(criterial)
         for k,v in dbmodule.lastresults.items():
