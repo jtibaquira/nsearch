@@ -57,6 +57,8 @@ class Console(cmd.Cmd):
     self._history = ""      ## No historyory yet
     self._locals  = {}      ## Initialize execution namespace for user
     self._globals = {}
+    old_delims = readline.get_completer_delims()
+    readline.set_completer_delims(old_delims.replace('-', ''))
 
   def postloop(self):
     """Take care of any unfinished business.
@@ -120,18 +122,10 @@ class Console(cmd.Cmd):
     print " "+i18n.t("help.help_doc_usage")
     print "  "+i18n.t("help.help_doc_exmp")
 
-  def complete_doc(self, args, line, begidx, endidx):
+  def complete_doc(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
     resultitems = helper.Helper()
-    if not args:
-      completions = resultitems.resultitems()
-    else:
-      completions = [ f
-                        for f in resultitems.resultitems()
-                        if f.startswith(args)
-                   ]
-    return completions
-
+    return [i for i in resultitems.resultitems() if i.startswith(text)]
 
   def do_last(self,args):
     """ last help"""
