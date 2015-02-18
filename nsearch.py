@@ -46,7 +46,13 @@ def install():
     newarray = line.split(",")
     for key,value in enumerate(newarray):
       if value == newarray[0]:
-        lastrowid = dbmodule.insertScript(value)
+        author = ""
+        currentScript = open(dbmodule.scriptsPath+value,'r')
+        for line in currentScript:
+          if line.startswith("author"):
+            author = line.replace('author = "',"").replace('"',',"').replace('[[',"").replace(',"',"").replace("author =","Brandon Enright <bmenrigh@ucsd.edu>, Duane Wessels <wessels@dns-oarc.net>")
+        lastrowid = dbmodule.insertScript(value,author)
+        currentScript.close()
       else:
         dbmodule.insertScriptCategory(lastrowid,value)
   scriptFile.close()

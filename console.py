@@ -30,7 +30,7 @@ class Console(cmd.Cmd):
     self.undoc_header = i18n.t("help.undoc_header")
     self.ruler = '='
 
-  serachCommands = [ 'name', 'category', 'help']
+  serachCommands = [ 'name', 'category', 'help', 'author']
   ## Command definitions ##
   def do_history(self, args):
     """Print a list of commands that have been entered"""
@@ -106,9 +106,12 @@ class Console(cmd.Cmd):
   def help_search(self):
     print '\n'.join([ "\n\tname     : Search by script's name",
       "\tcategory : Search by category",
+      "\tauthor : Search by author",
       '\tUsage:',
       '\t\tsearch name:http',
-      '\t\tsearch category:exploit'])
+      '\t\tsearch category:exploit',
+      '\t\tsearch author:fyodor',
+      '\t\tsearch name:http category:exploit'])
 
   def do_doc(self, args):
     """ Display Script Documentaion"""

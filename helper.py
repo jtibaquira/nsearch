@@ -30,6 +30,10 @@ class Helper:
         criterial = self.__processCriterial()
         dbmodule.lastresults = dbmodule.searchCategory(criterial)
         self.printlastResult()
+      elif self.args.startswith("author:"):
+        criterial = self.__processCriterial()
+        dbmodule.lastresults = dbmodule.searchAuthor(criterial)
+        self.printlastResult()
       else:
         print "Use help search for display menu"
 

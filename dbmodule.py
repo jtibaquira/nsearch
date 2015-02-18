@@ -46,12 +46,13 @@ def initSetup():
     db.commit()
   db.close()
 
-def insertScript(script):
+def insertScript(script,author):
   db = lite.connect(dbname)
+  db.text_factory = str
   cursor = db.cursor()
   cursor.execute('''
-    Insert into scripts (name) values (?)
-    ''',(script,))
+    Insert into scripts (name,author) values (?,?)
+    ''',(script,author,))
   db.commit()
   db.close()
   return cursor.lastrowid
@@ -97,6 +98,15 @@ def searchScriptCategory(script,category):
   cursor = db.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category ")
   return __fetchScript(cursor.fetchall())
   db.close()
+
+#get scripts filter by authors
+def searchAuthor(author):
+  db = lite.connect(dbname)
+  cursor = db.cursor()
+  cursor.execute("select name from scripts where author like '%"+author+"%'")
+  return __fetchScript(cursor.fetchall())
+  db.close()
+
 
 # private function to fetch all results into a dic
 def __fetchScript(fetchall,total=False):
