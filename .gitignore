@@ -58,7 +58,7 @@ target/
 *.tar.gz
 *.zip
 *.unrar
-*.DS_Store
+.DS_Store
 *.tmp
 *.db
 *.yaml
