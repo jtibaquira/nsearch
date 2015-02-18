@@ -20,6 +20,7 @@ banner ='\033[0;36m'+'''
   ================================================
 '''+'\033[0m'
 
+#create file backups
 def createBackUp():
   print i18n.t("setup.create_backup")
   scriptFile = open(dbmodule.filePath,'r')
@@ -33,7 +34,7 @@ def createBackUp():
   else:
     print i18n.t("setup.create_backup_error")
 
-
+# init install to the project
 def install():
   print banner
   dbmodule.initSetup()
@@ -51,6 +52,7 @@ def install():
   scriptFile.close()
   createBackUp()
 
+# main action
 if __name__ == '__main__':
 
   currentLocale = re.sub('[_].*','',os.environ['LANG'])

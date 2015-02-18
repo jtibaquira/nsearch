@@ -1,12 +1,12 @@
 import dbmodule
 import i18n
-import re
 
 class Helper:
 
   def __init__(self,args="",):
     self.args = args
 
+  #process the commnads
   def process(self):
     if not self.args:
       dbmodule.lastresults = dbmodule.searchAll()
@@ -15,31 +15,29 @@ class Helper:
     else:
       if self.args.find('name:') != -1 and self.args.find('category:') != -1:
         if self.args.startswith('name:'):
-          script = self.args.split(":")[1].split(" ")[0]
-          category = self.args.split(":")[2].split(" ")[0]
+          script = self.__processCriterial()
+          category = self.__processCriterial(False)
         elif self.args.startswith('category:'):
-          script = self.args.split(":")[1].split(" ")[0]
-          category = self.args.split(":")[2].split(" ")[0]
+          script = self.__processCriterial()
+          category = self.__processCriterial(False)
         dbmodule.lastresults = dbmodule.searchScriptCategory(script,category)
-        for k,v in dbmodule.lastresults.items():
-          print('\033[1;32m'+str(k)+"."+v+'\033[0m')
+        self.printlastResult()
       elif self.args.startswith('name:'):
-        criterial = self.args.split(":")[1].split(" ")[0]
+        criterial = self.__processCriterial()
         dbmodule.lastresults = dbmodule.searchScript(criterial)
-        for k,v in dbmodule.lastresults.items():
-          print('\033[1;32m'+str(k)+"."+v+'\033[0m')
+        self.printlastResult()
       elif self.args.startswith("category:"):
-        criterial = self.args.split(":")[1].split(" ")[0]
+        criterial = self.__processCriterial()
         dbmodule.lastresults = dbmodule.searchCategory(criterial)
-        for k,v in dbmodule.lastresults.items():
-          print('\033[1;32m'+str(k)+"."+v+'\033[0m')
+        self.printlastResult()
       else:
         print "Use help search for display menu"
 
-  def last(self):
+  def printlastResult(self):
     for k,v in dbmodule.lastresults.items():
       print('\033[1;32m'+str(k)+"."+v+'\033[0m')
 
+  # Display the documentation per script
   def displayDoc(self):
     scriptFile = open(dbmodule.scriptsPath+self.args,'r')
     lines = scriptFile.read().splitlines()
@@ -49,6 +47,7 @@ class Helper:
       print('\033[1;96m'+line+'\033[0m')
     scriptFile.close()
 
+  # used for the autocomplete
   def resultitems(self):
     i = 0
     items = []
@@ -56,3 +55,9 @@ class Helper:
       items.insert(i,v)
       i = i + 1
     return items
+
+  def __processCriterial(self,single=True):
+    if single:
+      return self.args.split(":")[1].split(" ")[0]
+    else:
+      return self.args.split(":")[2].split(" ")[0]

@@ -56,6 +56,7 @@ def insertScript(script):
   db.close()
   return cursor.lastrowid
 
+#Insert the scripts_id and categories_id
 def insertScriptCategory(scriptid,categoryid):
   db = lite.connect(dbname)
   cursor = db.cursor()
@@ -65,6 +66,7 @@ def insertScriptCategory(scriptid,categoryid):
   db.commit()
   db.close()
 
+#search script by name
 def searchScript(script):
   db = lite.connect(dbname)
   cursor = db.cursor()
@@ -72,6 +74,7 @@ def searchScript(script):
   return __fetchScript(cursor.fetchall())
   db.close()
 
+#Search Category by name
 def searchCategory(category):
   db = lite.connect(dbname)
   cursor = db.cursor()
@@ -79,6 +82,7 @@ def searchCategory(category):
   return __fetchScript(cursor.fetchall())
   db.close()
 
+#get all scripts
 def searchAll():
   db = lite.connect(dbname)
   cursor = db.cursor()
@@ -86,6 +90,7 @@ def searchAll():
   return __fetchScript(cursor.fetchall(),True)
   db.close()
 
+#get scripts filter by category
 def searchScriptCategory(script,category):
   db = lite.connect(dbname)
   cursor = db.cursor()
@@ -93,6 +98,7 @@ def searchScriptCategory(script,category):
   return __fetchScript(cursor.fetchall())
   db.close()
 
+# private function to fetch all results into a dic
 def __fetchScript(fetchall,total=False):
   fetchlist = {};
   if total:

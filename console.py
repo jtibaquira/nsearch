@@ -136,7 +136,7 @@ class Console(cmd.Cmd):
   def do_last(self,args):
     """ last help"""
     search = helper.Helper()
-    search.last()
+    search.printlastResult()
 
   def help_last(sefl):
     print i18n.t("help.help_last")
