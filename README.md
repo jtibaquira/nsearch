@@ -200,8 +200,7 @@ config:
 
 ### TODO
 * Fast-Tarck
-* Searching by Author
-* Serching by name, category, author in the same query
+* Create sequences for the execution of scripts
 * Create a pretty output
 * Create a file output
 * Version for Windows
