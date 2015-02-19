@@ -30,7 +30,10 @@ class Console(cmd.Cmd):
     self.undoc_header = i18n.t("help.undoc_header")
     self.ruler = '='
 
+  ## autocomplete definition list
   serachCommands = [ 'name', 'category', 'help', 'author']
+  showfavOptions = ['name', 'ranking', 'help']
+
   ## Command definitions ##
   def do_history(self, args):
     """Print a list of commands that have been entered"""
@@ -138,7 +141,7 @@ class Console(cmd.Cmd):
   def help_last(self):
     print i18n.t("help.help_last")
 
-# handler fav actions
+  # handler fav actions
   def do_addfav(self,args):
     search = helper.Helper(args,"addfav")
     search.process()
@@ -170,7 +173,17 @@ class Console(cmd.Cmd):
   def help_showfav(self):
     print i18n.t("help.help_last")
 
-#default action cmd class
+  def autocomplete_showfav(self, text, line, begidx, endidx):
+    if not text:
+      commands = self.showfavOptions[:]
+    else:
+      commands = [ f
+                      for f in self.showfavOptions
+                      if f.startswith(text)
+                  ]
+    return commands
+
+  #default action cmd class
   def default(self, line):
     """Called on an input line when the command prefix is not recognized.
        In that case we execute the line as Python code.

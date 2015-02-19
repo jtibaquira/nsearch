@@ -27,9 +27,7 @@ class Helper:
     else:
       print "Error"
 
-
-
-
+  # Display the last results
   def printlastResult(self):
     for k,v in dbmodule.lastresults.items():
       print('\033[1;32m'+str(k)+"."+v+'\033[0m')
