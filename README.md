@@ -21,7 +21,7 @@
 ### Requeriments
 
 ```
-$ pip install pyyaml
+$ pip install pyyaml python-i18n
 ```
 
 #### Debian(Ubuntu)
