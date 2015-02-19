@@ -1,10 +1,9 @@
 #!/usr/bin/env python
 
 import dbmodule
-import os
-import sys
+from dbmodule import *
 import console
-import i18n
+from console import *
 import re
 
 banner ='\033[0;36m'+'''

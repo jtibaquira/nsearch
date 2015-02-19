@@ -77,13 +77,16 @@ def searchAll():
   db.close()
 
 
-
+# Functions for all queries
 def searchByCriterial(**kwargs):
   if kwargs is not None:
     sql = ""
     db = lite.connect(dbname)
     cursor = db.cursor()
     if kwargs.has_key("name") and kwargs.has_key("category") and kwargs.has_key("author"):
+      script = kwargs["name"]
+      category = kwargs["category"]
+      author = kwargs["author"]
       sql= "select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.author like '%"+author+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category "
     elif kwargs.has_key("name") and kwargs.has_key("category"):
       script = kwargs["name"]

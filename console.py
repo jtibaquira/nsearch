@@ -1,10 +1,10 @@
 ## console.py
 
+import helper
+from helper import *
 import os
 import cmd
 import readline
-import helper
-import i18n
 
 banner ='\033[0;36m'+'''
   ================================================

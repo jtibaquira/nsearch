@@ -1,5 +1,5 @@
 import dbmodule
-import i18n
+from dbmodule import *
 
 class Helper:
 
