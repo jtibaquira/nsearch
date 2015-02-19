@@ -62,9 +62,9 @@ function install_pip(){
   echo "Installing pip ..."
 
   if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
-    apt-get install python-pip -y; pip install PyYAML
+    apt-get install python-pip -y; pip install PyYAML python-i18n
   elif [ -f /etc/redhat-release ]; then
-    rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update; yum -y install python-pip; pip install PyYAML
+    rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update; yum -y install python-pip; pip install PyYAML python-i18n
   else
     echo "Please Follow the instructions into the Readme File"
   fi
@@ -99,7 +99,7 @@ else
 fi
 
 if [[ $pipversion ]]; then
-  pip install PyYAML
+  pip install PyYAML python-i18n
   printf "Python already installed :D \n\nNSEarch is ready for be launched uses python nsearch.py\n"
 else
   while true; do
