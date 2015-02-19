@@ -46,6 +46,22 @@ def initSetup():
     db.commit()
   db.close()
 
+  updateApp()
+
+#update app if the db exists
+def updateApp():
+  print i18n.t("setup.update_db")+" "+dbname
+  db = lite.connect(dbname)
+  cursor = db.cursor()
+  # Create Script Table
+  cursor.execute('''
+    create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
+    rank TEXT DEFAULT 'normal')
+  ''')
+  db.commit()
+  db.close()
+
+# Insert each Script and Author
 def insertScript(script,author):
   db = lite.connect(dbname)
   db.text_factory = str
