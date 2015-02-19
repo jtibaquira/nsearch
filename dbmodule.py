@@ -55,8 +55,8 @@ def updateApp():
   cursor = db.cursor()
   # Create Favorite Table
   cursor.execute('''
-    create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
-    ranking TEXT DEFAULT 'normal')
+    create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
+    ranking TEXT NOT NULL)
   ''')
   db.commit()
   db.close()
@@ -95,61 +95,67 @@ def searchAll():
 #set script as a favorite
 def createFavorite(**kwargs):
   if kwargs is not None:
-    sql = ""
+    script = " "
+    ranking = " "
     db = lite.connect(dbname)
+    db.text_factory = str
     cursor = db.cursor()
     if kwargs.has_key("name") and kwargs.has_key("ranking"):
       script = kwargs["name"]
       ranking = kwargs["ranking"]
-      sql = '''Insert into favorites (name,ranking) values (?,?) ''',(script,ranking,)
     elif kwargs.has_key("name"):
       script = kwargs["name"]
-      sql = '''Insert into favorites (name) values (?) ''',(script,)
+      ranking = "normal"
     else:
       print "Bad Params"
-    cursor.execute(sql)
+    print script
+    print ranking
+    cursor.execute('''
+      Insert into favorites (name,ranking) values (?,?)
+      ''',(script,ranking,))
     db.commit()
     db.close()
 
 #update favorite row
 def updateFavorite(**kwargs):
   if kwargs is not None:
-  sql = ""
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
-    script = kwargs["name"]
-    newname = kwargs["newname"]
-    newranking = kwargs["newranking"]
-    sql = '''DELETE FROM favorites WHERE name=?''',(script,)
-  elif kwargs.has_key("name") and kwargs.has_key("newname"):
-    script = kwargs["name"]
-    newname = kwargs["newname"]
-    sql = ''' '''
-  elif kwargs.has_key("name") and kwargs.has_key("newranking"):
-    script = kwargs["name"]
-    newranking = kwargs["newranking"]
-    sql = ''' '''
-  else:
-    print "Bad Params"
-  cursor.execute(sql)
-  db.commit()
-  db.close()
-
-#delete script values
-def deleteFavorite(**kwargs):
-  if kwargs is not None:
     sql = ""
     db = lite.connect(dbname)
     cursor = db.cursor()
-    if kwargs.has_key("name"):
+    if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
       script = kwargs["name"]
+      newname = kwargs["newname"]
+      newranking = kwargs["newranking"]
       sql = '''DELETE FROM favorites WHERE name=?''',(script,)
+    elif kwargs.has_key("name") and kwargs.has_key("newname"):
+      script = kwargs["name"]
+      newname = kwargs["newname"]
+      sql = ''' '''
+    elif kwargs.has_key("name") and kwargs.has_key("newranking"):
+      script = kwargs["name"]
+      newranking = kwargs["newranking"]
+      sql = ''' '''
     else:
       print "Bad Params"
     cursor.execute(sql)
     db.commit()
     db.close()
+
+#delete script values
+def deleteFavorite(**kwargs):
+  if kwargs is not None:
+    db = lite.connect(dbname)
+    db.text_factory = str
+    cursor = db.cursor()
+    if kwargs.has_key("name"):
+      script = kwargs["name"]
+      cursor.execute('''
+        DELETE FROM favorites WHERE name=?
+        ''',(script,))
+      db.commit()
+      db.close()
+    else:
+      print "Bad Params"
 
 
 # Functions for all queries

@@ -101,7 +101,7 @@ class Helper:
   #private function to set paramas for showfav command
   def __showfavparams(self):
     argsdic ={}
-    if self.args.find('name:') != -1 and self.args.find('ranking:') != -1:
+    if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
       if len(self.args.split(":")) == 3:
         argsdic.update({
           self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],

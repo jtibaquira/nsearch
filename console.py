@@ -149,7 +149,7 @@ class Console(cmd.Cmd):
   def help_addfav(self):
     print i18n.t("help.help_last")
 
-  def autocomplete_addfav(self, text, line, begidx, endidx):
+  def complete_addfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
     resultitems = helper.Helper()
     return [i for i in resultitems.resultitems() if i.startswith(text)]
@@ -161,7 +161,7 @@ class Console(cmd.Cmd):
   def help_delfav(self):
     print i18n.t("help.help_last")
 
-  def autocomplete_delfav(self, text, line, begidx, endidx):
+  def complete_delfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
     resultitems = helper.Helper()
     return [i for i in resultitems.resultitems() if i.startswith(text)]
@@ -173,7 +173,7 @@ class Console(cmd.Cmd):
   def help_showfav(self):
     print i18n.t("help.help_last")
 
-  def autocomplete_showfav(self, text, line, begidx, endidx):
+  def complete_showfav(self, text, line, begidx, endidx):
     if not text:
       commands = self.showfavOptions[:]
     else:
