@@ -67,21 +67,6 @@ def insertScriptCategory(scriptid,categoryid):
   db.commit()
   db.close()
 
-#search script by name
-def searchScript(script):
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  cursor.execute("select name from scripts where name like '%"+script+"%'")
-  return __fetchScript(cursor.fetchall())
-  db.close()
-
-#get script filter by Category
-def searchCategory(category):
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  cursor.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category")
-  return __fetchScript(cursor.fetchall())
-  db.close()
 
 #get all scripts
 def searchAll():
@@ -91,21 +76,6 @@ def searchAll():
   return __fetchScript(cursor.fetchall(),True)
   db.close()
 
-#get scripts filter by category
-def searchScriptCategory(script,category):
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  cursor = db.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category ")
-  return __fetchScript(cursor.fetchall())
-  db.close()
-
-#get scripts filter by authors
-def searchAuthor(author):
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  cursor.execute("select name from scripts where author like '%"+author+"%'")
-  return __fetchScript(cursor.fetchall())
-  db.close()
 
 
 def searchByCriterial(**kwargs):
