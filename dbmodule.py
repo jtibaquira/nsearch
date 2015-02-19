@@ -93,25 +93,38 @@ def searchAll():
   db.close()
 
 #set script as a favorite
-def createFavorite(script,ranking=""):
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  if ranking:
-    sql = '''Insert into favorites (name,ranking) values (?,?) ''',(script,ranking,)
-  else:
-    sql = '''Insert into favorites (name) values (?) ''',(script,)
-  cursor.execute(sql)
-  db.commit()
-  db.close()
+def createFavorite(**kwargs):
+  if kwargs is not None:
+    sql = ""
+    db = lite.connect(dbname)
+    cursor = db.cursor()
+    if kwargs.has_key("name") and kwargs.has_key("ranking"):
+      script = kwargs["name"]
+      ranking = kwargs["ranking"]
+      sql = '''Insert into favorites (name,ranking) values (?,?) ''',(script,ranking,)
+    elif kwargs.has_key("name"):
+      script = kwargs["name"]
+      sql = '''Insert into favorites (name) values (?) ''',(script,)
+    else:
+      print "Bad Params"
+    cursor.execute(sql)
+    db.commit()
+    db.close()
 
 #delete script values
-def deleteFavorite(script):
-  sql = '''DELETE FROM favorites WHERE name=?''',(script,)
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  cursor.execute(sql)
-  db.commit()
-  db.close()
+def deleteFavorite(**kwargs):
+  if kwargs is not None:
+    sql = ""
+    db = lite.connect(dbname)
+    cursor = db.cursor()
+    if kwargs.has_key("name"):
+      script = kwargs["name"]
+      sql = '''DELETE FROM favorites WHERE name=?''',(script,)
+    else:
+      print "Bad Params"
+    cursor.execute(sql)
+    db.commit()
+    db.close()
 
 
 # Functions for all queries
@@ -143,7 +156,7 @@ def searchByCriterial(**kwargs):
       author = kwargs["author"]
       sql= "select name from scripts where author like '%"+author+"%'"
     else:
-      print "Empty"
+      print "Bad Params"
     cursor.execute(sql)
     return __fetchScript(cursor.fetchall())
     db.close()

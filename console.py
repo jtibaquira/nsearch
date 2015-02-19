@@ -92,7 +92,7 @@ class Console(cmd.Cmd):
 
   def do_search(self, args):
     """ Search """
-    search = helper.Helper(args)
+    search = helper.Helper(args,"search")
     search.process()
 
   def complete_search(self, text, line, begidx, endidx):

@@ -3,18 +3,27 @@ from dbmodule import *
 
 class Helper:
 
-  def __init__(self,args="",):
+  def __init__(self,args="",commnad=""):
     self.args = args
+    self.commnad = commnad
 
   #process the commnads
   def process(self):
-    if not self.args:
-      dbmodule.lastresults = dbmodule.searchAll()
-      for row in dbmodule.lastresults.items():
-        print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
+    if self.commnad == "search":
+      if not self.args:
+        dbmodule.lastresults = dbmodule.searchAll()
+        for row in dbmodule.lastresults.items():
+          print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
+      else:
+        dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
+        self.printlastResult()
+    elif self.commnad == "addfav":
+      dbmodule.createFavorite(**self.__addfavparams())
+    elif self.commnad == "delfav":
+      dbmodule.deleteFavorite(**self.__delfavparams())
     else:
-      dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
-      self.printlastResult()
+      print "Error"
+
 
 
 
