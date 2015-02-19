@@ -85,7 +85,7 @@ else
 fi
 
 if [[ $paythonversion ]]; then
-  printf "Python already installed :D \n"
+  printf "Python is already installed :D\n"
 else
   while true; do
     printf "\n"
@@ -100,7 +100,7 @@ fi
 
 if [[ $pipversion ]]; then
   pip install PyYAML python-i18n
-  printf "Python already installed :D \n\nNSEarch is ready for be launched uses python nsearch.py\n"
+  printf "pip is already installed :D\n"
 else
   while true; do
     printf "\n"
@@ -116,12 +116,16 @@ fi
 dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
 if [[ $dbpath ]]; then
   filePath=$dbpath'script.db'
+  checksum=$(md5 $filePath | awk '{print $4}')
   cd $homePath
+  printf "Creating config.yaml file ...\n"
   printf "config: \n" > config.yaml
   printf "  scriptsPath: '$dbpath'\n" >> config.yaml
   printf "  filePath: '$filePath'\n" >> config.yaml
   printf "  fileBackup: 'scriptbk.db'\n" >> config.yaml
   printf "  scriptdb: 'nmap_scripts.sqlite3'\n" >> config.yaml
   printf '  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
+  printf "  checksum: $checksum" >> config.yaml
+  printf "NSEarch is ready for be launched uses python nsearch.py\n"
   chmod 777 config.yaml
 fi
