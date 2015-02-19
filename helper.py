@@ -13,8 +13,10 @@ class Helper:
       for row in dbmodule.lastresults.items():
         print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
     else:
-      dbmodule.lastresults = dbmodule.searchByCriterial(**self.__filterCriterial())
+      dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
       self.printlastResult()
+
+
 
   def printlastResult(self):
     for k,v in dbmodule.lastresults.items():
@@ -39,8 +41,8 @@ class Helper:
       i = i + 1
     return items
 
-  # private function to set params
-  def __filterCriterial(self):
+  # private function to set params for search command
+  def __searchparams(self):
     argsdic = {}
     if self.args.find('name:') != -1 or self.args.find('category:') != -1 or self.args.find('author:') != -1:
       if len(self.args.split(":")) >= 4:
@@ -53,6 +55,30 @@ class Helper:
           self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
           self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
       elif len(self.args.split(":")) == 2:
+        argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
+      else:
+        print "Plase enter a correct commands"
+    return argsdic
+
+  #private funtion to set params for addfav command
+  def __addfavparams(self):
+    argsdic ={}
+    if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
+      if len(self.args.split(":")) == 3:
+        argsdic.update({
+          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
+          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
+      elif len(self.args.split(":")) == 2:
+        argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
+      else:
+        print "Plase enter a correct commands"
+    return argsdic
+
+  #private funtion to set params for delfav command
+  def __delfavparams(self):
+    argsdic ={}
+    if self.args.find('name:') != -1:
+      if len(self.args.split(":")) == 2:
         argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
       else:
         print "Plase enter a correct commands"
