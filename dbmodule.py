@@ -108,6 +108,37 @@ def searchAuthor(author):
   db.close()
 
 
+def searchByCriterial(**kwargs):
+  if kwargs is not None:
+    db = lite.connect(dbname)
+    cursor = db.cursor()
+    if kwargs.has_key("name") and kwargs.has_key("category") and kwargs.has_key("author"):
+      author = kwargs["author"]
+      script = kwargs["name"]
+      category = kwargs["category"]
+      cursor = db.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.author like '%"+author+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category ")
+    elif kwargs.has_key("name") and kwargs.has_key("category"):
+      script = kwargs["name"]
+      category = kwargs["category"]
+      cursor = db.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category ")
+    elif kwargs.has_key("name") and kwargs.has_key("author"):
+      author = kwargs["author"]
+      script = kwargs["name"]
+      cursor.execute("select name from scripts where name like '%"+script+"%' and author like '%"+author+"%'")
+    elif kwargs.has_key("name"):
+      script = kwargs["name"]
+      cursor.execute("select name from scripts where name like '%"+script+"%'")
+    elif kwargs.has_key("category"):
+      category = kwargs["category"]
+      cursor.execute("select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category")
+    elif kwargs.has_key("author"):
+      author = kwargs["author"]
+      cursor.execute("select name from scripts where author like '%"+author+"%'")
+    else:
+      print "Empty"
+    return __fetchScript(cursor.fetchall())
+    db.close()
+
 # private function to fetch all results into a dic
 def __fetchScript(fetchall,total=False):
   fetchlist = {};

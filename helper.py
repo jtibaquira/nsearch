@@ -13,29 +13,8 @@ class Helper:
       for row in dbmodule.lastresults.items():
         print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
     else:
-      if self.args.find('name:') != -1 and self.args.find('category:') != -1:
-        if self.args.startswith('name:'):
-          script = self.__processCriterial()
-          category = self.__processCriterial(False)
-        elif self.args.startswith('category:'):
-          script = self.__processCriterial()
-          category = self.__processCriterial(False)
-        dbmodule.lastresults = dbmodule.searchScriptCategory(script,category)
-        self.printlastResult()
-      elif self.args.startswith('name:'):
-        criterial = self.__processCriterial()
-        dbmodule.lastresults = dbmodule.searchScript(criterial)
-        self.printlastResult()
-      elif self.args.startswith("category:"):
-        criterial = self.__processCriterial()
-        dbmodule.lastresults = dbmodule.searchCategory(criterial)
-        self.printlastResult()
-      elif self.args.startswith("author:"):
-        criterial = self.__processCriterial()
-        dbmodule.lastresults = dbmodule.searchAuthor(criterial)
-        self.printlastResult()
-      else:
-        print "Use help search for display menu"
+      dbmodule.lastresults = dbmodule.searchByCriterial(**self.__filterCriterial())
+      self.printlastResult()
 
   def printlastResult(self):
     for k,v in dbmodule.lastresults.items():
@@ -60,8 +39,21 @@ class Helper:
       i = i + 1
     return items
 
-  def __processCriterial(self,single=True):
-    if single:
-      return self.args.split(":")[1].split(" ")[0]
-    else:
-      return self.args.split(":")[2].split(" ")[0]
+  # private function to set params
+  def __filterCriterial(self):
+    argsdic = {}
+    if self.args.find('name:') != -1 or self.args.find('category:') != -1 or self.args.find('author:') != -1:
+      if len(self.args.split(":")) >= 4:
+        argsdic.update({
+          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
+          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0],
+          self.args.split(":")[2].split(" ")[1]:self.args.split(":")[3].split(" ")[0]})
+      elif len(self.args.split(":")) == 3:
+        argsdic.update({
+          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
+          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
+      elif len(self.args.split(":")) == 2:
+        argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
+      else:
+        print "Plase enter a correct commands"
+    return argsdic
