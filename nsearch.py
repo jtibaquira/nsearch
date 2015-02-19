@@ -5,6 +5,7 @@ from dbmodule import *
 import console
 from console import *
 import re
+import hashlib
 
 banner ='\033[0;36m'+'''
   ================================================
@@ -60,6 +61,7 @@ def install():
 def update():
   print banner
   dbmodule.updateApp()
+  #hashlib.md5(open(full_path, 'rb').read()).hexdigest()
 
 # main action
 if __name__ == '__main__':
@@ -68,8 +70,10 @@ if __name__ == '__main__':
   i18n.load_path.append('i18n')
   i18n.set('locale',currentLocale) if True else i18n.set('fallback','en')
 
-  install() if not os.path.isfile(dbmodule.dbname) else update()
-
+  if not os.path.isfile(dbmodule.dbname):
+    install()
+  else:
+    update()
 
   os.system("clear")
   console = console.Console()

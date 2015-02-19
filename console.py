@@ -138,16 +138,36 @@ class Console(cmd.Cmd):
   def help_last(self):
     print i18n.t("help.help_last")
 
-  def do_add_fav(self,args):
+# handler fav actions
+  def do_addfav(self,args):
+    return None
 
-  def help_add_fav(self):
+  def help_addfav(self):
     print i18n.t("help.help_last")
 
-  def autocomplete_add_fav(self, text, line, begidx, endidx):
+  def autocomplete_addfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
     resultitems = helper.Helper()
     return [i for i in resultitems.resultitems() if i.startswith(text)]
 
+  def do_delfav(self,args):
+    return None
+
+  def help_delfav(self):
+    print i18n.t("help.help_last")
+
+  def autocomplete_delfav(self, text, line, begidx, endidx):
+    """ Autocomplete over the last result """
+    resultitems = helper.Helper()
+    return [i for i in resultitems.resultitems() if i.startswith(text)]
+
+  def do_showfav(self,args):
+    return None
+
+  def help_showfav(self):
+    print i18n.t("help.help_last")
+
+#default action cmd class
   def default(self, line):
     """Called on an input line when the command prefix is not recognized.
        In that case we execute the line as Python code.

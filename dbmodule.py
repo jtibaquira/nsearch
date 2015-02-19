@@ -113,10 +113,6 @@ def deleteFavorite(script):
   db.commit()
   db.close()
 
-#update fav values
-
-def udpateFavorite():
-  pass
 
 # Functions for all queries
 def searchByCriterial(**kwargs):
