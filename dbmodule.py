@@ -108,8 +108,6 @@ def createFavorite(**kwargs):
       ranking = "normal"
     else:
       print "Bad Params"
-    print script
-    print ranking
     cursor.execute('''
       Insert into favorites (name,ranking) values (?,?)
       ''',(script,ranking,))
