@@ -1,5 +1,6 @@
 es:
   create_db: Creando la Base de Datos
+  update_db: Actualizando la Base de Datos
   create_backup: Creando respaldo para el archivo script.db
   create_backup_ok: El respaldo se creo correctamente
   create_backup_error: El respaldo no se creo

@@ -1,5 +1,6 @@
 en:
   create_db: Creating the Database
+  update_db: Updating the Database
   create_backup: Creating backup for file script.db
   create_backup_ok: The Backup was created successfully
   create_backup_error: The Backup was not created
