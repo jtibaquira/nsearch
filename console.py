@@ -135,8 +135,18 @@ class Console(cmd.Cmd):
     search = helper.Helper()
     search.printlastResult()
 
-  def help_last(sefl):
+  def help_last(self):
     print i18n.t("help.help_last")
+
+  def do_add_fav(self,args):
+
+  def help_add_fav(self):
+    print i18n.t("help.help_last")
+
+  def autocomplete_add_fav(self, text, line, begidx, endidx):
+    """ Autocomplete over the last result """
+    resultitems = helper.Helper()
+    return [i for i in resultitems.resultitems() if i.startswith(text)]
 
   def default(self, line):
     """Called on an input line when the command prefix is not recognized.

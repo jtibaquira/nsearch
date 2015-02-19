@@ -53,10 +53,10 @@ def updateApp():
   print i18n.t("setup.update_db")+" "+dbname
   db = lite.connect(dbname)
   cursor = db.cursor()
-  # Create Script Table
+  # Create Favorite Table
   cursor.execute('''
     create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
-    rank TEXT DEFAULT 'normal')
+    ranking TEXT DEFAULT 'normal')
   ''')
   db.commit()
   db.close()
@@ -92,6 +92,31 @@ def searchAll():
   return __fetchScript(cursor.fetchall(),True)
   db.close()
 
+#set script as a favorite
+def createFavorite(script,ranking=""):
+  db = lite.connect(dbname)
+  cursor = db.cursor()
+  if ranking:
+    sql = '''Insert into favorites (name,ranking) values (?,?) ''',(script,ranking,)
+  else:
+    sql = '''Insert into favorites (name) values (?) ''',(script,)
+  cursor.execute(sql)
+  db.commit()
+  db.close()
+
+#delete script values
+def deleteFavorite(script):
+  sql = '''DELETE FROM favorites WHERE name=?''',(script,)
+  db = lite.connect(dbname)
+  cursor = db.cursor()
+  cursor.execute(sql)
+  db.commit()
+  db.close()
+
+#update fav values
+
+def udpateFavorite():
+  pass
 
 # Functions for all queries
 def searchByCriterial(**kwargs):
