@@ -111,6 +111,31 @@ def createFavorite(**kwargs):
     db.commit()
     db.close()
 
+#update favorite row
+def updateFavorite(**kwargs):
+  if kwargs is not None:
+  sql = ""
+  db = lite.connect(dbname)
+  cursor = db.cursor()
+  if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
+    script = kwargs["name"]
+    newname = kwargs["newname"]
+    newranking = kwargs["newranking"]
+    sql = '''DELETE FROM favorites WHERE name=?''',(script,)
+  elif kwargs.has_key("name") and kwargs.has_key("newname"):
+    script = kwargs["name"]
+    newname = kwargs["newname"]
+    sql = ''' '''
+  elif kwargs.has_key("name") and kwargs.has_key("newranking"):
+    script = kwargs["name"]
+    newranking = kwargs["newranking"]
+    sql = ''' '''
+  else:
+    print "Bad Params"
+  cursor.execute(sql)
+  db.commit()
+  db.close()
+
 #delete script values
 def deleteFavorite(**kwargs):
   if kwargs is not None:
@@ -155,6 +180,26 @@ def searchByCriterial(**kwargs):
     elif kwargs.has_key("author"):
       author = kwargs["author"]
       sql= "select name from scripts where author like '%"+author+"%'"
+    else:
+      print "Bad Params"
+    cursor.execute(sql)
+    return __fetchScript(cursor.fetchall())
+    db.close()
+
+
+# get favs scripts filter
+def getFavorites(**kwargs):
+  if kwargs is not None:
+    sql = ""
+    db = lite.connect(dbname)
+    cursor = db.cursor()
+    if kwargs.has_key("name") and kwargs.has_key("ranking"):
+      script = kwargs["name"]
+      ranking = kwargs["ranking"]
+      sql= "select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
+    elif kwargs.has_key("name"):
+      script = kwargs["name"]
+      sql= "select name from favorites where name like '%"+script+"%'"
     else:
       print "Bad Params"
     cursor.execute(sql)

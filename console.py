@@ -140,7 +140,8 @@ class Console(cmd.Cmd):
 
 # handler fav actions
   def do_addfav(self,args):
-    return None
+    search = helper.Helper(args,"addfav")
+    search.process()
 
   def help_addfav(self):
     print i18n.t("help.help_last")
@@ -151,7 +152,8 @@ class Console(cmd.Cmd):
     return [i for i in resultitems.resultitems() if i.startswith(text)]
 
   def do_delfav(self,args):
-    return None
+    search = helper.Helper(args,"delfav")
+    search.process()
 
   def help_delfav(self):
     print i18n.t("help.help_last")
@@ -162,7 +164,8 @@ class Console(cmd.Cmd):
     return [i for i in resultitems.resultitems() if i.startswith(text)]
 
   def do_showfav(self,args):
-    return None
+    search = helper.Helper(args,"showfav")
+    search.process()
 
   def help_showfav(self):
     print i18n.t("help.help_last")

@@ -21,6 +21,9 @@ class Helper:
       dbmodule.createFavorite(**self.__addfavparams())
     elif self.commnad == "delfav":
       dbmodule.deleteFavorite(**self.__delfavparams())
+    elif self.commnad == "showfav":
+      dbmodule.lastresults = dbmodule.getFavorites(**self.__showfavparams())
+      self.printlastResult()
     else:
       print "Error"
 
@@ -88,6 +91,24 @@ class Helper:
     argsdic ={}
     if self.args.find('name:') != -1:
       if len(self.args.split(":")) == 2:
+        argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
+      else:
+        print "Plase enter a correct commands"
+    return argsdic
+
+  #private function to set params for modfav command
+  def __modfavparams(self):
+    return None
+
+  #private function to set paramas for showfav command
+  def __showfavparams(self):
+    argsdic ={}
+    if self.args.find('name:') != -1 and self.args.find('ranking:') != -1:
+      if len(self.args.split(":")) == 3:
+        argsdic.update({
+          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
+          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
+      elif len(self.args.split(":")) == 2:
         argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
       else:
         print "Plase enter a correct commands"
