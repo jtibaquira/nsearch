@@ -13,8 +13,10 @@ echo " Version 0.3     |   @jjtibaquira       ";
 echo "========================================";
 printf "\n"
 
+ismacox=$(sw_vers 2>/dev/null)
+
 #Check if is it root
-if ! [ $(id -u) = 0 ]; then
+if ! [ $(id -u) = 0 ] && ! [[ $ismacox ]] ; then
  echo "[-] You must be a root user" 2>&1
  exit 1
 fi
@@ -24,10 +26,11 @@ nmapversion=$(which nmap 2>/dev/null)
 paythonversion=$(which python 2>/dev/null)
 pipversion=$(which pip 2>/dev/null)
 
+
+
 kernel=$(uname -r)
 os="$(uname -s) $kernel"
 arch=$(uname -m)
-
 function createConfigFile()
 {
   dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
@@ -109,6 +112,27 @@ elif [ -f /etc/redhat-release ]; then
     yum install python-pip -y; pip install PyYAML python-i18n --upgrade
   fi
   createConfigFile
+elif [[ $ismacox ]]; then
+  printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
+  brew install -v sqlite3
+  if [[ $nmapversion ]]; then
+    printf "\n[+] Nmap already installed :D \n"
+  else
+    echo "[+] Installing nmap .... "
+    brew install -v nmap
+  fi
+  if [[ $paythonversion ]]; then
+    printf "[+] Python is already installed :D\n"
+    printf "[+] Pip is already installed :D\n"
+    printf "[+] Checking pip libs...\n"
+    pip install PyYAML python-i18n --upgrade
+  else
+    echo "Installing python ..."
+    brew install python -v
+    printf "[+] Pip is already installed :D\n"
+    printf "[+] Checking pip libs...\n"
+    pip install PyYAML python-i18n --upgrade
+  fi
 else
   if [[ $nmapversion ]] && [[ $paythonversion ]] && [[ $pipversion ]]; then
     printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
