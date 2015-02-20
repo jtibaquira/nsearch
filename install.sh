@@ -39,11 +39,9 @@ function createConfigFile(){
     if [[ $md5 ]]; then
       printf "[+] CheckSum MacSOX....\n"
       checksum=$(md5 $filePath | awk '{print $4}')
-      printf $checksum
     else
       printf "[+] CheckSum not MacSOX....\n"
       checksum=$(md5sum $filepath | awk '{print $1}')
-      printf $checksum
     fi
     cd $homePath
     printf "[+] Creating config.yaml file ...\n"
