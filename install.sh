@@ -55,6 +55,19 @@ function pipRequeriments(){
   pip install PyYAML python-i18n --upgrade
 }
 
+function installpipDebian(){
+  printf "[+] Installing pip ...\n"
+  apt-get install python-pip -y
+  pipRequeriments
+}
+
+function installpipRedHat(){
+  printf "[+] Installing pip ...\n"
+  rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update
+  yum install python-pip -y
+  pipRequeriments
+}
+
 if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
   printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
   apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
@@ -72,16 +85,12 @@ if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
       printf "[+] Pip is already installed :D\n"
       pipRequeriments
     else
-      printf "[+] Installing pip ...\n"
-      apt-get install python-pip -y
-      pipRequeriments
+      installpipDebian
     fi
   else
     echo "Installing python ..."
     apt-get install python -y
-    printf "[+] Installing pip ...\n"
-    apt-get install python-pip -y
-    pipRequeriments
+    installpipDebian
   fi
   createConfigFile
 elif [ -f /etc/redhat-release ]; then
@@ -100,18 +109,12 @@ elif [ -f /etc/redhat-release ]; then
       printf "[+] Pip is already installed :D\n"
       pipRequeriments
     else
-      printf "[+] Installing pip ...\n"
-      rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update
-      yum install python-pip -y
-      pipRequeriments
+      installpipRedHat
     fi
   else
     echo "Installing python ..."
     yum install python -y
-    printf "[+] Installing pip ...\n"
-    rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update
-    yum install python-pip -y
-    pipRequeriments
+    installpipRedHat
   fi
   createConfigFile
 elif [[ $ismacox ]]; then
