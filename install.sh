@@ -113,8 +113,8 @@ else
   if [[ $nmapversion ]] && [[ $paythonversion ]] && [[ $pipversion ]]; then
     printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
     printf "[+] Checking pip libs ...\n"
-    printf "[+] Requirement already satisfied ... \n"
     pip install PyYAML python-i18n --upgrade
+    printf "[+] Requirement already satisfied ... \n"
     createConfigFile
   else
     echo "[-] Could not find a autoinstall for $os ($arch $kernel)"
