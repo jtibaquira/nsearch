@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 printf "\n"
 echo "========================================";
 echo " _   _  _____                     _     ";
@@ -25,17 +25,26 @@ homePath=$(pwd)
 nmapversion=$(which nmap 2>/dev/null)
 paythonversion=$(which python 2>/dev/null)
 pipversion=$(which pip 2>/dev/null)
+md5=$(which md5 2>/dev/null)
 
 kernel=$(uname -r)
 os="$(uname -s) $kernel"
 arch=$(uname -m)
 
-function createConfigFile()
-{
+function createConfigFile(){
+  checksum=" "
   dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
   if [[ $dbpath ]]; then
     filePath=$dbpath'script.db'
-    checksum=$(md5 $filePath | awk '{print $4}')
+    if [[ $md5 ]]; then
+      printf "[+] CheckSum MacSOX....\n"
+      checksum=$(md5 $filePath | awk '{print $4}')
+      printf $checksum
+    else
+      printf "[+] CheckSum not MacSOX....\n"
+      checksum=$(md5sum $filepath | awk '{print $1}')
+      printf $checksum
+    fi
     cd $homePath
     printf "[+] Creating config.yaml file ...\n"
     printf "config: \n" > config.yaml
