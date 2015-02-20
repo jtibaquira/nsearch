@@ -50,6 +50,11 @@ function createConfigFile()
   printf "[+] NSEarch is ready for be launched uses python nsearch.py\n"
 }
 
+function pipRequeriments(){
+  printf "[+] Checking pip libs ...\n"
+  pip install PyYAML python-i18n --upgrade
+}
+
 if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
   printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
   apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
@@ -65,19 +70,18 @@ if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
     printf "[+] Python is already installed :D\n"
     if [[ $pipversion ]]; then
       printf "[+] Pip is already installed :D\n"
-      printf "[+] Checking pip libs"
-      pip install PyYAML python-i18n --upgrade
+      pipRequeriments
     else
       printf "[+] Installing pip ...\n"
-      printf "[+] Checking pip libs ...\n"
-      apt-get install python-pip -y; pip install PyYAML python-i18n --upgrade
+      apt-get install python-pip -y
+      pipRequeriments
     fi
   else
     echo "Installing python ..."
     apt-get install python -y
     printf "[+] Installing pip ...\n"
-    printf "[+] Checking pip libs ...\n"
-    apt-get install python-pip -y; pip install PyYAML python-i18n --upgrade
+    apt-get install python-pip -y
+    pipRequeriments
   fi
   createConfigFile
 elif [ -f /etc/redhat-release ]; then
@@ -94,21 +98,20 @@ elif [ -f /etc/redhat-release ]; then
     printf "[+] Python is already installed :D\n"
     if [[ $pipversion ]]; then
       printf "[+] Pip is already installed :D\n"
-      printf "[+] Checking pip libs ...\n"
-      pip install PyYAML python-i18n --upgrade
+      pipRequeriments
     else
       printf "[+] Installing pip ...\n"
-      printf "[+] Checking pip libs ...\n"
       rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update
-      yum install python-pip -y; pip install PyYAML python-i18n --upgrade
+      yum install python-pip -y
+      pipRequeriments
     fi
   else
     echo "Installing python ..."
     yum install python -y
     printf "[+] Installing pip ...\n"
-    printf "[+] Checking pip libs ...\n"
     rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update
-    yum install python-pip -y; pip install PyYAML python-i18n --upgrade
+    yum install python-pip -y
+    pipRequeriments
   fi
   createConfigFile
 elif [[ $ismacox ]]; then
@@ -123,21 +126,18 @@ elif [[ $ismacox ]]; then
   if [[ $paythonversion ]]; then
     printf "[+] Python is already installed :D\n"
     printf "[+] Pip is already installed :D\n"
-    printf "[+] Checking pip libs...\n"
-    pip install PyYAML python-i18n --upgrade
+    pipRequeriments
   else
     echo "Installing python ..."
     brew install python -v
     printf "[+] Pip is already installed :D\n"
-    printf "[+] Checking pip libs...\n"
-    pip install PyYAML python-i18n --upgrade
+    pipRequeriments
   fi
   createConfigFile
 else
   if [[ $nmapversion ]] && [[ $paythonversion ]] && [[ $pipversion ]]; then
     printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
-    printf "[+] Checking pip libs ...\n"
-    pip install PyYAML python-i18n --upgrade
+    pipRequeriments
     printf "[+] Requirement already satisfied ... \n"
     createConfigFile
   else
