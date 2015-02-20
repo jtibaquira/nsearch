@@ -26,11 +26,10 @@ nmapversion=$(which nmap 2>/dev/null)
 paythonversion=$(which python 2>/dev/null)
 pipversion=$(which pip 2>/dev/null)
 
-
-
 kernel=$(uname -r)
 os="$(uname -s) $kernel"
 arch=$(uname -m)
+
 function createConfigFile()
 {
   dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
@@ -95,7 +94,7 @@ elif [ -f /etc/redhat-release ]; then
     printf "[+] Python is already installed :D\n"
     if [[ $pipversion ]]; then
       printf "[+] Pip is already installed :D\n"
-      printf "[+] Checking pip libs"
+      printf "[+] Checking pip libs ...\n"
       pip install PyYAML python-i18n --upgrade
     else
       printf "[+] Installing pip ...\n"
@@ -133,6 +132,7 @@ elif [[ $ismacox ]]; then
     printf "[+] Checking pip libs...\n"
     pip install PyYAML python-i18n --upgrade
   fi
+  createConfigFile
 else
   if [[ $nmapversion ]] && [[ $paythonversion ]] && [[ $pipversion ]]; then
     printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
