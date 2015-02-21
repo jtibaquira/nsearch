@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 printf "\n"
 echo "========================================";
 echo " _   _  _____                     _     ";
@@ -21,22 +21,27 @@ if ! [ $(id -u) = 0 ] && ! [[ $ismacox ]] ; then
  exit 1
 fi
 
-homePath=$(pwd)
 nmapversion=$(which nmap 2>/dev/null)
 paythonversion=$(which python 2>/dev/null)
 pipversion=$(which pip 2>/dev/null)
-
+md5sum=$(which md5sum 2>/dev/null)
+md5=$(which md5 2>/dev/null)
 kernel=$(uname -r)
 os="$(uname -s) $kernel"
 arch=$(uname -m)
 
-function createConfigFile()
-{
+function createConfigFile(){
+  checksum=
   dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
   if [[ $dbpath ]]; then
     filePath=$dbpath'script.db'
-    checksum=$(md5 $filePath | awk '{print $4}')
-    cd $homePath
+    if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] || [ -f /etc/redhat-release ]; then
+      printf "[+] CheckSum not MacSOX....\n"
+      checksum=$(md5sum $filePath | awk '{print $1}')
+    else
+       printf "[+] CheckSum MacSOX....\n"
+      checksum=$(md5 $filePath | awk '{print $4}')
+    fi
     printf "[+] Creating config.yaml file ...\n"
     printf "config: \n" > config.yaml
     printf "  scriptsPath: '$dbpath'\n" >> config.yaml
@@ -44,7 +49,7 @@ function createConfigFile()
     printf "  fileBackup: 'scriptbk.db'\n" >> config.yaml
     printf "  scriptdb: 'nmap_scripts.sqlite3'\n" >> config.yaml
     printf '  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
-    printf "  checksum: '$checksum'" >> config.yaml
+    printf "  checksum: '$checksum'\n" >> config.yaml
     chmod 777 config.yaml
   fi
   printf "[+] NSEarch is ready for be launched uses python nsearch.py\n"
