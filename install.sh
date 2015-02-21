@@ -35,7 +35,7 @@ function createConfigFile(){
   dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
   if [[ $dbpath ]]; then
     filePath=$dbpath'script.db'
-    if ! [[ ismacox ]]; then
+    if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] || [ -f /etc/redhat-release ]; then
       printf "[+] CheckSum not MacSOX....\n"
       checksum=$(md5sum $filePath | awk '{print $1}')
     else
