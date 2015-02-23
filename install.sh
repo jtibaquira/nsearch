@@ -35,12 +35,12 @@ function createConfigFile(){
   dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
   if [[ $dbpath ]]; then
     filePath=$dbpath'script.db'
-    if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] || [ -f /etc/redhat-release ]; then
+    if [[ $ismacox ]]; then
+      printf "[+] CheckSum MacSOX....\n"
+      checksum=$(md5 $filePath | awk '{print $4}')
+    else
       printf "[+] CheckSum not MacSOX....\n"
       checksum=$(md5sum $filePath | awk '{print $1}')
-    else
-       printf "[+] CheckSum MacSOX....\n"
-      checksum=$(md5 $filePath | awk '{print $4}')
     fi
     printf "[+] Creating config.yaml file ...\n"
     printf "config: \n" > config.yaml
