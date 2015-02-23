@@ -2,6 +2,7 @@ import sqlite3 as lite
 import sys
 import yaml
 import i18n
+import hashlib
 
 stream = open("config.yaml", 'r')
 item = yaml.load(stream)
@@ -11,7 +12,7 @@ categories = item["config"]["categories"]
 filePath = item["config"]["filePath"]
 fileBackup = item["config"]["fileBackup"]
 scriptsPath = item["config"]["scriptsPath"]
-checksum = item["config"]["checksum"]
+currentChecksum = item["config"]["checksum"]
 
 lastresults = {};
 
@@ -21,38 +22,39 @@ def initSetup():
   cursor = db.cursor()
   # Create Script Table
   cursor.execute('''
-    create table scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
+    create table if not exists scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
     author TEXT NULL)
   ''')
   print i18n.t("setup.create_script_table")
-  db.commit()
   # Create Categories Table
-  cursor.execute('''create table categories(
+  cursor.execute('''create table if not exists categories(
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
      name TEXT NOT NULL)
   ''')
   print i18n.t("setup.create_category_table")
-  db.commit()
   # Create Script/Category Table
-  cursor.execute('''create table script_category(
+  cursor.execute('''create table if not exists script_category(
     id_category INTEGER NOT NULL,
     id_script INETGER NOT NULL)
   ''')
   print i18n.t("setup.create_category_script_table")
-  db.commit()
   print i18n.t("setup.upload_categories")
   for category in categories:
     cursor.execute('''
       INSERT INTO categories (name) VALUES (?)
       ''',(category,))
-    db.commit()
+    # Create Favorite Table
+  print i18n.t("setup.create_favorites_table")
+  cursor.execute('''
+    create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
+    ranking TEXT NOT NULL)
+  ''')
+  db.commit()
   db.close()
-
-  updateApp()
 
 #update app if the db exists
 def updateApp():
-  print i18n.t("setup.update_db")+" "+dbname
+  print i18n.t("setup.checking_db")+" "+dbname
   db = lite.connect(dbname)
   cursor = db.cursor()
   # Create Favorite Table
@@ -60,8 +62,21 @@ def updateApp():
     create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
     ranking TEXT NOT NULL)
   ''')
-  db.commit()
-  db.close()
+  if hashlib.md5(open(filePath, 'rb').read()).hexdigest() == currentChecksum:
+    print i18n.t("setup.db_is_update")+" "+dbname
+  else:
+    print i18n.t("setup.update_db")
+    cursor.executescript('''
+      DROP TABLE IF EXISTS scripts;
+      DELETE FROM SQLITE_SEQUENCE WHERE name='scripts';
+      DROP TABLE IF EXISTS categories;
+      DELETE FROM SQLITE_SEQUENCE WHERE name='categories';
+      DROP TABLE IF EXISTS script_category;
+      DELETE FROM SQLITE_SEQUENCE WHERE name='script_category';
+      ''')
+    db.commit()
+    db.close()
+    initSetup()
 
 # Insert each Script and Author
 def insertScript(script,author):

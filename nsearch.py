@@ -5,7 +5,6 @@ from dbmodule import *
 import console
 from console import *
 import re
-import hashlib
 import shutil
 
 banner ='\033[0;36m'+'''
@@ -32,7 +31,6 @@ def createBackUp():
 
 # init install to the project
 def install():
-  print banner
   dbmodule.initSetup()
   scriptFile = open(dbmodule.filePath,'r')
   for line in scriptFile:
@@ -54,22 +52,17 @@ def install():
   scriptFile.close()
   createBackUp()
 
-def update():
-  print banner
-  dbmodule.updateApp()
-  #hashlib.md5(open(full_path, 'rb').read()).hexdigest()
-
 # main action
 if __name__ == '__main__':
 
   currentLocale = re.sub('[_].*','',os.environ['LANG'])
   i18n.load_path.append('i18n')
   i18n.set('locale',currentLocale) if True else i18n.set('fallback','en')
-
+  print banner
   if not os.path.isfile(dbmodule.dbname):
     install()
   else:
-    update()
+    dbmodule.updateApp()
   os.system("clear")
   console = console.Console()
   console.cmdloop()
