@@ -6,6 +6,7 @@ import console
 from console import *
 import re
 import hashlib
+import shutil
 
 banner ='\033[0;36m'+'''
   ================================================
@@ -23,14 +24,9 @@ banner ='\033[0;36m'+'''
 #create file backups
 def createBackUp():
   print i18n.t("setup.create_backup")
-  scriptFile = open(dbmodule.filePath,'r')
-  for line in scriptFile:
-    script = open(dbmodule.fileBackup,'a')
-    script.write(line,)
+  shutil.copy2(dbmodule.filePath, dbmodule.fileBackup)
   if os.path.isfile(dbmodule.fileBackup):
     print i18n.t("setup.create_backup_ok")
-    script.close()
-    scriptFile.close()
   else:
     print i18n.t("setup.create_backup_error")
 
