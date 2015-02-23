@@ -122,7 +122,6 @@ def updateApp():
       initSetup()
   except Exception, e:
     print "Error %s:" % e.args[0]
-    sys.exit(1)
   finally:
     if db:
       db.close()
@@ -144,7 +143,6 @@ def insertScript(script,author):
     if con:
       con.rollback()
     print "Error %s:" % e.args[0]
-    sys.exit(1)
   finally:
     if db:
       db.close()
@@ -170,7 +168,6 @@ def searchAll():
     return __fetchScript(cursor.fetchall(),True)
   except Exception, e:
     print "Error %s:" % e.args[0]
-    sys.exit(1)
   finally:
     if db:
       db.close()
