@@ -75,7 +75,7 @@ def setData():
     newarray = line.split(",")
     for key,value in enumerate(newarray):
       if value == newarray[0]:
-        author = ""
+        author = None
         currentScript = open(scriptsPath+value,'r')
         for line in currentScript:
           if line.startswith("author"):
@@ -146,8 +146,8 @@ def searchAll():
 #set script as a favorite
 def createFavorite(**kwargs):
   if kwargs is not None:
-    script = " "
-    ranking = " "
+    script= None
+    ranking= None
     db = lite.connect(dbname)
     db.text_factory = str
     cursor = db.cursor()
@@ -168,7 +168,7 @@ def createFavorite(**kwargs):
 #update favorite row
 def updateFavorite(**kwargs):
   if kwargs is not None:
-    sql = ""
+    sql = None
     db = lite.connect(dbname)
     cursor = db.cursor()
     if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
@@ -210,7 +210,7 @@ def deleteFavorite(**kwargs):
 # Functions for all queries
 def searchByCriterial(**kwargs):
   if kwargs is not None:
-    sql = ""
+    sql = None
     db = lite.connect(dbname)
     cursor = db.cursor()
     if kwargs.has_key("name") and kwargs.has_key("category") and kwargs.has_key("author"):
@@ -245,7 +245,7 @@ def searchByCriterial(**kwargs):
 # get favs scripts filter
 def getFavorites(**kwargs):
   if kwargs is not None:
-    sql = ""
+    sql = None
     db = lite.connect(dbname)
     cursor = db.cursor()
     if kwargs.has_key("name") and kwargs.has_key("ranking"):
