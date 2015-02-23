@@ -22,8 +22,7 @@ def initSetup():
   print i18n.t("setup.create_db")+" "+dbname
   db = None
   try:
-    db = lite.connect(dbname)
-    cursor = db.cursor()
+    cursor = __dbconnect()['cursor']
     # Create Script Table
     cursor.execute('''
       create table if not exists scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
@@ -53,15 +52,15 @@ def initSetup():
       create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
       ranking TEXT NOT NULL)
     ''')
-    db.commit()
+    __dbconnect()['db'].commit()
     setData()
     createBackUp()
   except Exception, e:
     print "Error %s:" % e.args[0]
     sys.exit(1)
   finally:
-    if db:
-      db.close()
+    if __dbconnect()['db']:
+      __dbconnect()['db'].close()
 
 #create file backups
 def createBackUp():
@@ -98,8 +97,7 @@ def updateApp():
   print i18n.t("setup.checking_db")+" "+dbname
   db = None
   try:
-    db = lite.connect(dbname)
-    cursor = db.cursor()
+    cursor = __dbconnect()['cursor']
     # Create Favorite Table
     cursor.execute('''
       create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
@@ -117,14 +115,14 @@ def updateApp():
         DROP TABLE IF EXISTS script_category;
         DELETE FROM SQLITE_SEQUENCE WHERE name='script_category';
         ''')
-      db.commit()
-      db.close()
+      __dbconnect()['db'].commit()
+      __dbconnect()['db'].close()
       initSetup()
   except Exception, e:
     print "Error %s:" % e.args[0]
   finally:
-    if db:
-      db.close()
+    if __dbconnect()['db']:
+      __dbconnect()['db'].close()
 
 
 # Insert each Script and Author
@@ -149,28 +147,26 @@ def insertScript(script,author):
 
 #Insert the scripts_id and categories_id
 def insertScriptCategory(scriptid,categoryid):
-  db = lite.connect(dbname)
-  cursor = db.cursor()
+  cursor = __dbconnect()['cursor']
   cursor.execute('''
     Insert into script_category (id_category,id_script) values (?,?)
     ''',(categoryid,scriptid,))
-  db.commit()
-  db.close()
+  __dbconnect()['db'].commit()
+  __dbconnect()['db'].close()
 
 
 #get all scripts
 def searchAll():
   db= None
   try:
-    db = lite.connect(dbname)
-    cursor = db.cursor()
+    cursor = __dbconnect()['cursor']
     cursor.execute("select id, name from scripts ")
     return __fetchScript(cursor.fetchall(),True)
   except Exception, e:
     print "Error %s:" % e.args[0]
   finally:
-    if db:
-      db.close()
+    if __dbconnect()['db']:
+      __dbconnect()['db'].close()
 
 #set script as a favorite
 def createFavorite(**kwargs):
@@ -198,8 +194,7 @@ def createFavorite(**kwargs):
 def updateFavorite(**kwargs):
   if kwargs is not None:
     sql = None
-    db = lite.connect(dbname)
-    cursor = db.cursor()
+    cursor = __dbconnect()['cursor']
     if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
       script = kwargs["name"]
       newname = kwargs["newname"]
@@ -240,8 +235,7 @@ def deleteFavorite(**kwargs):
 def searchByCriterial(**kwargs):
   if kwargs is not None:
     sql = None
-    db = lite.connect(dbname)
-    cursor = db.cursor()
+    cursor = __dbconnect()['cursor']
     if kwargs.has_key("name") and kwargs.has_key("category") and kwargs.has_key("author"):
       script = kwargs["name"]
       category = kwargs["category"]
@@ -268,15 +262,14 @@ def searchByCriterial(**kwargs):
       print "Bad Params"
     cursor.execute(sql)
     return __fetchScript(cursor.fetchall())
-    db.close()
+    __dbconnect()['db'].close()
 
 
 # get favs scripts filter
 def getFavorites(**kwargs):
   if kwargs is not None:
     sql = None
-    db = lite.connect(dbname)
-    cursor = db.cursor()
+    cursor = __dbconnect()['cursor']
     if kwargs.has_key("name") and kwargs.has_key("ranking"):
       script = kwargs["name"]
       ranking = kwargs["ranking"]
@@ -288,7 +281,12 @@ def getFavorites(**kwargs):
       print "Bad Params"
     cursor.execute(sql)
     return __fetchScript(cursor.fetchall())
-    db.close()
+    __dbconnect()['db'].close()
+
+# Connection to the databases
+def __dbconnect():
+  db = lite.connect(dbname)
+  return {'cursor':db.cursor(), 'db':db}
 
 # private function to fetch all results into a dic
 def __fetchScript(fetchall,total=False):
