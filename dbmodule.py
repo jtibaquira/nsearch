@@ -20,41 +20,48 @@ lastresults = {};
 
 def initSetup():
   print i18n.t("setup.create_db")+" "+dbname
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  # Create Script Table
-  cursor.execute('''
-    create table if not exists scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
-    author TEXT NULL)
-  ''')
-  print i18n.t("setup.create_script_table")
-  # Create Categories Table
-  cursor.execute('''create table if not exists categories(
-    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-     name TEXT NOT NULL)
-  ''')
-  print i18n.t("setup.create_category_table")
-  # Create Script/Category Table
-  cursor.execute('''create table if not exists script_category(
-    id_category INTEGER NOT NULL,
-    id_script INETGER NOT NULL)
-  ''')
-  print i18n.t("setup.create_category_script_table")
-  print i18n.t("setup.upload_categories")
-  for category in categories:
+  db = None
+  try:
+    db = lite.connect(dbname)
+    cursor = db.cursor()
+    # Create Script Table
     cursor.execute('''
-      INSERT INTO categories (name) VALUES (?)
-      ''',(category,))
-    # Create Favorite Table
-  print i18n.t("setup.create_favorites_table")
-  cursor.execute('''
-    create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
-    ranking TEXT NOT NULL)
-  ''')
-  db.commit()
-  db.close()
-  setData()
-  createBackUp()
+      create table if not exists scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
+      author TEXT NULL)
+    ''')
+    print i18n.t("setup.create_script_table")
+    # Create Categories Table
+    cursor.execute('''create table if not exists categories(
+      id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+       name TEXT NOT NULL)
+    ''')
+    print i18n.t("setup.create_category_table")
+    # Create Script/Category Table
+    cursor.execute('''create table if not exists script_category(
+      id_category INTEGER NOT NULL,
+      id_script INETGER NOT NULL)
+    ''')
+    print i18n.t("setup.create_category_script_table")
+    print i18n.t("setup.upload_categories")
+    for category in categories:
+      cursor.execute('''
+        INSERT INTO categories (name) VALUES (?)
+        ''',(category,))
+      # Create Favorite Table
+    print i18n.t("setup.create_favorites_table")
+    cursor.execute('''
+      create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
+      ranking TEXT NOT NULL)
+    ''')
+    db.commit()
+    setData()
+    createBackUp()
+  except Exception, e:
+    print "Error %s:" % e.args[0]
+    sys.exit(1)
+  finally:
+    if db:
+      db.close()
 
 #create file backups
 def createBackUp():
@@ -89,40 +96,58 @@ def setData():
 #update app if the db exists
 def updateApp():
   print i18n.t("setup.checking_db")+" "+dbname
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  # Create Favorite Table
-  cursor.execute('''
-    create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
-    ranking TEXT NOT NULL)
-  ''')
-  if hashlib.md5(open(filePath, 'rb').read()).hexdigest() == currentChecksum:
-    print i18n.t("setup.db_is_update")+" "+dbname
-  else:
-    print i18n.t("setup.update_db")
-    cursor.executescript('''
-      DROP TABLE IF EXISTS scripts;
-      DELETE FROM SQLITE_SEQUENCE WHERE name='scripts';
-      DROP TABLE IF EXISTS categories;
-      DELETE FROM SQLITE_SEQUENCE WHERE name='categories';
-      DROP TABLE IF EXISTS script_category;
-      DELETE FROM SQLITE_SEQUENCE WHERE name='script_category';
-      ''')
-    db.commit()
-    db.close()
-    initSetup()
+  db = None
+  try:
+    db = lite.connect(dbname)
+    cursor = db.cursor()
+    # Create Favorite Table
+    cursor.execute('''
+      create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
+      ranking TEXT NOT NULL)
+    ''')
+    if hashlib.md5(open(filePath, 'rb').read()).hexdigest() == currentChecksum:
+      print i18n.t("setup.db_is_update")+" "+dbname
+    else:
+      print i18n.t("setup.update_db")
+      cursor.executescript('''
+        DROP TABLE IF EXISTS scripts;
+        DELETE FROM SQLITE_SEQUENCE WHERE name='scripts';
+        DROP TABLE IF EXISTS categories;
+        DELETE FROM SQLITE_SEQUENCE WHERE name='categories';
+        DROP TABLE IF EXISTS script_category;
+        DELETE FROM SQLITE_SEQUENCE WHERE name='script_category';
+        ''')
+      db.commit()
+      db.close()
+      initSetup()
+  except Exception, e:
+    print "Error %s:" % e.args[0]
+    sys.exit(1)
+  finally:
+    if db:
+      db.close()
+
 
 # Insert each Script and Author
 def insertScript(script,author):
-  db = lite.connect(dbname)
-  db.text_factory = str
-  cursor = db.cursor()
-  cursor.execute('''
+  db = None
+  try:
+    db = lite.connect(dbname)
+    db.text_factory = str
+    cursor = db.cursor()
+    cursor.execute('''
     Insert into scripts (name,author) values (?,?)
     ''',(script,author,))
-  db.commit()
-  db.close()
-  return cursor.lastrowid
+    db.commit()
+    return cursor.lastrowid
+  except Exception, e:
+    if con:
+      con.rollback()
+    print "Error %s:" % e.args[0]
+    sys.exit(1)
+  finally:
+    if db:
+      db.close()
 
 #Insert the scripts_id and categories_id
 def insertScriptCategory(scriptid,categoryid):
