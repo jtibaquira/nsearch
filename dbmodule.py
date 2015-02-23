@@ -162,11 +162,18 @@ def insertScriptCategory(scriptid,categoryid):
 
 #get all scripts
 def searchAll():
-  db = lite.connect(dbname)
-  cursor = db.cursor()
-  cursor.execute("select id, name from scripts ")
-  return __fetchScript(cursor.fetchall(),True)
-  db.close()
+  db= None
+  try:
+    db = lite.connect(dbname)
+    cursor = db.cursor()
+    cursor.execute("select id, name from scripts ")
+    return __fetchScript(cursor.fetchall(),True)
+  except Exception, e:
+    print "Error %s:" % e.args[0]
+    sys.exit(1)
+  finally:
+    if db:
+      db.close()
 
 #set script as a favorite
 def createFavorite(**kwargs):
