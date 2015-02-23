@@ -70,7 +70,6 @@ if __name__ == '__main__':
     install()
   else:
     update()
-
   os.system("clear")
   console = console.Console()
   console.cmdloop()

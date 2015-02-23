@@ -11,6 +11,8 @@ categories = item["config"]["categories"]
 filePath = item["config"]["filePath"]
 fileBackup = item["config"]["fileBackup"]
 scriptsPath = item["config"]["scriptsPath"]
+checksum = item["config"]["checksum"]
+
 lastresults = {};
 
 def initSetup():
