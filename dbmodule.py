@@ -3,6 +3,8 @@ import sys
 import yaml
 import i18n
 import hashlib
+import shutil
+import os
 
 stream = open("config.yaml", 'r')
 item = yaml.load(stream)
@@ -51,6 +53,38 @@ def initSetup():
   ''')
   db.commit()
   db.close()
+  setData()
+  createBackUp()
+
+#create file backups
+def createBackUp():
+  print i18n.t("setup.create_backup")
+  shutil.copy2(filePath, fileBackup)
+  if os.path.isfile(fileBackup):
+    print i18n.t("setup.create_backup_ok")
+  else:
+    print i18n.t("setup.create_backup_error")
+
+#insert data into the tables
+def setData():
+  scriptFile = open(filePath,'r')
+  for line in scriptFile:
+    line = line.replace('Entry { filename = "',"").replace('", categories = { "',',"').replace('", } }','"').replace('", "','","')
+    for i, j in enumerate(categories):
+      line = line.replace('"'+j+'"',str(i+1))
+    newarray = line.split(",")
+    for key,value in enumerate(newarray):
+      if value == newarray[0]:
+        author = ""
+        currentScript = open(scriptsPath+value,'r')
+        for line in currentScript:
+          if line.startswith("author"):
+            author = line.replace('author = "',"").replace('"',',"').replace('[[',"").replace(',"',"").replace("author =","Brandon Enright <bmenrigh@ucsd.edu>, Duane Wessels <wessels@dns-oarc.net>")
+        lastrowid = insertScript(value,author)
+        currentScript.close()
+      else:
+        insertScriptCategory(lastrowid,value)
+  scriptFile.close()
 
 #update app if the db exists
 def updateApp():
