@@ -306,7 +306,7 @@ def getFavorites(**kwargs):
       script = kwargs["name"]
       sql= "select name from favorites where name like '%"+script+"%'"
     else:
-      print "Bad Params"
+      sql="select name from favorites"
     cursor.execute(sql)
     return __fetchScript(cursor.fetchall())
     __dbconnect()['db'].close()

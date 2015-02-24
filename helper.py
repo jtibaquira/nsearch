@@ -24,8 +24,12 @@ class Helper:
     elif self.commnad == "delfav":
       dbmodule.deleteFavorite(**self.__delfavparams())
     elif self.commnad == "showfav":
-      dbmodule.lastresults = dbmodule.getFavorites(**self.__showfavparams())
-      self.printlastResult()
+      if not self.args:
+        dbmodule.lastresults = dbmodule.getFavorites()
+        self.printlastResult()
+      else:
+        dbmodule.lastresults = dbmodule.getFavorites(**self.__showfavparams())
+        self.printlastResult()
     else:
       print "Error"
 
