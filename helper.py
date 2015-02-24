@@ -19,6 +19,8 @@ class Helper:
         self.printlastResult()
     elif self.commnad == "addfav":
       dbmodule.createFavorite(**self.__addfavparams())
+    else self.commnad == "modfav":
+      dbmodule.updateFavorite(**self.__modfavparams())
     elif self.commnad == "delfav":
       dbmodule.deleteFavorite(**self.__delfavparams())
     elif self.commnad == "showfav":
@@ -69,7 +71,8 @@ class Helper:
 
   #private function to set params for modfav command
   def __modfavparams(self):
-    return None
+    if self.args.find('name:') != -1 or self.args.find('newname:') != -1 or self.args.find('newranking:') != -1:
+      return self.__setParams()
 
   #private function to set paramas for showfav command
   def __showfavparams(self):
