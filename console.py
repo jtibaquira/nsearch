@@ -173,6 +173,10 @@ class Console(cmd.Cmd):
   def help_modfav(self):
     print i18n.t("help.help_modfav")
 
+  def complete_modfav(self, text, line, begidx, endidx):
+    """ Autocomplete over the last result """
+    resultitems = helper.Helper()
+    return [i for i in resultitems.resultitems() if i.startswith(text)]
 
   def do_showfav(self,args):
     search = helper.Helper(args,"showfav")
