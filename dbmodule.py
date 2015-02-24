@@ -173,22 +173,32 @@ def createFavorite(**kwargs):
   if kwargs is not None:
     script= None
     ranking= None
-    db = lite.connect(dbname)
-    db.text_factory = str
-    cursor = db.cursor()
-    if kwargs.has_key("name") and kwargs.has_key("ranking"):
-      script = kwargs["name"]
-      ranking = kwargs["ranking"]
-    elif kwargs.has_key("name"):
-      script = kwargs["name"]
-      ranking = "normal"
-    else:
-      print "Bad Params"
-    cursor.execute('''
-      Insert into favorites (name,ranking) values (?,?)
-      ''',(script,ranking,))
-    db.commit()
-    db.close()
+    db = None
+    try:
+      db = lite.connect(dbname)
+      db.text_factory = str
+      cursor = db.cursor()
+      if kwargs.has_key("name") and kwargs.has_key("ranking"):
+        script = kwargs["name"]
+        ranking = kwargs["ranking"]
+      elif kwargs.has_key("name"):
+        script = kwargs["name"]
+        ranking = "normal"
+      else:
+        print "Bad Params"
+      cursor.execute('''
+        Insert into favorites (name,ranking) values (?,?)
+        ''',(script,ranking,))
+      db.commit()
+      if cursor.rowcount == 1:
+        print "[+] "+script+" "+i18n.t("setup.add_fav_ok")
+      else:
+        print "[-] "+script+" "+i18n.t("setup.add_fav_error")
+    except Exception, e:
+      print "[-] "+script+" "+i18n.t("setup.add_fav_error")
+    finally:
+      if db:
+        db.close()
 
 #update favorite row
 def updateFavorite(**kwargs):
