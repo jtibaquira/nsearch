@@ -53,46 +53,19 @@ class Helper:
 
   # private function to set params for search command
   def __searchparams(self):
-    argsdic = {}
     if self.args.find('name:') != -1 or self.args.find('category:') != -1 or self.args.find('author:') != -1:
-      if len(self.args.split(":")) >= 4:
-        argsdic.update({
-          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0],
-          self.args.split(":")[2].split(" ")[1]:self.args.split(":")[3].split(" ")[0]})
-      elif len(self.args.split(":")) == 3:
-        argsdic.update({
-          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
-      elif len(self.args.split(":")) == 2:
-        argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
-      else:
-        print "Plase enter a correct commands"
-    return argsdic
+      return self.__setParams()
+
 
   #private funtion to set params for addfav command
   def __addfavparams(self):
-    argsdic ={}
     if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
-      if len(self.args.split(":")) == 3:
-        argsdic.update({
-          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
-      elif len(self.args.split(":")) == 2:
-        argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
-      else:
-        print "Plase enter a correct commands"
-    return argsdic
+      return self.__setParams()
 
   #private funtion to set params for delfav command
   def __delfavparams(self):
-    argsdic ={}
     if self.args.find('name:') != -1:
-      if len(self.args.split(":")) == 2:
-        argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
-      else:
-        print "Plase enter a correct commands"
-    return argsdic
+      return self.__setParams()
 
   #private function to set params for modfav command
   def __modfavparams(self):
@@ -100,14 +73,23 @@ class Helper:
 
   #private function to set paramas for showfav command
   def __showfavparams(self):
-    argsdic ={}
     if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
-      if len(self.args.split(":")) == 3:
-        argsdic.update({
-          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
-      elif len(self.args.split(":")) == 2:
-        argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
-      else:
-        print "Plase enter a correct commands"
+      return self.__setParams()
+
+  # Set Params validations
+  def __setParams(self):
+    argsdic = {}
+    if len(self.args.split(":")) >= 4:
+      argsdic.update({
+        self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
+        self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0],
+        self.args.split(":")[2].split(" ")[1]:self.args.split(":")[3].split(" ")[0]})
+    elif len(self.args.split(":")) == 3:
+      argsdic.update({
+        self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
+        self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
+    elif len(self.args.split(":")) == 2:
+      argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
+    else:
+      print "Plase enter a correct commands"
     return argsdic
