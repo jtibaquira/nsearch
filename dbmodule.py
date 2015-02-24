@@ -225,18 +225,24 @@ def updateFavorite(**kwargs):
 #delete script values
 def deleteFavorite(**kwargs):
   if kwargs is not None:
-    db = lite.connect(dbname)
-    db.text_factory = str
-    cursor = db.cursor()
-    if kwargs.has_key("name"):
-      script = kwargs["name"]
-      cursor.execute('''
-        DELETE FROM favorites WHERE name=?
-        ''',(script,))
-      db.commit()
-      db.close()
-    else:
-      print "Bad Params"
+    db = None
+    try:
+      db = lite.connect(dbname)
+      db.text_factory = str
+      cursor = db.cursor()
+      if kwargs.has_key("name"):
+        script = kwargs["name"]
+        cursor.execute('''
+          DELETE FROM favorites WHERE name=?
+          ''',(script,))
+        db.commit()
+      if cursor.rowcount == 1:
+        print "[+] "+script+" "+i18n.t("setup.del_fav_ok")
+    except Exception, e:
+      print "[-] "+script+" "+i18n.t("setup.del_fav_error")
+    finally:
+      if db:
+        db.close()
 
 
 # Functions for all queries
