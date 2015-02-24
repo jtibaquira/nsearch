@@ -192,8 +192,6 @@ def createFavorite(**kwargs):
       db.commit()
       if cursor.rowcount == 1:
         print "[+] "+script+" "+i18n.t("setup.add_fav_ok")
-      else:
-        print "[-] "+script+" "+i18n.t("setup.add_fav_error")
     except Exception, e:
       print "[-] "+script+" "+i18n.t("setup.add_fav_error")
     finally:
