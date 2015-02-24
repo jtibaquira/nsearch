@@ -166,6 +166,14 @@ class Console(cmd.Cmd):
     resultitems = helper.Helper()
     return [i for i in resultitems.resultitems() if i.startswith(text)]
 
+  def do_modfav(self,args):
+    search = helper.Helper(args,"modfav")
+    search.process()
+
+  def help_delfav(self):
+    print i18n.t("help.help_modfav")
+
+
   def do_showfav(self,args):
     search = helper.Helper(args,"showfav")
     search.process()
