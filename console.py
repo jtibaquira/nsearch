@@ -170,7 +170,7 @@ class Console(cmd.Cmd):
     search = helper.Helper(args,"modfav")
     search.process()
 
-  def help_delfav(self):
+  def help_modfav(self):
     print i18n.t("help.help_modfav")
 
 

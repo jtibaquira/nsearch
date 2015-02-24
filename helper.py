@@ -19,7 +19,7 @@ class Helper:
         self.printlastResult()
     elif self.commnad == "addfav":
       dbmodule.createFavorite(**self.__addfavparams())
-    else self.commnad == "modfav":
+    elif self.commnad == "modfav":
       dbmodule.updateFavorite(**self.__modfavparams())
     elif self.commnad == "delfav":
       dbmodule.deleteFavorite(**self.__delfavparams())
