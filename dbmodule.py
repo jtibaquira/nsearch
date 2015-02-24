@@ -207,18 +207,23 @@ def updateFavorite(**kwargs):
       script = kwargs["name"]
       newname = kwargs["newname"]
       newranking = kwargs["newranking"]
-      sql = ''' UPDATE favorites SET name=?, ranking=? WHERE name=?''', (newname, newranking, name,)
+      cursos.execute('''
+        UPDATE favorites SET name=?, ranking=? WHERE name=?
+        ''', (newname, newranking, name,))
     elif kwargs.has_key("name") and kwargs.has_key("newname"):
       script = kwargs["name"]
       newname = kwargs["newname"]
-      sql = ''' UPDATE favorites SET name=? WHERE name=?''', (newname, name,)
+      cursos.execute('''
+        UPDATE favorites SET name=? WHERE name=?
+        ''', (newname, name,))
     elif kwargs.has_key("name") and kwargs.has_key("newranking"):
       script = kwargs["name"]
       newranking = kwargs["newranking"]
-      sql = ''' UPDATE favorites SET ranking=? WHERE name=?''', (newranking, name,)
+      cursos.execute('''
+        UPDATE favorites SET ranking=? WHERE name=?
+        ''', (newranking, name,))
     else:
       print "Bad Params"
-    cursor.execute(sql)
     __dbconnect()['db'].commit()
     __dbconnect()['db'].close()
 
