@@ -202,30 +202,38 @@ def createFavorite(**kwargs):
 def updateFavorite(**kwargs):
   if kwargs is not None:
     sql = None
-    cursor = __dbconnect()['cursor']
-    if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
-      script = kwargs["name"]
-      newname = kwargs["newname"]
-      newranking = kwargs["newranking"]
-      cursos.execute('''
-        UPDATE favorites SET name=?, ranking=? WHERE name=?
-        ''', (newname, newranking, name,))
-    elif kwargs.has_key("name") and kwargs.has_key("newname"):
-      script = kwargs["name"]
-      newname = kwargs["newname"]
-      cursos.execute('''
-        UPDATE favorites SET name=? WHERE name=?
-        ''', (newname, name,))
-    elif kwargs.has_key("name") and kwargs.has_key("newranking"):
-      script = kwargs["name"]
-      newranking = kwargs["newranking"]
-      cursos.execute('''
-        UPDATE favorites SET ranking=? WHERE name=?
-        ''', (newranking, name,))
-    else:
-      print "Bad Params"
-    __dbconnect()['db'].commit()
-    __dbconnect()['db'].close()
+    db = None
+    try:
+      cursor = __dbconnect()['cursor']
+      if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
+        script = kwargs["name"]
+        newname = kwargs["newname"]
+        newranking = kwargs["newranking"]
+        cursos.execute('''
+          UPDATE favorites SET name=?, ranking=? WHERE name=?
+          ''', (newname, newranking, name,))
+      elif kwargs.has_key("name") and kwargs.has_key("newname"):
+        script = kwargs["name"]
+        newname = kwargs["newname"]
+        cursos.execute('''
+          UPDATE favorites SET name=? WHERE name=?
+          ''', (newname, name,))
+      elif kwargs.has_key("name") and kwargs.has_key("newranking"):
+        script = kwargs["name"]
+        newranking = kwargs["newranking"]
+        cursos.execute('''
+          UPDATE favorites SET ranking=? WHERE name=?
+          ''', (newranking, name,))
+      else:
+        print "Bad Params"
+      __dbconnect()['db'].commit()
+      if cursor.rowcount == 1:
+        print "[+] "+script+" "+i18n.t("setup.update_fav_ok")
+    except Exception, e:
+      print "[-] "+script+" "+i18n.t("setup.update_fav_error")
+    finally:
+      if __dbconnect()['db']:
+        __dbconnect()['db'],close()
 
 #delete script values
 def deleteFavorite(**kwargs):

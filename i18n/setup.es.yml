@@ -13,5 +13,7 @@ es:
   create_favorites_table: Crear la Tabla para Favoritos ...
   add_fav_ok: El Script se adiciono en la tabla de favoritos
   add_fav_error: El Script ya existe en Favoritos
+  update_fav_ok: El Script fue Actualizando
+  update_fav_error: El Script no se ha Actualizando
   del_fav_ok: El script se elimino de los Favoritos
   del_fav_error: El script no existe en Favoritos

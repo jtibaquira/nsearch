@@ -13,5 +13,7 @@ en:
   create_favorites_table: Create Favorites Table ...
   add_fav_ok: The Script was added successfully
   add_fav_error: The script already exists
+  update_fav_ok: The Script was updated successfully
+  update_fav_error: The Script was not updated
   del_fav_ok: The Script was removed successfully
   del_fav_error: The Script dont exists
