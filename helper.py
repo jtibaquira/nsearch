@@ -12,8 +12,11 @@ class Helper:
     if self.commnad == "search":
       if not self.args:
         dbmodule.lastresults = dbmodule.searchAll()
+        #print('\033[1;32m Name\tAuthor\033[0m').expandtabs(30)
+        print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Author"]))
         for row in dbmodule.lastresults.items():
-          print('\033[1;32m'+str(row[0])+"."+row[1]+'\033[0m')
+          #print('\033[1;32m'+str(row[0])+"\t"+row[1]+'\033[0m').expandtabs(30)
+          print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*row))
       else:
         dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
         self.printlastResult()

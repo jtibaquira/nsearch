@@ -157,16 +157,18 @@ def insertScriptCategory(scriptid,categoryid):
 
 #get all scripts
 def searchAll():
-  db= None
+  db = None
   try:
-    cursor = __dbconnect()['cursor']
-    cursor.execute("select id, name from scripts ")
+    db = lite.connect(dbname)
+    db.text_factory = str
+    cursor = db.cursor()
+    cursor.execute("select name, author from scripts GROUP BY NAME ORDER BY NAME")
     return __fetchScript(cursor.fetchall(),True)
   except Exception, e:
     print "Error %s:" % e.args[0]
   finally:
-    if __dbconnect()['db']:
-      __dbconnect()['db'].close()
+    if db:
+      db.close()
 
 #set script as a favorite
 def createFavorite(**kwargs):
