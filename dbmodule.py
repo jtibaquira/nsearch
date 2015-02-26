@@ -82,6 +82,7 @@ def setData():
     for key,value in enumerate(newarray):
       if value == newarray[0]:
         author = None
+        lastrowid = None
         currentScript = open(scriptsPath+value,'r')
         for line in currentScript:
           if line.startswith("author"):
@@ -147,12 +148,22 @@ def insertScript(script,author):
 
 #Insert the scripts_id and categories_id
 def insertScriptCategory(scriptid,categoryid):
-  cursor = __dbconnect()['cursor']
-  cursor.execute('''
-    Insert into script_category (id_category,id_script) values (?,?)
+  db = None
+  try:
+    db = lite.connect(dbname)
+    cursor = db.cursor()
+    cursor.execute('''
+    INSERT INTO script_category (id_category,id_script) VALUES (?,?)
     ''',(categoryid,scriptid,))
-  __dbconnect()['db'].commit()
-  __dbconnect()['db'].close()
+    db.commit()
+    if cursor.rowcount == 1:
+      print "[+] "+str(categoryid)+" "+i18n.t("setup.update_fav_ok")
+  except Exception, e:
+    print "Error %s:" % e.args[0]
+  finally:
+    if db:
+      db.close()
+
 
 
 #get all scripts
@@ -264,35 +275,36 @@ def deleteFavorite(**kwargs):
 # Functions for all queries
 def searchByCriterial(**kwargs):
   if kwargs is not None:
-    sql = None
-    cursor = __dbconnect()['cursor']
+    db = lite.connect(dbname)
+    db.text_factory = str
+    cursor = db.cursor()
     if kwargs.has_key("name") and kwargs.has_key("category") and kwargs.has_key("author"):
       script = kwargs["name"]
       category = kwargs["category"]
       author = kwargs["author"]
-      sql= "select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.author like '%"+author+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category "
+      sql= "select scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.author like '%"+author+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category "
     elif kwargs.has_key("name") and kwargs.has_key("category"):
       script = kwargs["name"]
       category = kwargs["category"]
-      sql= "select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
+      sql= "select scripts.name ,scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
     elif kwargs.has_key("name") and kwargs.has_key("author"):
       author = kwargs["author"]
       script = kwargs["name"]
-      sql= "select name from scripts where name like '%"+script+"%' and author like '%"+author+"%'"
+      sql= "select name, author from scripts where name like '%"+script+"%' and author like '%"+author+"%'"
     elif kwargs.has_key("name"):
       script = kwargs["name"]
-      sql= "select name from scripts where name like '%"+script+"%'"
+      sql= "select name, author from scripts where name like '%"+script+"%'"
     elif kwargs.has_key("category"):
       category = kwargs["category"]
-      sql= "select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category"
+      sql= "select scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category"
     elif kwargs.has_key("author"):
       author = kwargs["author"]
-      sql= "select name from scripts where author like '%"+author+"%'"
+      sql= "select name, author from scripts where author like '%"+author+"%'"
     else:
       print "Bad Params"
     cursor.execute(sql)
     return __fetchScript(cursor.fetchall())
-    __dbconnect()['db'].close()
+    db.close()
 
 
 # get favs scripts filter
@@ -303,12 +315,12 @@ def getFavorites(**kwargs):
     if kwargs.has_key("name") and kwargs.has_key("ranking"):
       script = kwargs["name"]
       ranking = kwargs["ranking"]
-      sql= "select scripts.name from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
+      sql= "select scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
     elif kwargs.has_key("name"):
       script = kwargs["name"]
-      sql= "select name from favorites where name like '%"+script+"%'"
+      sql= "select name, ranking from favorites where name like '%"+script+"%'"
     else:
-      sql="select name from favorites"
+      sql="select name, ranking from favorites"
     cursor.execute(sql)
     return __fetchScript(cursor.fetchall())
     __dbconnect()['db'].close()
@@ -325,8 +337,6 @@ def __fetchScript(fetchall,total=False):
     for row in fetchall:
       fetchlist.update({row[0]:row[1]})
   else:
-    i = 1
     for row in fetchall:
-      fetchlist.update({i:row[0]})
-      i = i+1
+      fetchlist.update({row[0]:row[1]})
   return fetchlist

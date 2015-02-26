@@ -12,9 +12,7 @@ class Helper:
     if self.commnad == "search":
       if not self.args:
         dbmodule.lastresults = dbmodule.searchAll()
-        print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Author"]))
-        for row in dbmodule.lastresults.items():
-          print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*row))
+        self.printlastResult()
       else:
         dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
         self.printlastResult()
@@ -36,6 +34,7 @@ class Helper:
 
   # Display the last results
   def printlastResult(self):
+    print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Author"]))
     for row in dbmodule.lastresults.items():
       print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*row))
 
