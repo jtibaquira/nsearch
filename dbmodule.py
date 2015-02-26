@@ -139,8 +139,8 @@ def insertScript(script,author):
     db.commit()
     return cursor.lastrowid
   except Exception, e:
-    if con:
-      con.rollback()
+    if db:
+      db.rollback()
     print "Error %s:" % e.args[0]
   finally:
     if db:
@@ -159,12 +159,12 @@ def insertScriptCategory(scriptid,categoryid):
     if cursor.rowcount == 1:
       print "[+] "+str(categoryid)+" "+i18n.t("setup.update_fav_ok")
   except Exception, e:
-    print "Error %s:" % e.args[0]
+     if db:
+      db.rollback()
+      print "Error %s:" % e.args[0]
   finally:
     if db:
       db.close()
-
-
 
 #get all scripts
 def searchAll():
