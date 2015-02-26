@@ -172,8 +172,9 @@ def searchAll():
   try:
     db = lite.connect(dbname)
     db.text_factory = str
+    db.row_factory = lite.Row
     cursor = db.cursor()
-    cursor.execute("select name, author from scripts GROUP BY NAME ORDER BY NAME")
+    cursor.execute("select id, name, author from scripts GROUP BY NAME ORDER BY NAME")
     return __fetchScript(cursor.fetchall(),True)
   except Exception, e:
     print "Error %s:" % e.args[0]
@@ -335,7 +336,8 @@ def __fetchScript(fetchall,total=False):
   fetchlist = {};
   if total:
     for row in fetchall:
-      fetchlist.update({row[0]:row[1]})
+      #print "%s %s" % (row["name"], row["author"])
+      fetchlist.update({row["id"]:{"name":row["name"], "author":row["author"]}})
   else:
     for row in fetchall:
       fetchlist.update({row[0]:row[1]})
