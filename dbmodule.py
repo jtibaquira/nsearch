@@ -175,7 +175,7 @@ def searchAll():
     db.row_factory = lite.Row
     cursor = db.cursor()
     cursor.execute("select id, name, author from scripts GROUP BY NAME ORDER BY NAME")
-    return __fetchScript(cursor.fetchall(),True)
+    return __fetchScript(cursor.fetchall())
   except Exception, e:
     print "Error %s:" % e.args[0]
   finally:
@@ -278,29 +278,30 @@ def searchByCriterial(**kwargs):
   if kwargs is not None:
     db = lite.connect(dbname)
     db.text_factory = str
+    db.row_factory = lite.Row
     cursor = db.cursor()
     if kwargs.has_key("name") and kwargs.has_key("category") and kwargs.has_key("author"):
       script = kwargs["name"]
       category = kwargs["category"]
       author = kwargs["author"]
-      sql= "select scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.author like '%"+author+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category "
+      sql= "select scripts.id, scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.author like '%"+author+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category "
     elif kwargs.has_key("name") and kwargs.has_key("category"):
       script = kwargs["name"]
       category = kwargs["category"]
-      sql= "select scripts.name ,scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
+      sql= "select scripts.id, scripts.name ,scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
     elif kwargs.has_key("name") and kwargs.has_key("author"):
       author = kwargs["author"]
       script = kwargs["name"]
-      sql= "select name, author from scripts where name like '%"+script+"%' and author like '%"+author+"%'"
+      sql= "select id, name, author from scripts where name like '%"+script+"%' and author like '%"+author+"%'"
     elif kwargs.has_key("name"):
       script = kwargs["name"]
-      sql= "select name, author from scripts where name like '%"+script+"%'"
+      sql= "select id, name, author from scripts where name like '%"+script+"%'"
     elif kwargs.has_key("category"):
       category = kwargs["category"]
-      sql= "select scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category"
+      sql= "select scripts.id, scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category"
     elif kwargs.has_key("author"):
       author = kwargs["author"]
-      sql= "select name, author from scripts where author like '%"+author+"%'"
+      sql= "select id, name, author from scripts where author like '%"+author+"%'"
     else:
       print "Bad Params"
     cursor.execute(sql)
@@ -316,14 +317,14 @@ def getFavorites(**kwargs):
     if kwargs.has_key("name") and kwargs.has_key("ranking"):
       script = kwargs["name"]
       ranking = kwargs["ranking"]
-      sql= "select scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
+      sql= "select scripts.id, scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
     elif kwargs.has_key("name"):
       script = kwargs["name"]
-      sql= "select name, ranking from favorites where name like '%"+script+"%'"
+      sql= "select id, name, ranking from favorites where name like '%"+script+"%'"
     else:
-      sql="select name, ranking from favorites"
+      sql="select id, name, ranking from favorites"
     cursor.execute(sql)
-    return __fetchScript(cursor.fetchall())
+    return __fetchScript(cursor.fetchall(),True)
     __dbconnect()['db'].close()
 
 # Connection to the databases
@@ -336,9 +337,8 @@ def __fetchScript(fetchall,total=False):
   fetchlist = {};
   if total:
     for row in fetchall:
-      #print "%s %s" % (row["name"], row["author"])
-      fetchlist.update({row["id"]:{"name":row["name"], "author":row["author"]}})
+      fetchlist.update({row["id"]:{"name":row["name"], "ranking":row["ranking"]}})
   else:
     for row in fetchall:
-      fetchlist.update({row[0]:row[1]})
+      fetchlist.update({row["id"]:{"name":row["name"], "author":row["author"]}})
   return fetchlist

@@ -36,7 +36,7 @@ class Helper:
   def printlastResult(self):
     print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Author"]))
     for key,value in dbmodule.lastresults.items():
-        print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["author"]]))
+      print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["author"]]))
 
   # Display the documentation per script
   def displayDoc(self):
