@@ -312,8 +312,11 @@ def searchByCriterial(**kwargs):
 # get favs scripts filter
 def getFavorites(**kwargs):
   if kwargs is not None:
-    sql = None
-    cursor = __dbconnect()['cursor']
+    sql=None
+    db = lite.connect(dbname)
+    db.text_factory = str
+    db.row_factory = lite.Row
+    cursor = db.cursor()
     if kwargs.has_key("name") and kwargs.has_key("ranking"):
       script = kwargs["name"]
       ranking = kwargs["ranking"]
@@ -325,7 +328,7 @@ def getFavorites(**kwargs):
       sql="select id, name, ranking from favorites"
     cursor.execute(sql)
     return __fetchScript(cursor.fetchall(),True)
-    __dbconnect()['db'].close()
+    db.close()
 
 # Connection to the databases
 def __dbconnect():

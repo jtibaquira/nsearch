@@ -25,18 +25,24 @@ class Helper:
     elif self.commnad == "showfav":
       if not self.args:
         dbmodule.lastresults = dbmodule.getFavorites()
-        self.printlastResult()
+        self.printlastResult(True)
       else:
         dbmodule.lastresults = dbmodule.getFavorites(**self.__showfavparams())
-        self.printlastResult()
+        self.printlastResult(True)
     else:
       print "Error"
 
   # Display the last results
-  def printlastResult(self):
-    print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Author"]))
-    for key,value in dbmodule.lastresults.items():
-      print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["author"]]))
+  def printlastResult(self,fav=False):
+    if fav:
+      print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Ranking"]))
+      for key,value in dbmodule.lastresults.items():
+        print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["ranking"]]))
+    else:
+      print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Author"]))
+      for key,value in dbmodule.lastresults.items():
+        print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["author"]]))
+
 
   # Display the documentation per script
   def displayDoc(self):
@@ -53,7 +59,7 @@ class Helper:
     i = 0
     items = []
     for k,v in dbmodule.lastresults.items():
-      items.insert(i,v)
+      items.insert(i,v["name"])
       i = i + 1
     return items
 
