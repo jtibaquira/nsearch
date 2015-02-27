@@ -17,7 +17,7 @@
 #### nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name or category , it is also possible to see the documentation of the scripts found.
 
 ### Version
-0.3
+0.4
 
 ### Requeriments
 
@@ -106,6 +106,9 @@ config:
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
+  Cheking DB ... nmap_scripts.sqlite3
+  The DB is updated nmap_scripts.sqlite3
+
   nsearch>
 ```
 
@@ -128,7 +131,7 @@ config:
 
   Nsearch Commands
   ================
-  clear  doc  exit  help  history  last  search
+  addfav  clear  delfav  doc  exit  help  history  last  modfav  search showfav
 
   nsearch>
 ```
@@ -148,11 +151,14 @@ config:
 
   nsearch> help search
 
-  name     : Search by script's name
-  category : Search by category
-  Usage:
-    search name:http
-    search category:exploit
+    name     : Search by script's name
+    category : Search by category
+    author   : Search by author
+    Usage:
+      search name:http
+      search category:exploit
+      search author:fyodor
+      search name:http category:exploit author:fyodor
 
   nsearch>
 ```
@@ -170,11 +176,21 @@ config:
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
-  nsearch> search name:ssh
-  1.ssh-hostkey.nse
-  2.ssh2-enum-algos.nse
-  3.sshv1.nse
-  nsearch>
+  nsearch> search name:http author:calderon category:vuln
+  *** Name                                     Author
+  [+] http-vuln-cve2012-1823.nse               Paulino Calderon, Paul AMAR
+  [+] http-phpself-xss.nse                     Paulino Calderon
+  [+] http-wordpress-enum.nse                  Paulino Calderon
+  [+] http-adobe-coldfusion-apsa1301.nse       Paulino Calderon
+  [+] http-vuln-cve2013-0156.nse               Paulino Calderon
+  [+] http-awstatstotals-exec.nse              Paulino Calderon
+  [+] http-axis2-dir-traversal.nse             Paulino Calderon
+  [+] http-huawei-hg5xx-vuln.nse               Paulino Calderon
+  [+] http-tplink-dir-traversal.nse            Paulino Calderon
+  [+] http-trace.nse                           Paulino Calderon
+  [+] http-litespeed-sourcecode-download.nse   Paulino Calderon
+  [+] http-majordomo2-dir-traversal.nse        Paulino Calderon
+  [+] http-method-tamper.nse                   Paulino Calderon
 ```
 
 ```
@@ -204,13 +220,107 @@ config:
   nsearch>
 ```
 
+#### Favotires Feature
+
+```
+  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
+
+  nsearch> addfav name:http-vuln-cve2012-1823.nse ranking:great
+  [+] http-vuln-cve2012-1823.nse The Script was added successfully
+  nsearch>
+```
+
+```
+  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
+
+  nsearch> showfav
+  *** Name                                     Ranking
+  [+] sslv2.nse                                normal
+  [+] http-vuln-cve2012-1823.nse               great
+  nsearch>
+```
+
+```
+  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
+
+  nsearch> showfav
+  *** Name                                     Ranking
+  [+] sslv2.nse                                normal
+  [+] http-vuln-cve2012-1823.nse               great
+
+  nsearch> modfav name:sslv2.nse newranking:great
+  [+] sslv2.nse The Script was updated successfully
+
+  nsearch> showfav
+  *** Name                                     Ranking
+  [+] sslv2.nse                                great
+  [+] http-vuln-cve2012-1823.nse               great
+  nsearch>
+```
+
+```
+  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
+
+  nsearch> showfav
+  *** Name                                     Ranking
+  [+] sslv2.nse                                great
+  [+] http-vuln-cve2012-1823.nse               great
+
+  nsearch> delfav name:sslv2.nse
+  [+] sslv2.nse The Script was removed successfully
+
+  nsearch> showfav
+  *** Name                                     Ranking
+  [+] http-vuln-cve2012-1823.nse               great
+
+  nsearch>
+```
 
 ### TODO
 * Fast-Tarck
 * Create sequences for the execution of scripts
 * Create a file output
 * Version for Windows
-* Set like a favorite script
 
 ### FeedBack
 #### Feel free to fork the project, submit any kind of comment, issue or contribution.

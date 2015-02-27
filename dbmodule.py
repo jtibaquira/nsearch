@@ -218,7 +218,9 @@ def updateFavorite(**kwargs):
     sql = None
     db = None
     try:
-      cursor = __dbconnect()['cursor']
+      db = lite.connect(dbname)
+      db.text_factory = str
+      cursor = db.cursor()
       if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
         script = kwargs["name"]
         newname = kwargs["newname"]
@@ -240,15 +242,15 @@ def updateFavorite(**kwargs):
           ''', (newranking, script,))
       else:
         print "Bad Params"
-      __dbconnect()['db'].commit()
+      db.commit()
       if cursor.rowcount == 1:
         print "[+] "+script+" "+i18n.t("setup.update_fav_ok")
     except Exception, e:
       print "Error %s:" % e.args[0]
       print "[-] "+script+" "+i18n.t("setup.update_fav_error")
     finally:
-      if __dbconnect()['db']:
-        __dbconnect()['db'].close()
+      if db:
+        db.close()
 
 #delete script values
 def deleteFavorite(**kwargs):
