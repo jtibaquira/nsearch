@@ -1,0 +1,300 @@
+<!doctype html>
+<!-- The Time Machine GitHub pages theme was designed and developed by Jon Rohan, on Feb 7, 2012. -->
+<!-- Follow him for fun. http://twitter.com/jonrohan. Tail his code on http://github.com/jonrohan -->
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+  <link rel="stylesheet" href="stylesheets/stylesheet.css" media="screen">
+  <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  <script type="text/javascript" src="javascripts/script.js"></script>
+
+  <title>NSEarch</title>
+  <meta name="description" content="minimal script to help find script into de nse database">
+
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+    <header>
+      <h1 class="title">NSEarch</h1>
+    </header>
+    <div id="container">
+      <p class="tagline">minimal script to help find script into de nse database</p>
+      <div id="main" role="main">
+        <div class="download-bar">
+        <div class="inner">
+          <a href="https://github.com/JKO/nsearch/tarball/master" class="download-button tar"><span>Download</span></a>
+          <a href="https://github.com/JKO/nsearch/zipball/master" class="download-button zip"><span>Download</span></a>
+          <a href="https://github.com/JKO/nsearch" class="code">View NSEarch on GitHub</a>
+        </div>
+        <span class="blc"></span><span class="trc"></span>
+        </div>
+        <article class="markdown-body">
+          <pre><code>================================================
+  _   _  _____  _____                     _
+ | \ | |/  ___||  ___|                   | |
+ |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+ | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+ | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+ \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+================================================
+ Version 0.3     |   @jjtibaquira
+================================================
+</code></pre>
+
+<h3>
+<a id="nmap-script-engine-search" class="anchor" href="#nmap-script-engine-search" aria-hidden="true"><span class="octicon octicon-link"></span></a>Nmap Script Engine Search</h3>
+
+<h3>
+<a id="description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h3>
+
+<h4>
+<a id="nsearch--is-a-tool-that-helps-you-find-scripts-that-are-used-nmap--nse---can-be-searched-using-the-name-or-category--it-is-also-possible-to-see-the-documentation-of-the-scripts-found" class="anchor" href="#nsearch--is-a-tool-that-helps-you-find-scripts-that-are-used-nmap--nse---can-be-searched-using-the-name-or-category--it-is-also-possible-to-see-the-documentation-of-the-scripts-found" aria-hidden="true"><span class="octicon octicon-link"></span></a>nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name or category , it is also possible to see the documentation of the scripts found.</h4>
+
+<h3>
+<a id="version" class="anchor" href="#version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version</h3>
+
+<p>0.3</p>
+
+<h3>
+<a id="requeriments" class="anchor" href="#requeriments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requeriments</h3>
+
+<pre><code>$ pip install pyyaml
+</code></pre>
+
+<h4>
+<a id="debianubuntu" class="anchor" href="#debianubuntu" aria-hidden="true"><span class="octicon octicon-link"></span></a>Debian(Ubuntu)</h4>
+
+<pre><code># apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
+</code></pre>
+
+<h4>
+<a id="redhatcentos" class="anchor" href="#redhatcentos" aria-hidden="true"><span class="octicon octicon-link"></span></a>REDHAT(CentOS)</h4>
+
+<pre><code># yum -y install bzip2 groupinstall "Development Tools"
+</code></pre>
+
+<h3>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h3>
+
+<h4>
+<a id="to-install-the-application-is-necessary-run-as-root-user-the-installation-script-installsh-for-the-time-the-script-is-only-for-os-based-on-debian-and-based-on-red-hat-centos-macosx-or-other-unix--its-better-do-the-installation-for-each-dependency-manually" class="anchor" href="#to-install-the-application-is-necessary-run-as-root-user-the-installation-script-installsh-for-the-time-the-script-is-only-for-os-based-on-debian-and-based-on-red-hat-centos-macosx-or-other-unix--its-better-do-the-installation-for-each-dependency-manually" aria-hidden="true"><span class="octicon octicon-link"></span></a>To install the application is necessary run as root user the installation script (install.sh), for the time, the script is only for OS based on debian and based on Red Hat (CentOS). MacOSX or other UNIX  it's better do the installation for each dependency manually.</h4>
+
+<h4>
+<a id="automatic-installation" class="anchor" href="#automatic-installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Automatic Installation</h4>
+
+<pre><code># sh install.sh
+</code></pre>
+
+<h5>
+<a id="file-configuration" class="anchor" href="#file-configuration" aria-hidden="true"><span class="octicon octicon-link"></span></a>File Configuration</h5>
+
+<h6>
+<a id="find-the-scriptdbs-path-use-the-command-below" class="anchor" href="#find-the-scriptdbs-path-use-the-command-below" aria-hidden="true"><span class="octicon octicon-link"></span></a>Find the script.db's path, use the command below</h6>
+
+<pre><code>$ find /usr -type f -name "script.db" 2&gt;/dev/null | awk 'gsub("script.db","")'
+</code></pre>
+
+<h6>
+<a id="then-create-a-configyaml-file-on-the-main-path-of-the-script" class="anchor" href="#then-create-a-configyaml-file-on-the-main-path-of-the-script" aria-hidden="true"><span class="octicon octicon-link"></span></a>Then create a config.yaml file, on the main path of the script</h6>
+
+<pre><code>config:
+  scriptsPath: '/usr/local/share/nmap/scripts/'
+  filePath: '/usr/local/share/nmap/scripts/script.db'
+  fileBackup: 'scriptbk.db'
+  scriptdb: 'nmap_scripts.sqlite3'
+  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}
+
+</code></pre>
+
+<h3>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>USAGE:</h3>
+
+<pre><code>  $ python nsearch.py
+</code></pre>
+
+<h4>
+<a id="main-menu" class="anchor" href="#main-menu" aria-hidden="true"><span class="octicon octicon-link"></span></a>Main Menu</h4>
+
+<h4>
+<a id="initial-setup" class="anchor" href="#initial-setup" aria-hidden="true"><span class="octicon octicon-link"></span></a>Initial Setup</h4>
+
+<pre><code> ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+ ================================================
+   Version 0.3     |   @jjtibaquira
+ ================================================
+
+  Creating Database :nmap_scripts.sqlite3
+  Creating Table For Script ....
+  Creating Table for Categories ....
+  Creating Table for Scripts per Category ....
+  Upload Categories to Categories Table ...
+</code></pre>
+
+<h4>
+<a id="main-console" class="anchor" href="#main-console" aria-hidden="true"><span class="octicon octicon-link"></span></a>Main Console</h4>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.3     |   @jjtibaquira
+  ================================================
+
+  nsearch&gt;
+</code></pre>
+
+<h4>
+<a id="basic-commands" class="anchor" href="#basic-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Basic Commands</h4>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.3     |   @jjtibaquira
+  ================================================
+
+  nsearch&gt; help
+
+  Nsearch Commands
+  ================
+  clear  doc  exit  help  history  last  search
+
+  nsearch&gt;
+</code></pre>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.3     |   @jjtibaquira
+  ================================================
+
+  nsearch&gt; help search
+
+  name     : Search by script's name
+  category : Search by category
+  Usage:
+    search name:http
+    search category:exploit
+
+  nsearch&gt;
+</code></pre>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.3     |   @jjtibaquira
+  ================================================
+
+  nsearch&gt; search name:ssh
+  1.ssh-hostkey.nse
+  2.ssh2-enum-algos.nse
+  3.sshv1.nse
+  nsearch&gt;
+</code></pre>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.3     |   @jjtibaquira
+  ================================================
+
+  nsearch&gt; doc ssh &lt;TAB&gt;
+  ssh-hostkey.nse      ssh2-enum-algos.nse  sshv1.nse
+  nsearch&gt; doc sshv1.nse
+  local nmap = require "nmap"
+  local shortport = require "shortport"
+  local string = require "string"
+
+  description = [[
+    Checks if an SSH server supports the obsolete and less secure SSH Protocol Version 1.
+  ]]
+  author = "Brandon Enright"
+  nsearch&gt;
+</code></pre>
+
+<h3>
+<a id="todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h3>
+
+<ul>
+<li>Fast-Tarck</li>
+<li>Searching by Author</li>
+<li>Serching by name, category, author in the same query</li>
+<li>Create a pretty output</li>
+<li>Create a file output</li>
+<li>Version for Windows</li>
+<li>Set like a favorite script</li>
+</ul>
+
+<h3>
+<a id="feedback" class="anchor" href="#feedback" aria-hidden="true"><span class="octicon octicon-link"></span></a>FeedBack</h3>
+
+<h4>
+<a id="feel-free-to-fork-the-project-submit-any-kind-of-comment-issue-or-contribution" class="anchor" href="#feel-free-to-fork-the-project-submit-any-kind-of-comment-issue-or-contribution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Feel free to fork the project, submit any kind of comment, issue or contribution.</h4>
+
+<ul>
+<li>Twitter: <a href="https://twitter.com/jjtibaquira">@jjtibaquira</a>
+</li>
+<li>Email: <a href="mailto:jko@dragonjar.org">jko@dragonjar.org</a>
+</li>
+<li>Foro: <a href="http://comunidad.dragonjar.org">http://comunidad.dragonjar.org</a>
+</li>
+</ul>
+        </article>
+      </div>
+    </div>
+    <footer>
+      <div class="owner">
+      <p><a href="https://github.com/JKO" class="avatar"><img src="https://avatars3.githubusercontent.com/u/263858?v=3&amp;s=60" width="48" height="48"></a> <a href="https://github.com/JKO">JKO</a> maintains <a href="https://github.com/JKO/nsearch">NSEarch</a></p>
+
+
+      </div>
+      <div class="creds">
+        <small>This page generated using <a href="http://pages.github.com/">GitHub Pages</a><br>theme by <a href="https://twitter.com/jonrohan/">Jon Rohan</a></small>
+      </div>
+    </footer>
+  </div>
+  <div class="current-section">
+    <a href="#top">Scroll to top</a>
+    <a href="https://github.com/JKO/nsearch/tarball/master" class="tar">tar</a><a href="https://github.com/JKO/nsearch/zipball/master" class="zip">zip</a><a href="" class="code">source code</a>
+    <p class="name"></p>
+  </div>
+
+  
+</body>
+</html>
