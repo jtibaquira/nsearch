@@ -9,3 +9,9 @@ es:
   help_last: Muestra la lista de los resultados de la última consulta
   help_doc: Muestra la documentación de un script seleccionado
   help_doc_exmp: doc <nombre del script incluido .nse>
+  help_fav_name: Nombre del Script
+  help_fav_ranking: Ranking del Script
+  help_showfav: Muestra los Scripts Favoritos
+  help_addfav: Estable un script como Favorito
+  help_delfav: Elimina un script como Favorito
+  help_modfav: Actualiza un script Favorito
