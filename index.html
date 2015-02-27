@@ -36,16 +36,17 @@
         <span class="blc"></span><span class="trc"></span>
         </div>
         <article class="markdown-body">
-          <pre><code>================================================
-  _   _  _____  _____                     _
- | \ | |/  ___||  ___|                   | |
- |  \| |\ `--. | |__    __ _  _ __   ___ | |__
- | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
- | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
- \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-================================================
- Version 0.3     |   @jjtibaquira
-================================================
+          <pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
 </code></pre>
 
 <h3>
@@ -60,12 +61,12 @@
 <h3>
 <a id="version" class="anchor" href="#version" aria-hidden="true"><span class="octicon octicon-link"></span></a>Version</h3>
 
-<p>0.3</p>
+<p>0.4</p>
 
 <h3>
 <a id="requeriments" class="anchor" href="#requeriments" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requeriments</h3>
 
-<pre><code>$ pip install pyyaml
+<pre><code>$ pip install pyyaml python-i18n
 </code></pre>
 
 <h4>
@@ -129,12 +130,13 @@
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
    |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_ \
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
- ================================================
-   Version 0.3     |   @jjtibaquira
- ================================================
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
 
   Creating Database :nmap_scripts.sqlite3
   Creating Table For Script ....
@@ -154,8 +156,12 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.3     |   @jjtibaquira
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
+
+  Cheking DB ... nmap_scripts.sqlite3
+  The DB is updated nmap_scripts.sqlite3
 
   nsearch&gt;
 </code></pre>
@@ -171,14 +177,15 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.3     |   @jjtibaquira
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
   nsearch&gt; help
 
   Nsearch Commands
   ================
-  clear  doc  exit  help  history  last  search
+  addfav  clear  delfav  doc  exit  help  history  last  modfav  search showfav
 
   nsearch&gt;
 </code></pre>
@@ -191,16 +198,20 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.3     |   @jjtibaquira
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
   nsearch&gt; help search
 
-  name     : Search by script's name
-  category : Search by category
-  Usage:
-    search name:http
-    search category:exploit
+    name     : Search by script's name
+    category : Search by category
+    author   : Search by author
+    Usage:
+      search name:http
+      search category:exploit
+      search author:fyodor
+      search name:http category:exploit author:fyodor
 
   nsearch&gt;
 </code></pre>
@@ -213,14 +224,25 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.3     |   @jjtibaquira
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
-  nsearch&gt; search name:ssh
-  1.ssh-hostkey.nse
-  2.ssh2-enum-algos.nse
-  3.sshv1.nse
-  nsearch&gt;
+  nsearch&gt; search name:http author:calderon category:vuln
+  *** Name                                     Author
+  [+] http-vuln-cve2012-1823.nse               Paulino Calderon, Paul AMAR
+  [+] http-phpself-xss.nse                     Paulino Calderon
+  [+] http-wordpress-enum.nse                  Paulino Calderon
+  [+] http-adobe-coldfusion-apsa1301.nse       Paulino Calderon
+  [+] http-vuln-cve2013-0156.nse               Paulino Calderon
+  [+] http-awstatstotals-exec.nse              Paulino Calderon
+  [+] http-axis2-dir-traversal.nse             Paulino Calderon
+  [+] http-huawei-hg5xx-vuln.nse               Paulino Calderon
+  [+] http-tplink-dir-traversal.nse            Paulino Calderon
+  [+] http-trace.nse                           Paulino Calderon
+  [+] http-litespeed-sourcecode-download.nse   Paulino Calderon
+  [+] http-majordomo2-dir-traversal.nse        Paulino Calderon
+  [+] http-method-tamper.nse                   Paulino Calderon
 </code></pre>
 
 <pre><code>  ================================================
@@ -231,7 +253,8 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.3     |   @jjtibaquira
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
   nsearch&gt; doc ssh &lt;TAB&gt;
@@ -248,17 +271,107 @@
   nsearch&gt;
 </code></pre>
 
+<h4>
+<a id="favotires-feature" class="anchor" href="#favotires-feature" aria-hidden="true"><span class="octicon octicon-link"></span></a>Favotires Feature</h4>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
+
+  nsearch&gt; addfav name:http-vuln-cve2012-1823.nse ranking:great
+  [+] http-vuln-cve2012-1823.nse The Script was added successfully
+  nsearch&gt;
+</code></pre>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
+
+  nsearch&gt; showfav
+  *** Name                                     Ranking
+  [+] sslv2.nse                                normal
+  [+] http-vuln-cve2012-1823.nse               great
+  nsearch&gt;
+</code></pre>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
+
+  nsearch&gt; showfav
+  *** Name                                     Ranking
+  [+] sslv2.nse                                normal
+  [+] http-vuln-cve2012-1823.nse               great
+
+  nsearch&gt; modfav name:sslv2.nse newranking:great
+  [+] sslv2.nse The Script was updated successfully
+
+  nsearch&gt; showfav
+  *** Name                                     Ranking
+  [+] sslv2.nse                                great
+  [+] http-vuln-cve2012-1823.nse               great
+  nsearch&gt;
+</code></pre>
+
+<pre><code>  ================================================
+    _   _  _____  _____                     _
+   | \ | |/  ___||  ___|                   | |
+   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
+   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
+   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
+   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
+  ================================================
+   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Email: jko@dragonjar.org  |   www.dragonjar.org
+  ================================================
+
+  nsearch&gt; showfav
+  *** Name                                     Ranking
+  [+] sslv2.nse                                great
+  [+] http-vuln-cve2012-1823.nse               great
+
+  nsearch&gt; delfav name:sslv2.nse
+  [+] sslv2.nse The Script was removed successfully
+
+  nsearch&gt; showfav
+  *** Name                                     Ranking
+  [+] http-vuln-cve2012-1823.nse               great
+
+  nsearch&gt;
+</code></pre>
+
 <h3>
 <a id="todo" class="anchor" href="#todo" aria-hidden="true"><span class="octicon octicon-link"></span></a>TODO</h3>
 
 <ul>
 <li>Fast-Tarck</li>
-<li>Searching by Author</li>
-<li>Serching by name, category, author in the same query</li>
-<li>Create a pretty output</li>
+<li>Create sequences for the execution of scripts</li>
 <li>Create a file output</li>
 <li>Version for Windows</li>
-<li>Set like a favorite script</li>
 </ul>
 
 <h3>
