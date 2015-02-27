@@ -109,14 +109,14 @@ class Console(cmd.Cmd):
     return commands
 
   def help_search(self):
-    print '\n'.join([ "\n\tname     : Search by script's name",
-      "\tcategory : Search by category",
-      "\tauthor : Search by author",
-      '\tUsage:',
+    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
+      "\tcategory : "+i18n.t("help.help_search_category")+"",
+      "\tauthor   : "+i18n.t("help.help_search_author")+"",
+      '\t'+i18n.t("help.help_usage")+':',
       '\t\tsearch name:http',
       '\t\tsearch category:exploit',
       '\t\tsearch author:fyodor',
-      '\t\tsearch name:http category:exploit'])
+      '\t\tsearch name:http category:exploit author:fyodor'])
 
   def do_doc(self, args):
     """ Display Script Documentaion"""
@@ -125,7 +125,7 @@ class Console(cmd.Cmd):
 
   def help_doc(self):
     print " "+i18n.t("help.help_doc")
-    print " "+i18n.t("help.help_doc_usage")
+    print " "+i18n.t("help.help_usage")
     print "  "+i18n.t("help.help_doc_exmp")
 
   def complete_doc(self, text, line, begidx, endidx):
