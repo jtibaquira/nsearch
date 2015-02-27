@@ -1,0 +1,19 @@
+en:
+  create_db: Creating the Database
+  update_db: Updating the Database
+  db_is_update: The DB is updated
+  checking_db: Cheking DB ...
+  create_backup: Creating backup for file script.db
+  create_backup_ok: The Backup was created successfully
+  create_backup_error: The Backup was not created
+  create_script_table: Creating Table For Script ....
+  create_category_table: Creating Table for Categories ....
+  create_category_script_table: Creating Table for Scripts per Category ....
+  upload_categories: Upload Categories ....
+  create_favorites_table: Create Favorites Table ...
+  add_fav_ok: The Script was added successfully
+  add_fav_error: The script already exists
+  update_fav_ok: The Script was updated successfully
+  update_fav_error: The Script was not updated
+  del_fav_ok: The Script was removed successfully
+  del_fav_error: The Script dont exists

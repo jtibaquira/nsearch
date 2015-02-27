@@ -1,0 +1,9 @@
+en:
+  doc_header: Nsearch Commands
+  misc_header: Nsearch Plugins
+  undoc_header: Others Commands
+  help_search:
+  help_last: Display the last query's result
+  help_doc: Displays the documentation of a selected script
+  help_doc_usage: Usage
+  help_doc_exmp: doc <script's name including .nse>

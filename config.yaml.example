@@ -7,3 +7,4 @@ config:
   fileBackup: 'scriptbk.db'
   scriptdb: "nmap_scripts.sqlite3"
   categories: ["auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"]
+  checksum: '145f877fbcc38c451ec7602357e37c16'

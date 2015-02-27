@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 printf "\n"
 echo "========================================";
 echo " _   _  _____                     _     ";
@@ -13,117 +13,142 @@ echo " Version 0.3     |   @jjtibaquira       ";
 echo "========================================";
 printf "\n"
 
-
+ismacox=$(sw_vers 2>/dev/null)
 
 #Check if is it root
-if ! [ $(id -u) = 0 ]; then
-   echo "You must be a root user" 2>&1
-   exit 1
+if ! [ $(id -u) = 0 ] && ! [[ $ismacox ]] ; then
+ echo "[-] You must be a root user" 2>&1
+ exit 1
 fi
 
-homePath=$(pwd)
 nmapversion=$(which nmap 2>/dev/null)
 paythonversion=$(which python 2>/dev/null)
 pipversion=$(which pip 2>/dev/null)
+md5sum=$(which md5sum 2>/dev/null)
+md5=$(which md5 2>/dev/null)
+kernel=$(uname -r)
+os="$(uname -s) $kernel"
+arch=$(uname -m)
 
-printf "Checking Dependencies ....\n"
+function createConfigFile(){
+  checksum=
+  dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
+  if [[ $dbpath ]]; then
+    filePath=$dbpath'script.db'
+    if [[ $ismacox ]]; then
+      printf "[+] CheckSum MacSOX....\n"
+      checksum=$(md5 $filePath | awk '{print $4}')
+    else
+      printf "[+] CheckSum not MacSOX....\n"
+      checksum=$(md5sum $filePath | awk '{print $1}')
+    fi
+    printf "[+] Creating config.yaml file ...\n"
+    printf "config: \n" > config.yaml
+    printf "  scriptsPath: '$dbpath'\n" >> config.yaml
+    printf "  filePath: '$filePath'\n" >> config.yaml
+    printf "  fileBackup: 'scriptbk.db'\n" >> config.yaml
+    printf "  scriptdb: 'nmap_scripts.sqlite3'\n" >> config.yaml
+    printf '  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
+    printf "  checksum: '$checksum'\n" >> config.yaml
+    chmod 777 config.yaml
+  fi
+  printf "[+] NSEarch is ready for be launched uses python nsearch.py\n"
+}
+
+function pipRequeriments(){
+  printf "[+] Checking pip libs ...\n"
+  pip install PyYAML python-i18n --upgrade
+}
+
+function installpipDebian(){
+  printf "[+] Installing pip ...\n"
+  apt-get install python-pip -y
+  pipRequeriments
+}
+
+function installpipRedHat(){
+  printf "[+] Installing pip ...\n"
+  rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update
+  yum install python-pip -y
+  pipRequeriments
+}
+
 if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+  printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
   apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
-elif [ -f /etc/redhat-release ]; then
-  yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel -y
-else
-  echo "Please Follow the instructions into the Readme File"
-fi
 
-
-function install_nmap(){
-  echo "Installing nmap .... "
-  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+  if [[ $nmapversion ]]; then
+    printf "\n[+] Nmap already installed :D \n"
+  else
+    echo "[+] Installing nmap .... "
     apt-get install nmap -y
-  elif [ -f /etc/redhat-release ]; then
-    yum install nmap -y
-  else
-    echo "Please Follow the instructions into the Readme File"
   fi
-}
 
-function install_pyhon(){
-  echo "Installing python ..."
-  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
+  if [[ $paythonversion ]]; then
+    printf "[+] Python is already installed :D\n"
+    if [[ $pipversion ]]; then
+      printf "[+] Pip is already installed :D\n"
+      pipRequeriments
+    else
+      installpipDebian
+    fi
+  else
+    echo "Installing python ..."
     apt-get install python -y
-  elif [ -f /etc/redhat-release ]; then
+    installpipDebian
+  fi
+  createConfigFile
+elif [ -f /etc/redhat-release ]; then
+  printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
+  yum install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel -y
+  if [[ $nmapversion ]]; then
+    printf "\n[+] Nmap already installed :D \n"
+  else
+    echo "[+] Installing nmap .... "
+    yum install nmap -y
+  fi
+
+  if [[ $paythonversion ]]; then
+    printf "[+] Python is already installed :D\n"
+    if [[ $pipversion ]]; then
+      printf "[+] Pip is already installed :D\n"
+      pipRequeriments
+    else
+      installpipRedHat
+    fi
+  else
+    echo "Installing python ..."
     yum install python -y
-  else
-    echo "Please Follow the instructions into the Readme File"
+    installpipRedHat
   fi
-}
-
-function install_pip(){
-  echo "Installing pip ..."
-
-  if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
-    apt-get install python-pip -y; pip install PyYAML
-  elif [ -f /etc/redhat-release ]; then
-    rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update; yum -y install python-pip; pip install PyYAML
+  createConfigFile
+elif [[ $ismacox ]]; then
+  printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
+  brew install -v sqlite3
+  if [[ $nmapversion ]]; then
+    printf "\n[+] Nmap already installed :D \n"
   else
-    echo "Please Follow the instructions into the Readme File"
+    echo "[+] Installing nmap .... "
+    brew install -v nmap
   fi
-}
-
-if [[ $nmapversion ]]; then
-  printf "\nNmap already installed :D \n"
+  if [[ $paythonversion ]]; then
+    printf "[+] Python is already installed :D\n"
+    printf "[+] Pip is already installed :D\n"
+    pipRequeriments
+  else
+    echo "Installing python ..."
+    brew install python -v
+    printf "[+] Pip is already installed :D\n"
+    pipRequeriments
+  fi
+  createConfigFile
 else
-  while true; do
-    printf "\n"
-    read -p "Do you wish to install nmap? " yn
-    case $yn in
-      [Yy]* ) install_nmap; break;;
-      [Nn]* ) break;;
-      * ) echo "Please answer yes or no.";;
-    esac
-  done
-fi
-
-if [[ $paythonversion ]]; then
-  printf "Python already installed :D \n"
-else
-  while true; do
-    printf "\n"
-    read -p "Do you wish to install python? " yn
-    case $yn in
-      [Yy]* ) install_pyhon; break;;
-      [Nn]* ) break;;
-      * ) echo "Please answer yes or no.";;
-    esac
-  done
-fi
-
-if [[ $pipversion ]]; then
-  pip install PyYAML
-  printf "Python already installed :D \n\nNSEarch is ready for be launched uses python nsearch.py\n"
-else
-  while true; do
-    printf "\n"
-    read -p "Do you wish to install pip? " yn
-    case $yn in
-      [Yy]* ) install_pip;  break;;
-      [Nn]* ) break;;
-      * ) echo "Please answer yes or no.";;
-    esac
-  done
-fi
-
-dbpath=$(find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")')
-if [[ $dbpath ]]; then
-  filePath=$dbpath'script.db'
-  cd $homePath
-  printf "config: \n" > config.yaml
-  printf "  scriptsPath: '$dbpath'\n" >> config.yaml
-  printf "  filePath: '$filePath'\n" >> config.yaml
-  printf "  fileBackup: 'scriptbk.db'\n" >> config.yaml
-  printf "  scriptdb: 'nmap_scripts.sqlite3'\n" >> config.yaml
-  printf '  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
-  chmod 777 config.yaml
-  printf "Cleanning Lua Version \n"
-  rm -rf *.lua
+  if [[ $nmapversion ]] && [[ $paythonversion ]] && [[ $pipversion ]]; then
+    printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
+    pipRequeriments
+    printf "[+] Requirement already satisfied ... \n"
+    createConfigFile
+  else
+    echo "[-] Could not find a autoinstall for $os ($arch $kernel)"
+  fi
 fi

@@ -1,9 +1,10 @@
 ## console.py
 
+import helper
+from helper import *
 import os
 import cmd
 import readline
-import helper
 
 banner ='\033[0;36m'+'''
   ================================================
@@ -23,13 +24,16 @@ class Console(cmd.Cmd):
   def __init__(self):
     cmd.Cmd.__init__(self)
     self.prompt = "nsearch> "
-    self.intro  =banner  ## defaults to None
-    self.doc_header = 'Nsearch Commands'
-    self.misc_header = 'Nsearch Plugins'
-    self.undoc_header = 'Other Commands'
+    self.intro  = banner
+    self.doc_header = i18n.t("help.doc_header")
+    self.misc_header = i18n.t("help.misc_header")
+    self.undoc_header = i18n.t("help.undoc_header")
     self.ruler = '='
 
-  serachCommands = [ 'name', 'category', 'help']
+  ## autocomplete definition list
+  serachCommands = [ 'name', 'category', 'help', 'author']
+  showfavOptions = ['name', 'ranking', 'help']
+
   ## Command definitions ##
   def do_history(self, args):
     """Print a list of commands that have been entered"""
@@ -56,6 +60,8 @@ class Console(cmd.Cmd):
     self._history = ""      ## No historyory yet
     self._locals  = {}      ## Initialize execution namespace for user
     self._globals = {}
+    old_delims = readline.get_completer_delims()
+    readline.set_completer_delims(old_delims.replace('-', ''))
 
   def postloop(self):
     """Take care of any unfinished business.
@@ -69,7 +75,7 @@ class Console(cmd.Cmd):
         it has been interpreted. If you want to modifdy the input line
         before execution (for example, variable substitution) do it here.
     """
-    self._history += line.strip()+" "
+    self._history += line.strip()+"\n"
     return line
 
   def postcmd(self, stop, line):
@@ -89,7 +95,7 @@ class Console(cmd.Cmd):
 
   def do_search(self, args):
     """ Search """
-    search = helper.Helper(args)
+    search = helper.Helper(args,"search")
     search.process()
 
   def complete_search(self, text, line, begidx, endidx):
@@ -105,9 +111,12 @@ class Console(cmd.Cmd):
   def help_search(self):
     print '\n'.join([ "\n\tname     : Search by script's name",
       "\tcategory : Search by category",
+      "\tauthor : Search by author",
       '\tUsage:',
       '\t\tsearch name:http',
-      '\t\tsearch category:exploit'])
+      '\t\tsearch category:exploit',
+      '\t\tsearch author:fyodor',
+      '\t\tsearch name:http category:exploit'])
 
   def do_doc(self, args):
     """ Display Script Documentaion"""
@@ -115,27 +124,78 @@ class Console(cmd.Cmd):
     doc.displayDoc()
 
   def help_doc(self):
-    print("\tUsage:")
-    print("\t\tdoc <script's name, including .nse>")
+    print " "+i18n.t("help.help_doc")
+    print " "+i18n.t("help.help_doc_usage")
+    print "  "+i18n.t("help.help_doc_exmp")
 
-  def complete_doc(self, args, line, begidx, endidx):
+  def complete_doc(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
     resultitems = helper.Helper()
-    if not args:
-      completions = resultitems.resultitems()
-    else:
-      completions = [ f
-                        for f in resultitems.resultitems()
-                        if f.startswith(args)
-                   ]
-    return completions
-
+    return [i for i in resultitems.resultitems() if i.startswith(text)]
 
   def do_last(self,args):
-    """ Print the last Result of the Query """
+    """ last help"""
     search = helper.Helper()
-    search.last()
+    search.printlastResult()
 
+  def help_last(self):
+    print i18n.t("help.help_last")
+
+  # handler fav actions
+  def do_addfav(self,args):
+    search = helper.Helper(args,"addfav")
+    search.process()
+
+  def help_addfav(self):
+    print i18n.t("help.help_last")
+
+  def complete_addfav(self, text, line, begidx, endidx):
+    """ Autocomplete over the last result """
+    resultitems = helper.Helper()
+    return [i for i in resultitems.resultitems() if i.startswith(text)]
+
+  def do_delfav(self,args):
+    search = helper.Helper(args,"delfav")
+    search.process()
+
+  def help_delfav(self):
+    print i18n.t("help.help_last")
+
+  def complete_delfav(self, text, line, begidx, endidx):
+    """ Autocomplete over the last result """
+    resultitems = helper.Helper()
+    return [i for i in resultitems.resultitems() if i.startswith(text)]
+
+  def do_modfav(self,args):
+    search = helper.Helper(args,"modfav")
+    search.process()
+
+  def help_modfav(self):
+    print i18n.t("help.help_modfav")
+
+  def complete_modfav(self, text, line, begidx, endidx):
+    """ Autocomplete over the last result """
+    resultitems = helper.Helper()
+    return [i for i in resultitems.resultitems() if i.startswith(text)]
+
+  def do_showfav(self,args):
+    search = helper.Helper(args,"showfav")
+    search.process()
+
+  def help_showfav(self):
+    print i18n.t("help.help_last")
+
+  def complete_showfav(self, text, line, begidx, endidx):
+    if not text:
+      commands = self.showfavOptions[:]
+    else:
+      commands = [ f
+                      for f in self.showfavOptions
+                      if f.startswith(text)
+                  ]
+    return commands
+
+  #default action cmd class
   def default(self, line):
     """Called on an input line when the command prefix is not recognized.
        In that case we execute the line as Python code.
