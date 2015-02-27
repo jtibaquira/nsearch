@@ -125,9 +125,9 @@ class Console(cmd.Cmd):
     doc.displayDoc()
 
   def help_doc(self):
-    print " "+i18n.t("help.help_doc")
-    print " "+i18n.t("help.help_usage")
-    print "  "+i18n.t("help.help_doc_exmp")
+    print "\t"+i18n.t("help.help_doc")
+    print "\t"+i18n.t("help.help_usage")
+    print "\t\t"+i18n.t("help.help_doc_exmp")
 
   def complete_doc(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -148,8 +148,10 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_addfav(self):
-    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
-      "\tranking : "+i18n.t("help.help_search_category")+"",
+    print '\n'.join([
+      "\t"+i18n.t("help.help_addfav")+"",
+      "\tname     : "+i18n.t("help.help_fav_name")+"",
+      "\tranking : "+i18n.t("help.help_fav_ranking")+"",
       '\t'+i18n.t("help.help_usage")+':',
       '\t\taddfav name:http ranking:great'])
 
@@ -163,7 +165,9 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_delfav(self):
-    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
+    print '\n'.join([
+      "\t"+i18n.t("help.help_delfav")+"",
+      "\tname     : "+i18n.t("help.help_fav_name")+"",
       '\t'+i18n.t("help.help_usage")+':',
       '\t\tdelfav name:http'])
 
@@ -177,9 +181,11 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_modfav(self):
-    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
-      "\tnewname : "+i18n.t("help.help_search_category")+"",
-      "\tnewranking   : "+i18n.t("help.help_search_author")+"",
+    print '\n'.join([
+      "\t"+i18n.t("help.help_modfav")+"",
+      "\tname     : "+i18n.t("help.help_search_name")+"",
+      "\tnewname : "+i18n.t("help.help_fav_name")+"",
+      "\tnewranking   : "+i18n.t("help.help_fav_ranking")+"",
       '\t'+i18n.t("help.help_usage")+':',
       '\t\tmodfav name:http newname:http-new-script newranking:super-great'])
 
@@ -193,8 +199,10 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_showfav(self):
-    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
-      "\tranking : "+i18n.t("help.help_search_category")+"",
+    print '\n'.join([
+      "\t"+i18n.t("help.help_showfav")+"",
+      "\tname     : "+i18n.t("help.help_fav_name")+"",
+      "\tranking : "+i18n.t("help.help_fav_ranking")+"",
       '\t'+i18n.t("help.help_usage")+':',
       '\t\tshowfav name:http',
       '\t\tshowfav ranking:great',
