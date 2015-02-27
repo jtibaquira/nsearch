@@ -2,8 +2,10 @@ es:
   doc_header: Comandos de Nsearch
   misc_header: Plugins de Nsearch
   undoc_header: Otros Comandos
-  help_search:
+  help_usage: Uso
+  help_search_name: Buscar por el Nombre del Script
+  help_search_category: Buscar por Categoria
+  help_search_author: Buscar por Autor
   help_last: Muestra la lista de los resultados de la última consulta
   help_doc: Muestra la documentación de un script seleccionado
-  help_doc_usage: Uso
   help_doc_exmp: doc <nombre del script incluido .nse>
