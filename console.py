@@ -148,7 +148,10 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_addfav(self):
-    print i18n.t("help.help_last")
+    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
+      "\tranking : "+i18n.t("help.help_search_category")+"",
+      '\t'+i18n.t("help.help_usage")+':',
+      '\t\taddfav name:http ranking:great'])
 
   def complete_addfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -160,7 +163,9 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_delfav(self):
-    print i18n.t("help.help_last")
+    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
+      '\t'+i18n.t("help.help_usage")+':',
+      '\t\tdelfav name:http'])
 
   def complete_delfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -172,7 +177,11 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_modfav(self):
-    print i18n.t("help.help_modfav")
+    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
+      "\tnewname : "+i18n.t("help.help_search_category")+"",
+      "\tnewranking   : "+i18n.t("help.help_search_author")+"",
+      '\t'+i18n.t("help.help_usage")+':',
+      '\t\tmodfav name:http newname:http-new-script newranking:super-great'])
 
   def complete_modfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -184,7 +193,12 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_showfav(self):
-    print i18n.t("help.help_last")
+    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
+      "\tranking : "+i18n.t("help.help_search_category")+"",
+      '\t'+i18n.t("help.help_usage")+':',
+      '\t\tshowfav name:http',
+      '\t\tshowfav ranking:great',
+      '\t\tshowfav name:http ranking:great'])
 
   def complete_showfav(self, text, line, begidx, endidx):
     if not text:
