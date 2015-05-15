@@ -14,7 +14,9 @@
 ### Nmap Script Engine Search
 
 ### Description
-#### nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name or category , it is also possible to see the documentation of the scripts found.
+#### nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name, category author or combining the parameters, it is also possible to see the documentation of the scripts found, the principal programing is python 
+You can save your favorites scripts into a db table and set a ranking
+The tool has an auto installer script for debian (ubuntu, mint, kali linux), Red Hat(Fedora, CentOS) and MacOX.
 
 ### Version
 0.4
@@ -317,7 +319,7 @@ config:
 ```
 
 ### TODO
-* Fast-Tarck
+* Fast-Track
 * Create sequences for the execution of scripts
 * Create a file output
 * Version for Windows
