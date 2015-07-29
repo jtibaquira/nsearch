@@ -55,6 +55,7 @@ def initSetup():
     __dbconnect()['db'].commit()
     setData()
     createBackUp()
+    stream.close
   except Exception, e:
     print "Error %s:" % e.args[0]
     sys.exit(1)
@@ -64,7 +65,7 @@ def initSetup():
 
 #create file backups
 def createBackUp():
-  print i18n.t("setup.create_backup")
+  print "\n"+i18n.t("setup.create_backup")
   shutil.copy2(filePath, fileBackup)
   if os.path.isfile(fileBackup):
     print i18n.t("setup.create_backup_ok")
@@ -157,7 +158,9 @@ def insertScriptCategory(scriptid,categoryid):
     ''',(categoryid,scriptid,))
     db.commit()
     if cursor.rowcount == 1:
-      print "[+] "+str(categoryid)+" "+i18n.t("setup.update_fav_ok")
+      # print "[+] "+str(categoryid)+" "+i18n.t("setup.update_fav_ok")
+      sys.stdout.flush()
+      sys.stdout.write("#")
   except Exception, e:
      if db:
       db.rollback()
