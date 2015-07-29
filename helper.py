@@ -13,6 +13,8 @@ class Helper:
       if not self.args:
         dbmodule.lastresults = dbmodule.searchAll()
         self.printlastResult()
+      elif not self.__searchparams():
+        print "Type <<help search>> to see the help menu"
       else:
         dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
         self.printlastResult()
@@ -67,8 +69,8 @@ class Helper:
   def __searchparams(self):
     if self.args.find('name:') != -1 or self.args.find('category:') != -1 or self.args.find('author:') != -1:
       return self.__setParams()
-
-
+    else:
+      return False
   #private funtion to set params for addfav command
   def __addfavparams(self):
     if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
