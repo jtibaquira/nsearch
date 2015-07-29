@@ -15,7 +15,7 @@ banner ='\033[0;36m'+'''
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b  http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 '''+'\033[0m'
