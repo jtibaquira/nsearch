@@ -86,7 +86,7 @@ def setData():
         currentScript = open(scriptsPath+value,'r')
         for line in currentScript:
           if line.startswith("author"):
-            author = line.replace('author = "',"").replace('"',',"').replace('[[',"").replace(',"',"").replace("author =","Brandon Enright <bmenrigh@ucsd.edu>, Duane Wessels <wessels@dns-oarc.net>")
+            author = line.replace('author = "',"").replace('"',',"').replace('[[',"").replace(',"',"").replace("author =","Brandon Enright <bmenrigh@ucsd.edu>, Duane Wessels <wessels@dns-oarc.net>").strip()
         lastrowid = insertScript(value,author)
         currentScript.close()
       else:
