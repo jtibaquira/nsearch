@@ -57,7 +57,7 @@ function createConfigFile(){
 
 function pipRequeriments(){
   printf "[+] Checking pip libs ...\n"
-  pip install PyYAML python-i18n --upgrade
+  pip install PyYAML python-i18n
 }
 
 function installpipDebian(){
