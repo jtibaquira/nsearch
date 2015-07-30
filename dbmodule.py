@@ -5,8 +5,9 @@ import i18n
 import hashlib
 import shutil
 import os
+import tempfile
 
-stream = open("config.yaml", 'r')
+stream = open("config.yaml", 'r+')
 item = yaml.load(stream)
 
 dbname = item["config"]["scriptdb"]
@@ -109,6 +110,7 @@ def updateApp():
     if newmd5hash == currentChecksum:
       print i18n.t("setup.db_is_update")+" "+dbname
     else:
+      __updateHash(currentChecksum,newmd5hash)
       print i18n.t("setup.update_db")
       cursor.executescript('''
         DROP TABLE IF EXISTS scripts;
@@ -351,3 +353,34 @@ def __fetchScript(fetchall,total=False):
     for row in fetchall:
       fetchlist.update({row["id"]:{"name":row["name"], "author":row["author"]}})
   return fetchlist
+
+
+# private function to update md5hash
+
+def __updateHash(oldhash,newnhash):
+  replaced = False
+  written  = False
+
+  with open("config.yaml",'r+') as f:
+    lines = f.readlines()
+    if "  checksum: '"+oldhash+"'" not in lines:
+      pass
+    else:
+      tmpfile = tempfile.NamedTemporaryFile(delete=True)
+      for line in lines:           # process each line
+        if line == "  checksum: '"+oldhash+"'":        # find the line we want
+          print "Line "+line
+          tmpfile.write("  checksum:"+" '"+newnhash+"'")   # replace it
+          replaced = True
+        else:
+          tmpfile.write(line)   # write old line unchanged
+      if replaced:
+        print "old "+oldhash
+        print "new "+newnhash                   # overwrite the original file
+        f.seek(0)                    # beginning of file
+        f.truncate()                 # empties out original file
+        for tmplines in tmpfile:
+          f.write(tmplines)          # writes each line to original file
+        written = True
+      tmpfile.close()              # tmpfile auto deleted
+  f.close()
