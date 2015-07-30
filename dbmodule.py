@@ -5,7 +5,6 @@ import i18n
 import hashlib
 import shutil
 import os
-import tempfile
 
 stream = open("config.yaml", 'r+')
 item = yaml.load(stream)
