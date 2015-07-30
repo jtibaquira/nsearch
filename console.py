@@ -52,6 +52,11 @@ class Console(cmd.Cmd):
     ## The only reason to define this method is for the help text in the doc string
     cmd.Cmd.do_help(self, args)
 
+  ## Command definitions to support Cmd object functionality ##
+  def do_EOF(self, args):
+    """Exit on system end of file character"""
+    return self.do_exit(args)
+
   ## Override methods in Cmd object ##
   def preloop(self):
     """Initialization before prompting user for commands.
