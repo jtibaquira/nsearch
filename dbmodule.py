@@ -105,7 +105,8 @@ def updateApp():
       create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
       ranking TEXT NOT NULL)
     ''')
-    if hashlib.md5(open(filePath, 'rb').read()).hexdigest() == currentChecksum:
+    newmd5hash = hashlib.md5(open(filePath,'r').read()).hexdigest()
+    if newmd5hash == currentChecksum:
       print i18n.t("setup.db_is_update")+" "+dbname
     else:
       print i18n.t("setup.update_db")
