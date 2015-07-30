@@ -358,29 +358,14 @@ def __fetchScript(fetchall,total=False):
 # private function to update md5hash
 
 def __updateHash(oldhash,newnhash):
-  replaced = False
-  written  = False
-
-  with open("config.yaml",'r+') as f:
-    lines = f.readlines()
-    if "  checksum: '"+oldhash+"'" not in lines:
-      pass
-    else:
-      tmpfile = tempfile.NamedTemporaryFile(delete=True)
-      for line in lines:           # process each line
-        if line == "  checksum: '"+oldhash+"'":        # find the line we want
-          print "Line "+line
-          tmpfile.write("  checksum:"+" '"+newnhash+"'")   # replace it
-          replaced = True
-        else:
-          tmpfile.write(line)   # write old line unchanged
-      if replaced:
-        print "old "+oldhash
-        print "new "+newnhash                   # overwrite the original file
-        f.seek(0)                    # beginning of file
-        f.truncate()                 # empties out original file
-        for tmplines in tmpfile:
-          f.write(tmplines)          # writes each line to original file
-        written = True
-      tmpfile.close()              # tmpfile auto deleted
-  f.close()
+  stream.seek(0)
+  stream.truncate()
+  newconfig = {'config': {
+                'scriptsPath':scriptsPath,
+                'filePath':filePath,
+                'fileBackup':fileBackup,
+                'scriptdb':dbname,
+                'categories': ['auth','broadcast','brute','default','discovery','dos','exploit','external','fuzzer','intrusive','malware','safe','version','vuln'],
+                'checksum':newnhash}
+              }
+  yaml.dump(newconfig,stream)
