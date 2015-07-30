@@ -48,13 +48,17 @@ class Helper:
 
   # Display the documentation per script
   def displayDoc(self):
-    scriptFile = open(dbmodule.scriptsPath+self.args,'r')
-    lines = scriptFile.read().splitlines()
-    for line in lines:
-      if line.startswith("license"):
-        break
-      print('\033[1;96m'+line+'\033[0m')
-    scriptFile.close()
+    try:
+      scriptFile = open(dbmodule.scriptsPath+self.args,'r')
+    except Exception, e:
+      scriptFile = open(dbmodule.scriptsPath+self.args+".nse",'r')
+    finally:
+      lines = scriptFile.read().splitlines()
+      for line in lines:
+        if line.startswith("license"):
+          break
+        print('\033[1;96m'+line+'\033[0m')
+      scriptFile.close()
 
   # used for the autocomplete
   def resultitems(self):
