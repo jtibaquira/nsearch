@@ -50,15 +50,25 @@ class Helper:
   def displayDoc(self):
     try:
       scriptFile = open(dbmodule.scriptsPath+self.args,'r')
-    except Exception, e:
-      scriptFile = open(dbmodule.scriptsPath+self.args+".nse",'r')
-    finally:
       lines = scriptFile.read().splitlines()
       for line in lines:
         if line.startswith("license"):
           break
         print('\033[1;96m'+line+'\033[0m')
       scriptFile.close()
+    except Exception, e:
+      try:
+        scriptFile = open(dbmodule.scriptsPath+self.args+".nse",'r')
+        lines = scriptFile.read().splitlines()
+        for line in lines:
+          if line.startswith("license"):
+            break
+          print('\033[1;96m'+line+'\033[0m')
+        scriptFile.close()
+      except Exception, e:
+        print "The script not exists"
+    finally:
+      pass
 
   # used for the autocomplete
   def resultitems(self):
