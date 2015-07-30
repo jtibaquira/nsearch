@@ -35,4 +35,7 @@ if __name__ == '__main__':
 
   os.system("clear")
   console = console.Console()
-  console.cmdloop()
+  try:
+    console.cmdloop()
+  except KeyboardInterrupt:
+    console.postloop()
