@@ -4,6 +4,7 @@ import helper
 from helper import *
 import os
 import cmd
+import helpernmap
 import readline
 
 banner ='\033[0;36m'+'''
@@ -222,6 +223,10 @@ class Console(cmd.Cmd):
                       if f.startswith(text)
                   ]
     return commands
+
+  def do_run(self,args):
+    nmap = helpernmap.HelperNmap(args)
+    nmap.process()
 
   #default action cmd class
   def default(self, line):
