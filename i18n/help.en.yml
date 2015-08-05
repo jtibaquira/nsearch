@@ -16,5 +16,5 @@ en:
   help_delfav: Unset favorite script
   help_modfav: Update favorite script
   help_run: Run nmap with the templates
-  help_run_platilla: Name of the template
+  help_run_template: Name of the template
   help_run_net: Target

@@ -16,5 +16,5 @@ es:
   help_delfav: Elimina un script como Favorito
   help_modfav: Actualiza un script Favorito
   help_run: Ejecuta nmap usando las platillas
-  help_run_platilla: Nombre de la platilla
+  help_run_template: Nombre de la platilla
   help_run_net: Red o Host Objetivo
