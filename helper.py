@@ -18,13 +18,13 @@ class Helper:
       else:
         dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
         self.printlastResult()
-    elif self.commnad == "addfav":
+    elif self.commnad == "addfav" and self.args:
       dbmodule.createFavorite(**self.__addfavparams())
-    elif self.commnad == "modfav":
+    elif self.commnad == "modfav" and self.args:
       dbmodule.updateFavorite(**self.__modfavparams())
-    elif self.commnad == "delfav":
+    elif self.commnad == "delfav" and self.args:
       dbmodule.deleteFavorite(**self.__delfavparams())
-    elif self.commnad == "showfav":
+    elif self.commnad == "showfav" and self.args:
       if not self.args:
         dbmodule.lastresults = dbmodule.getFavorites()
         self.printlastResult(True)
@@ -32,11 +32,11 @@ class Helper:
         dbmodule.lastresults = dbmodule.getFavorites(**self.__showfavparams())
         self.printlastResult(True)
     else:
-      print "Error"
+      print "Type 'help command' to see the help menu"
 
   # Display the last results
   def printlastResult(self,fav=False):
-    if fav:
+    if fav == True:
       print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Ranking"]))
       for key,value in dbmodule.lastresults.items():
         print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["ranking"]]))

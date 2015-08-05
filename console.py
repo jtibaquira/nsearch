@@ -142,8 +142,14 @@ class Console(cmd.Cmd):
 
   def do_last(self,args):
     """ last help"""
-    search = helper.Helper()
-    search.printlastResult()
+    try:
+      search = helper.Helper()
+      search.printlastResult()
+    except Exception, e:
+      os.system("clear")
+      print self.intro
+      search = helper.Helper(args,"showfav")
+      search.process()
 
   def help_last(self):
     print i18n.t("help.help_last")

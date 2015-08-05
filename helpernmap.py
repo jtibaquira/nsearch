@@ -32,9 +32,8 @@ class HelperNmap:
                   print k+" => "+v
               else:
                 pass
-
     else:
-      print "Its not a valid argument"
+      pass
 
   def __validateParams(self):
     argsdic = {}
@@ -48,9 +47,8 @@ class HelperNmap:
         argsdic.update({
           self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]
         })
-        print "Type the right params"
       else:
-        print "Type the right params"
+        pass
     else:
       print "The command is not valid please type help run"
     return self.__setParams(**argsdic)
@@ -68,8 +66,6 @@ class HelperNmap:
         self.arguments = values
         return True
       else:
-        print "Error en Set Params"
         return False
     else:
-      print "Error con los kwargs"
       return False
