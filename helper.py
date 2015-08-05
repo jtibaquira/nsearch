@@ -24,7 +24,7 @@ class Helper:
       dbmodule.updateFavorite(**self.__modfavparams())
     elif self.commnad == "delfav" and self.args:
       dbmodule.deleteFavorite(**self.__delfavparams())
-    elif self.commnad == "showfav" and self.args:
+    elif self.commnad == "showfav":
       if not self.args:
         dbmodule.lastresults = dbmodule.getFavorites()
         self.printlastResult(True)
