@@ -225,8 +225,18 @@ class Console(cmd.Cmd):
     return commands
 
   def do_run(self,args):
+    ''' Command to run templetes '''
     nmap = helpernmap.HelperNmap(args)
     nmap.process()
+
+  def help_run(self):
+    print '\n'.join([
+      "\t"+i18n.t("help.help_run")+"",
+      "\tnet     : "+i18n.t("help.help_run_template")+"",
+      "\ttemplate : "+i18n.t("help.help_run_net")+"",
+      '\t'+i18n.t("help.help_usage")+':',
+      '\t\trun template:http net:target'])
+
 
   #default action cmd class
   def default(self, line):

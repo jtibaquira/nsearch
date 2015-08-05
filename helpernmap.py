@@ -21,7 +21,7 @@ class HelperNmap:
           lport.sort()
           for port in lport:
             if nm[host][proto][port]['state'] == 'open':
-              print ('port : %s\tstate : %s %s %s ' % (port, nm[host][proto][port]['product'], nm[host][proto][port]['version'], nm[host][proto][port]['cpe']))
+              print ('port : %s\tstate : %s %s %s ' % (port, nm[host][proto][port]['state'], nm[host][proto][port]['product'], nm[host][proto][port]['version']))
     else:
       print "Its not a valid argument"
 
