@@ -224,7 +224,7 @@ class Console(cmd.Cmd):
                   ]
     return commands
 
-  def do_run(self,args):
+  def do_run(self, args):
     ''' Command to run templetes '''
     nmap = helpernmap.HelperNmap(args)
     nmap.process()
