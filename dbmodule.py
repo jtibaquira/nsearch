@@ -331,6 +331,9 @@ def getFavorites(**kwargs):
     elif kwargs.has_key("name"):
       script = kwargs["name"]
       sql= "select id, name, ranking from favorites where name like '%"+script+"%'"
+    elif kwargs.has_key("ranking"):
+      ranking = kwargs["ranking"]
+      sql= "select id, name, ranking from favorites where ranking like '%"+ranking+"%'"
     else:
       sql="select id, name, ranking from favorites"
     cursor.execute(sql)
