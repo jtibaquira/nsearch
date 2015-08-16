@@ -238,8 +238,8 @@ class Console(cmd.Cmd):
   def help_run(self):
     print '\n'.join([
       "\t"+i18n.t("help.help_run")+"",
-      "\tnet     : "+i18n.t("help.help_run_template")+"",
-      "\ttemplate : "+i18n.t("help.help_run_net")+"",
+      "\tnet     : "+i18n.t("help.help_run_net")+"",
+      "\ttemplate : "+i18n.t("help.help_run_template")+"",
       '\t'+i18n.t("help.help_usage")+':',
       '\t\trun template:http net:target'])
 
