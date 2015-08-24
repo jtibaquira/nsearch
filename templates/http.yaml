@@ -1,2 +1,2 @@
 http:
-  arguments: '-sV -p http --script http-headers,http-title'
+  arguments: '-sV -p http --script "(http-*) and not (http-slowloris or http-brute)"'

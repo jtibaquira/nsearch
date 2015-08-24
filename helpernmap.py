@@ -1,7 +1,7 @@
 import nmap
 import yaml
 import os
-
+import i18n
 
 class HelperNmap:
 
