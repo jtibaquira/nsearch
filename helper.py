@@ -14,7 +14,7 @@ class Helper:
         dbmodule.lastresults = dbmodule.searchAll()
         self.printlastResult()
       elif not self.__searchparams():
-        print "Type <<help search>> to see the help menu"
+        print i18n.t("help.help_search_error")
       else:
         dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
         self.printlastResult()
@@ -32,7 +32,7 @@ class Helper:
         dbmodule.lastresults = dbmodule.getFavorites(**self.__showfavparams())
         self.printlastResult(True)
     else:
-      print "Type 'help command' to see the help menu"
+      print i18n.t("help.help_command_error")
 
   # Display the last results
   def printlastResult(self,fav=False):
@@ -66,7 +66,7 @@ class Helper:
           print('\033[1;96m'+line+'\033[0m')
         scriptFile.close()
       except Exception, e:
-        print "The script not exists"
+        print i18n.t("setup.del_fav_error")
     finally:
       pass
 
@@ -120,5 +120,5 @@ class Helper:
     elif len(self.args.split(":")) == 2:
       argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
     else:
-      print "Plase enter a correct commands"
+      print i18n.t("setup.bad_params")
     return argsdic

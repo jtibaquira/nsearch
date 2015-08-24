@@ -6,6 +6,7 @@ en:
   help_search_name: Search by script's name
   help_search_category: Search by category
   help_search_author: Search by author
+  help_search_error: Type <<help search>> to see the help menu
   help_last: Display the last query's result
   help_doc: Displays the documentation of a selected script
   help_doc_exmp: doc <script's name including .nse>
@@ -18,3 +19,5 @@ en:
   help_run: Run nmap with the templates
   help_run_template: Name of the template
   help_run_net: Target
+  help_run_error: The command is not valid please type help run
+  help_command_error: Type 'help command' to see the help menu

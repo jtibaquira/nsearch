@@ -6,6 +6,7 @@ es:
   help_search_name: Buscar por el Nombre del Script
   help_search_category: Buscar por Categoria
   help_search_author: Buscar por Autor
+  help_search_error: Escriba 'help search' para ver el menu de ayuda
   help_last: Muestra la lista de los resultados de la última consulta
   help_doc: Muestra la documentación de un script seleccionado
   help_doc_exmp: doc <nombre del script incluido .nse>
@@ -18,3 +19,5 @@ es:
   help_run: Ejecuta nmap usando las platillas
   help_run_template: Nombre de la platilla
   help_run_net: Red o Host Objetivo
+  help_run_error: El comando no es valido por favor use 'help run'
+  help_command_error: Escriba 'help command' para ver el menu de ayuda

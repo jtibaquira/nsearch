@@ -50,7 +50,7 @@ class HelperNmap:
       else:
         pass
     else:
-      print "The command is not valid please type help run"
+      print i18n.t("help.help_run_error")
     return self.__setParams(**argsdic)
 
   #private function to set params
