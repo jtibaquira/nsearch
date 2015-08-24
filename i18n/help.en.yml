@@ -21,3 +21,4 @@ en:
   help_run_net: Target
   help_run_error: The command is not valid please type help run
   help_command_error: Type 'help command' to see the help menu
+  running_scan: "Running Scan"

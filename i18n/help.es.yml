@@ -21,3 +21,4 @@ es:
   help_run_net: Red o Host Objetivo
   help_run_error: El comando no es valido por favor use 'help run'
   help_command_error: Escriba 'help command' para ver el menu de ayuda
+  running_scan: "Ejecutando Escaneo"

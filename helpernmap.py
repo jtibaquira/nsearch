@@ -12,7 +12,7 @@ class HelperNmap:
 
   def process(self):
     if self.__validateParams():
-      print "Running Scan"
+      print i18n.t("help.running_scan")
       nm = nmap.PortScanner()
       nm.scan(hosts=str(self.net), arguments=str(self.arguments))
       for host in nm.all_hosts():
