@@ -1,0 +1,2 @@
+ssh:
+  arguments: '-sV -p ssh --script ssh2-enum-algos'

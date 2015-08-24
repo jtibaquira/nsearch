@@ -1,0 +1,2 @@
+default:
+  arguments: '-sV -p1-5000'

@@ -61,6 +61,6 @@ target/
 .DS_Store
 *.tmp
 *.db
-*.yaml
+config.yaml
 *.yaml_*
 *.orig
