@@ -160,7 +160,6 @@ def insertScriptCategory(scriptid,categoryid):
     ''',(categoryid,scriptid,))
     db.commit()
     if cursor.rowcount == 1:
-      # print "[+] "+str(categoryid)+" "+i18n.t("setup.update_fav_ok")
       sys.stdout.flush()
       sys.stdout.write("#")
   except Exception, e:
@@ -204,7 +203,7 @@ def createFavorite(**kwargs):
         script = kwargs["name"]
         ranking = "normal"
       else:
-        print "Bad Params"
+        print i18n.t("setup.bad_params")
       cursor.execute('''
         Insert into favorites (name,ranking) values (?,?)
         ''',(script,ranking,))
@@ -246,7 +245,7 @@ def updateFavorite(**kwargs):
           UPDATE favorites SET ranking=? WHERE name=?
           ''', (newranking, script,))
       else:
-        print "Bad Params"
+        print i18n.t("setup.bad_params")
       db.commit()
       if cursor.rowcount == 1:
         print "[+] "+script+" "+i18n.t("setup.update_fav_ok")
@@ -310,7 +309,7 @@ def searchByCriterial(**kwargs):
       author = kwargs["author"]
       sql= "select id, name, author from scripts where author like '%"+author+"%'"
     else:
-      print "Bad Params"
+      print i18n.t("setup.bad_params")
     cursor.execute(sql)
     return __fetchScript(cursor.fetchall())
     db.close()

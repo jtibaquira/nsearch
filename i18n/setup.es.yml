@@ -17,3 +17,4 @@ es:
   update_fav_error: El Script no se ha Actualizando
   del_fav_ok: El script se elimino de los Favoritos
   del_fav_error: El script no existe en Favoritos
+  bad_params: Los parametros no estan permitidos
