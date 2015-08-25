@@ -1,10 +1,10 @@
+import hashlib
+import i18n
+import os
+import shutil
 import sqlite3 as lite
 import sys
 import yaml
-import i18n
-import hashlib
-import shutil
-import os
 
 stream = open("config.yaml", 'r+')
 item = yaml.load(stream)

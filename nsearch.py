@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
-import dbmodule
-from dbmodule import *
 import console
-from console import *
+import dbmodule
 import re
+
+from console import *
+from dbmodule import *
 
 banner ='\033[0;36m'+'''
   ================================================

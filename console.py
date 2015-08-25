@@ -1,11 +1,12 @@
 ## console.py
 
-import helper
-from helper import *
-import os
 import cmd
+import helper
 import helpernmap
+import os
 import readline
+
+from helper import *
 
 banner ='\033[0;36m'+'''
   ================================================
