@@ -7,18 +7,17 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 ```
 ### Nmap Script Engine Search
 
 ### Description
-#### nsearch , is a tool that helps you find scripts that are used nmap ( nse ) , can be searched using the name or category , it is also possible to see the documentation of the scripts found.
+#### Nsearch, is a tool that helps you to find scripts that are used by nmap ( nse ) , you can search the scripts using differents keyword as the name, category and author, even using all the keyword in a single query,it is also possible to see the documentation of the scripts founded.
 
 ### Version
-0.4
-
+0.4b
 ### Requeriments
 
 ```
@@ -80,7 +79,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -102,7 +101,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -123,7 +122,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -145,7 +144,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -172,7 +171,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -202,7 +201,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -231,7 +230,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -249,7 +248,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -269,7 +268,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -297,7 +296,7 @@ config:
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4  http://goo.gl/8mFHE5  @jjtibaquira
+   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 
@@ -317,6 +316,7 @@ config:
 ```
 
 ### TODO
+* GUI
 * Fast-Tarck
 * Create sequences for the execution of scripts
 * Create a file output
