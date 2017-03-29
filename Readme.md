@@ -11,7 +11,7 @@
    Email: jko@dragonjar.org  |   www.dragonjar.org
   ================================================
 ```
-### Nmap Script Engine Search
+### Nmap Scripting Engine Search
 
 ### Description
 #### Nsearch, is a tool that helps you to find scripts that are used by nmap ( nse ) , you can search the scripts using differents keyword as the name, category and author, even using all the keyword in a single query,it is also possible to see the documentation of the scripts founded.
@@ -327,4 +327,7 @@ config:
 
 * Twitter: [@jjtibaquira](https://twitter.com/jjtibaquira)
 * Email: jko@dragonjar.org
+* Blog: https://www.dragonjar.org
 * Foro: http://comunidad.dragonjar.org
+* YouTube: https://www.dragonjar.tv
+* Academic: https://www.dragonjar.education
