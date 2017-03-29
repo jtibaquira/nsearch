@@ -317,7 +317,7 @@ config:
 
 ### TODO
 * GUI
-* Fast-Tarck
+* Fast-Track
 * Create sequences for the execution of scripts
 * Create a file output
 * Version for Windows
