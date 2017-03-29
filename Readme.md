@@ -219,7 +219,7 @@ config:
   nsearch>
 ```
 
-#### Favotires Feature
+#### Favorites Feature
 
 ```
   ================================================
