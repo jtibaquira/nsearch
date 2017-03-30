@@ -86,6 +86,7 @@ class Helper:
       return self.__setParams()
     else:
       return False
+
   #private funtion to set params for addfav command
   def __addfavparams(self):
     if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
