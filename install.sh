@@ -57,7 +57,7 @@ function createConfigFile(){
 
 function pipRequeriments(){
   printf "[+] Checking pip libs ...\n"
-  pip install PyYAML python-i18n python-nmap
+  pip install -r requirements.txt
 }
 
 function installpipDebian(){
