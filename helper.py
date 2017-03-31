@@ -120,5 +120,6 @@ class Helper:
     for line in lines:
       if line.startswith("-- @output"):
         break
-      print('\033[1;96m'+line+'\033[0m')
+      if not bool('local' in line):
+        print('\033[1;96m'+line+'\033[0m')
     scriptFile.close()
