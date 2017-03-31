@@ -51,21 +51,11 @@ class Helper:
   def displayDoc(self):
     try:
       scriptFile = open(dbmodule.scriptsPath+self.args,'r')
-      lines = scriptFile.read().splitlines()
-      for line in lines:
-        if line.startswith("license"):
-          break
-        print('\033[1;96m'+line+'\033[0m')
-      scriptFile.close()
+      self.__readLines(scriptFile)
     except Exception, e:
       try:
         scriptFile = open(dbmodule.scriptsPath+self.args+".nse",'r')
-        lines = scriptFile.read().splitlines()
-        for line in lines:
-          if line.startswith("license"):
-            break
-          print('\033[1;96m'+line+'\033[0m')
-        scriptFile.close()
+        self.__readLines(scriptFile)
       except Exception, e:
         print i18n.t("setup.del_fav_error")
     finally:
@@ -124,3 +114,12 @@ class Helper:
     else:
       print i18n.t("setup.bad_params")
     return argsdic
+
+  #Private function to read lines
+  def __readLines(self,scriptFile):
+    lines = scriptFile.read().splitlines()
+    for line in lines:
+      if line.startswith("license"):
+        break
+      print('\033[1;96m'+line+'\033[0m')
+    scriptFile.close()
