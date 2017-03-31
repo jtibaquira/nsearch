@@ -2,7 +2,7 @@ title: NSEarch
 description: minimal script to help find script into de nse database
 google_analytics: 
 show_downloads: true
-theme: jekyll-theme-hacker
+theme: jekyll-theme-architect
 
 gems:
   - jekyll-mentions
