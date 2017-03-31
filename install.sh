@@ -55,7 +55,7 @@ function createConfigFile(){
   printf "[+] NSEarch is ready for be launched uses python nsearch.py\n"
 }
 
-function pipRequeriments(){
+function installPipRequeriments(){
   printf "[+] Checking pip libs ...\n"
   pip install -r requirements.txt
 }
@@ -63,14 +63,14 @@ function pipRequeriments(){
 function installpipDebian(){
   printf "[+] Installing pip ...\n"
   apt-get install python-pip -y
-  pipRequeriments
+  installPipRequeriments
 }
 
 function installpipRedHat(){
   printf "[+] Installing pip ...\n"
   rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm; yum -y update
   yum install python-pip -y
-  pipRequeriments
+  installPipRequeriments
 }
 
 if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
@@ -88,7 +88,7 @@ if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ] ; then
     printf "[+] Python is already installed :D\n"
     if [[ $pipversion ]]; then
       printf "[+] Pip is already installed :D\n"
-      pipRequeriments
+      installPipRequeriments
     else
       installpipDebian
     fi
@@ -112,7 +112,7 @@ elif [ -f /etc/redhat-release ]; then
     printf "[+] Python is already installed :D\n"
     if [[ $pipversion ]]; then
       printf "[+] Pip is already installed :D\n"
-      pipRequeriments
+      installPipRequeriments
     else
       installpipRedHat
     fi
@@ -134,18 +134,18 @@ elif [[ $ismacox ]]; then
   if [[ $paythonversion ]]; then
     printf "[+] Python is already installed :D\n"
     printf "[+] Pip is already installed :D\n"
-    pipRequeriments
+    installPipRequeriments
   else
     echo "Installing python ..."
     brew install python -v
     printf "[+] Pip is already installed :D\n"
-    pipRequeriments
+    installPipRequeriments
   fi
   createConfigFile
 else
   if [[ $nmapversion ]] && [[ $paythonversion ]] && [[ $pipversion ]]; then
     printf "[+] Checking Dependencies for $os ($arch $kernel)....\n"
-    pipRequeriments
+    installPipRequeriments
     printf "[+] Requirement already satisfied ... \n"
     createConfigFile
   else
