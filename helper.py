@@ -118,7 +118,7 @@ class Helper:
   def __readLines(self,scriptFile):
     lines = scriptFile.read().splitlines()
     for line in lines:
-      if line.startswith("-- @output"):
+      if line.startswith("--@output") or line.startswith("-- @output"):
         break
       if not bool('local' in line):
         print('\033[1;96m'+line+'\033[0m')
