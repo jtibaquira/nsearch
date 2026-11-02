@@ -8,7 +8,7 @@ echo "| . \` | \`--. \|  __|  / _\` || '__| / __|| '_ \ ";
 echo "| |\  |/\__/ /| |___ | (_| || |   | (__ | | | |";
 echo "\_| \_/\____/ \____/  \__,_||_|    \___||_| |_|";
 echo "=================================================";
-echo " Version 0.4b  http://goo.gl/8mFHE5  @jjtibaquira";
+echo " Version 0.4b  https://github.com/jtibaquira/nsearch  @jjtibaquira";
 echo " Email: jko@dragonjar.org  |   www.dragonjar.org";
 echo "=================================================";
 printf "\n"

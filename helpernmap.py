@@ -5,14 +5,15 @@ import yaml
 
 class HelperNmap:
 
-  def __init__(self,args):
+  def __init__(self, args):
     self.args = args
     self.net = ""
     self.template = ""
+    self.arguments = ""
 
   def process(self):
     if self.__validateParams():
-      print i18n.t("help.running_scan")
+      print(i18n.t("help.running_scan"))
       nm = nmap.PortScanner()
       nm.scan(hosts=str(self.net), arguments=str(self.arguments))
       for host in nm.all_hosts():
@@ -22,18 +23,12 @@ class HelperNmap:
         for proto in nm[host].all_protocols():
           print('----------')
           print('Protocol : %s' % proto)
-          lport = nm[host][proto].keys()
-          lport.sort()
-          for port in lport:
+          for port in sorted(nm[host][proto].keys()):
             if nm[host][proto][port]['state'] == 'open':
-              print ('port : %s\tstate : %s %s %s ' % (port, nm[host][proto][port]['state'], nm[host][proto][port]['product'], nm[host][proto][port]['version']))
+              print('port : %s\tstate : %s %s %s ' % (port, nm[host][proto][port]['state'], nm[host][proto][port].get("product", ""), nm[host][proto][port].get("version", "")))
               if 'script' in nm[host][proto][port].keys():
                 for k,v in nm[host][proto][port]['script'].items():
-                  print k+" => "+v
-              else:
-                pass
-    else:
-      pass
+                  print(k + " => " + v)
 
   def __validateParams(self):
     argsdic = {}
@@ -47,22 +42,20 @@ class HelperNmap:
         argsdic.update({
           self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]
         })
-      else:
-        pass
     else:
-      print i18n.t("help.help_run_error")
+      print(i18n.t("help.help_run_error"))
     return self.__setParams(**argsdic)
 
   #private function to set params
-  def __setParams(self,**kwargs):
-    if kwargs is not None:
-      if kwargs.has_key("net") and kwargs.has_key("template"):
+  def __setParams(self, **kwargs):
+    if kwargs:
+      if "net" in kwargs and "template" in kwargs:
         net = kwargs["net"]
         arguments = kwargs["template"]
         self.net = net
-        stream = open(os.getcwd()+"/templates/"+arguments+".yaml","r")
-        item = yaml.load(stream)
-        values =item[arguments]["arguments"]
+        with open(os.getcwd() + "/templates/" + arguments + ".yaml", 'r', encoding="utf-8") as stream:
+          item = yaml.safe_load(stream)
+        values = item[arguments]["arguments"]
         self.arguments = values
         return True
       else:

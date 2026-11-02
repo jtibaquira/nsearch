@@ -1,42 +1,30 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import console
+
 import dbmodule
+import i18n
+import os
 import re
-
-from console import *
-from dbmodule import *
-
-banner ='\033[0;36m'+'''
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b  http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
-'''+'\033[0m'
 
 # main action
 if __name__ == '__main__':
 
-  currentLocale = re.sub('[_].*','',os.environ['LANG'])
+  currentLocale = os.environ.get("LANG", "en")
+  currentLocale = re.split(r"[_.]", currentLocale)[0]
   i18n.load_path.append('i18n')
-  i18n.set('locale',currentLocale) if True else i18n.set('fallback','en')
+  i18n.set("fallback", "en")
+  i18n.set("locale", currentLocale)
 
-  print banner
+  print(console.banner)
   if not os.path.isfile(dbmodule.dbname):
     dbmodule.initSetup()
   else:
     dbmodule.updateApp()
 
   os.system("clear")
-  console = console.Console()
+  console_instance = console.Console()
   try:
-    console.cmdloop()
+    console_instance.cmdloop()
   except KeyboardInterrupt:
-    console.postloop()
+    console_instance.postloop()
