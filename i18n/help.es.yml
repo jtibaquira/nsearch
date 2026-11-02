@@ -22,3 +22,7 @@ es:
   help_run_error: El comando no es valido por favor use 'help run'
   help_command_error: Escriba 'help command' para ver el menu de ayuda
   running_scan: Ejecutando Escaneo
+  help_unknown_command: "Comando desconocido. Escriba 'help' para ver los comandos disponibles"
+  help_doc_not_found: Script no encontrado
+  help_run_bad_target: Objetivo no válido
+  help_run_bad_template: Plantilla no válida o inexistente

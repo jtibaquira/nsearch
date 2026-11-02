@@ -47,12 +47,16 @@ class Helper:
 
   # Display the documentation per script
   def displayDoc(self):
+    validated_path = self.__validateFilePath(self.args)
+    if not validated_path:
+      print(i18n.t("setup.del_fav_error"))
+      return
     try:
-      with open(dbmodule.scriptsPath + self.args, 'r', encoding="utf-8", errors="replace") as scriptFile:
+      with open(dbmodule.scriptsPath + validated_path, 'r', encoding="utf-8", errors="replace") as scriptFile:
         self.__readLines(scriptFile)
     except Exception as e:
       try:
-        with open(dbmodule.scriptsPath + self.args + ".nse", 'r', encoding="utf-8", errors="replace") as scriptFile:
+        with open(dbmodule.scriptsPath + validated_path + ".nse", 'r', encoding="utf-8", errors="replace") as scriptFile:
           self.__readLines(scriptFile)
       except Exception as e:
         print(i18n.t("setup.del_fav_error"))
@@ -108,6 +112,18 @@ class Helper:
     else:
       print(i18n.t("setup.bad_params"))
     return argsdic
+
+  # Private function to validate file path and prevent path traversal
+  def __validateFilePath(self, filepath):
+    import os
+    if not filepath:
+      return None
+    basename = os.path.basename(filepath)
+    if ".." in filepath or "/" in filepath or "\\" in filepath:
+      return None
+    if not basename:
+      return None
+    return basename
 
   #Private function to read lines
   def __readLines(self, scriptFile):

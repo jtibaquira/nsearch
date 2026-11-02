@@ -250,12 +250,6 @@ class Console(cmd.Cmd):
       '\t\trun template:http net:target']))
 
 
-  #default action cmd class
   def default(self, line):
-    """Called on an input line when the command prefix is not recognized.
-       In that case we execute the line as Python code.
-    """
-    try:
-        exec(line)
-    except Exception as e:
-        print(e.__class__, ":", e)
+    """Called when the command is not recognized."""
+    print(i18n.t("help.help_unknown_command"))

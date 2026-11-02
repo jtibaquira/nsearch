@@ -265,7 +265,6 @@ def deleteFavorite(**kwargs):
     conn.close()
 
 
-# Functions for all queries
 def searchByCriterial(**kwargs):
   conn = lite.connect(dbname)
   try:
@@ -275,28 +274,39 @@ def searchByCriterial(**kwargs):
       script = kwargs["name"]
       category = kwargs["category"]
       author = kwargs["author"]
-      sql = "select scripts.id, scripts.name ,scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author 
+                         FROM scripts JOIN categories ON categories.id=script_category.id_category 
+                         JOIN script_category ON scripts.id=script_category.id_script 
+                         WHERE categories.name LIKE ? AND scripts.name LIKE ? AND scripts.author LIKE ?''', 
+                    ('%'+category+'%', '%'+script+'%', '%'+author+'%'))
     elif "name" in kwargs and "category" in kwargs:
       script = kwargs["name"]
       category = kwargs["category"]
-      sql = "select scripts.id, scripts.name ,scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author 
+                         FROM scripts JOIN categories ON categories.id=script_category.id_category 
+                         JOIN script_category ON scripts.id=script_category.id_script 
+                         WHERE categories.name LIKE ? AND scripts.name LIKE ?''', 
+                    ('%'+category+'%', '%'+script+'%'))
     elif "name" in kwargs and "author" in kwargs:
       author = kwargs["author"]
       script = kwargs["name"]
-      sql = "select id, name, author from scripts where name like '%"+script+"%' and author like '%"+author+"%'"
+      cursor.execute('''SELECT id, name, author FROM scripts WHERE name LIKE ? AND author LIKE ?''', 
+                    ('%'+script+'%', '%'+author+'%'))
     elif "name" in kwargs:
       script = kwargs["name"]
-      sql = "select id, name, author from scripts where name like '%"+script+"%'"
+      cursor.execute('''SELECT id, name, author FROM scripts WHERE name LIKE ?''', ('%'+script+'%',))
     elif "category" in kwargs:
       category = kwargs["category"]
-      sql = "select scripts.id, scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category"
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author 
+                         FROM scripts JOIN script_category ON scripts.id=script_category.id_script 
+                         JOIN categories ON categories.id=script_category.id_category 
+                         WHERE categories.name LIKE ?''', ('%'+category+'%',))
     elif "author" in kwargs:
       author = kwargs["author"]
-      sql = "select id, name, author from scripts where author like '%"+author+"%'"
+      cursor.execute('''SELECT id, name, author FROM scripts WHERE author LIKE ?''', ('%'+author+'%',))
     else:
       print(i18n.t("setup.bad_params"))
       return {}
-    cursor.execute(sql)
     return __fetchScript(cursor.fetchall())
   finally:
     conn.close()
@@ -311,16 +321,15 @@ def getFavorites(**kwargs):
     if "name" in kwargs and "ranking" in kwargs:
       script = kwargs["name"]
       ranking = kwargs["ranking"]
-      sql = "select id, name, ranking from favorites where name like '%"+script+"%' and ranking like '%"+ranking+"%'"
+      cursor.execute("select id, name, ranking from favorites where name like ? and ranking like ?", ('%'+script+'%', '%'+ranking+'%'))
     elif "name" in kwargs:
       script = kwargs["name"]
-      sql = "select id, name, ranking from favorites where name like '%"+script+"%'"
+      cursor.execute("select id, name, ranking from favorites where name like ?", ('%'+script+'%',))
     elif "ranking" in kwargs:
       ranking = kwargs["ranking"]
-      sql = "select id, name, ranking from favorites where ranking like '%"+ranking+"%'"
+      cursor.execute("select id, name, ranking from favorites where ranking like ?", ('%'+ranking+'%',))
     else:
-      sql = "select id, name, ranking from favorites"
-    cursor.execute(sql)
+      cursor.execute("select id, name, ranking from favorites")
     return __fetchScript(cursor.fetchall(), True)
   finally:
     conn.close()

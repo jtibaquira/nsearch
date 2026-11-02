@@ -2,6 +2,7 @@ import i18n
 import nmap
 import os
 import yaml
+import re
 
 class HelperNmap:
 
@@ -48,17 +49,23 @@ class HelperNmap:
 
   #private function to set params
   def __setParams(self, **kwargs):
-    if kwargs:
-      if "net" in kwargs and "template" in kwargs:
-        net = kwargs["net"]
-        arguments = kwargs["template"]
-        self.net = net
-        with open(os.getcwd() + "/templates/" + arguments + ".yaml", 'r', encoding="utf-8") as stream:
-          item = yaml.safe_load(stream)
-        values = item[arguments]["arguments"]
-        self.arguments = values
-        return True
-      else:
-        return False
-    else:
+    if "net" not in kwargs or "template" not in kwargs:
+      print(i18n.t("help.help_run_error"))
       return False
+    net = kwargs["net"]
+    template = kwargs["template"]
+    if not re.fullmatch(r"[A-Za-z0-9:][A-Za-z0-9.:/,*-]*", net):
+      print(i18n.t("help.help_run_bad_target"))
+      return False
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", template):
+      print(i18n.t("help.help_run_bad_template"))
+      return False
+    path = os.path.join(os.getcwd(), "templates", template + ".yaml")
+    try:
+      with open(path, 'r', encoding="utf-8") as stream:
+        self.arguments = yaml.safe_load(stream)[template]["arguments"]
+    except (OSError, yaml.YAMLError, KeyError, TypeError):
+      print(i18n.t("help.help_run_bad_template"))
+      return False
+    self.net = net
+    return True
