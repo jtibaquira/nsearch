@@ -29,47 +29,51 @@ currentChecksum = item["config"].get("checksum", "")
 
 lastresults = {}
 
-def initSetup():
-  print(i18n.t("setup.create_db") + " " + dbname)
+def __fileHash():
+  with open(filePath, 'rb') as scriptFile:
+    return hashlib.sha256(scriptFile.read()).hexdigest()
+
+# Rebuild the script tables in one transaction; favorites are never dropped
+def __buildDb():
   conn = lite.connect(dbname)
   try:
-    with conn:
-      cursor = conn.cursor()
-      # Create Script Table
-      cursor.execute('''
-        create table if not exists scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
-        author TEXT NULL)
-      ''')
-      print(i18n.t("setup.create_script_table"))
-      # Create Categories Table
-      cursor.execute('''create table if not exists categories(
-        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-         name TEXT NOT NULL)
-      ''')
-      print(i18n.t("setup.create_category_table"))
-      # Create Script/Category Table
-      cursor.execute('''create table if not exists script_category(
-        id_category INTEGER NOT NULL,
-        id_script INTEGER NOT NULL)
-      ''')
-      print(i18n.t("setup.create_category_script_table"))
-      print(i18n.t("setup.upload_categories"))
-      for category in categories:
-        cursor.execute('''
-          INSERT INTO categories (name) VALUES (?)
-          ''', (category,))
-      # Create Favorite Table
-      print(i18n.t("setup.create_favorites_table"))
-      cursor.execute('''
-        create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
-        ranking TEXT NOT NULL)
-      ''')
-      setData(cursor)
-  except Exception as e:
-    print("Error %s:" % e.args[0])
-    sys.exit(1)
+    cursor = conn.cursor()
+    cursor.execute("BEGIN")
+    for table in ("script_category", "categories", "scripts"):
+      cursor.execute("DROP TABLE IF EXISTS " + table)
+    print(i18n.t("setup.create_script_table"))
+    cursor.execute('''create table scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      name TEXT NOT NULL, author TEXT NULL)''')
+    print(i18n.t("setup.create_category_table"))
+    cursor.execute('''create table categories(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      name TEXT NOT NULL)''')
+    print(i18n.t("setup.create_category_script_table"))
+    cursor.execute('''create table script_category(id_category INTEGER NOT NULL,
+      id_script INTEGER NOT NULL)''')
+    cursor.execute("create index idx_script_category_script on script_category(id_script)")
+    cursor.execute("create index idx_script_category_category on script_category(id_category)")
+    print(i18n.t("setup.create_favorites_table"))
+    cursor.execute('''create table if not exists favorites(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      name TEXT NOT NULL UNIQUE, ranking TEXT NOT NULL)''')
+    print(i18n.t("setup.upload_categories"))
+    cursor.executemany("INSERT INTO categories (name) VALUES (?)", [(category,) for category in categories])
+    setData(cursor)
+    conn.commit()
+  except Exception:
+    conn.rollback()
+    raise
   finally:
     conn.close()
+
+def initSetup():
+  print(i18n.t("setup.create_db") + " " + dbname)
+  try:
+    __buildDb()
+    createBackUp()
+    __updateHash(currentChecksum, __fileHash())
+  except (OSError, lite.Error) as e:
+    print("Error %s:" % e)
+    sys.exit(1)
 
 #create file backups
 def createBackUp():
@@ -113,58 +117,27 @@ def setData(cursor):
 #update app if the db exists
 def updateApp():
   print(i18n.t("setup.checking_db") + " " + dbname)
-  conn = lite.connect(dbname)
   try:
-    with conn:
-      cursor = conn.cursor()
-      # Create Favorite Table
-      cursor.execute('''
-        create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
-        ranking TEXT NOT NULL)
-      ''')
-      newhash = hashlib.sha256(open(filePath, 'rb').read()).hexdigest()
-      if newhash == currentChecksum:
-        print(i18n.t("setup.db_is_update") + " " + dbname)
-      else:
-        __updateHash(currentChecksum, newhash)
-        print(i18n.t("setup.update_db"))
-        cursor.executescript('''
-          DROP TABLE IF EXISTS scripts;
-          DELETE FROM SQLITE_SEQUENCE WHERE name='scripts';
-          DROP TABLE IF EXISTS categories;
-          DELETE FROM SQLITE_SEQUENCE WHERE name='categories';
-          DROP TABLE IF EXISTS script_category;
-          DELETE FROM SQLITE_SEQUENCE WHERE name='script_category';
-          ''')
-        setData(cursor)
-  except Exception as e:
-    print("Error %s:" % e.args[0])
-  finally:
-    conn.close()
-
+    newhash = __fileHash()
+    if newhash == currentChecksum:
+      print(i18n.t("setup.db_is_update") + " " + dbname)
+      return
+    print(i18n.t("setup.update_db"))
+    __buildDb()
+    __updateHash(currentChecksum, newhash)
+  except (OSError, lite.Error) as e:
+    print("Error %s:" % e)
 
 # Insert each Script and Author
 def insertScript(cursor, script, author):
-  try:
-    cursor.execute('''
-    Insert into scripts (name,author) values (?,?)
-    ''', (script, author,))
-    return cursor.lastrowid
-  except Exception as e:
-    print("Error %s:" % e.args[0])
-
+  cursor.execute("INSERT INTO scripts (name, author) VALUES (?, ?)", (script, author))
+  return cursor.lastrowid
 
 #Insert the scripts_id and categories_id
 def insertScriptCategory(cursor, scriptid, categoryid):
-  try:
-    cursor.execute('''
-    INSERT INTO script_category (id_category,id_script) VALUES (?,?)
-    ''', (categoryid, scriptid,))
-    if cursor.rowcount == 1:
-      sys.stdout.flush()
-      sys.stdout.write("#")
-  except Exception as e:
-    print("Error %s:" % e.args[0])
+  cursor.execute("INSERT INTO script_category (id_category, id_script) VALUES (?, ?)", (categoryid, scriptid))
+  sys.stdout.write("#")
+  sys.stdout.flush()
 
 #get all scripts
 def searchAll():
