@@ -50,7 +50,7 @@ function createConfigFile(){
     printf "  scriptdb: 'nmap_scripts.sqlite3'\n" >> config.yaml
     printf '  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}\n' >> config.yaml
     printf "  checksum: '$checksum'\n" >> config.yaml
-    chmod 777 config.yaml
+    chmod 600 config.yaml
   fi
   printf "[+] NSEarch is ready for be launched uses python nsearch.py\n"
 }

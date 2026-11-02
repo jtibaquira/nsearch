@@ -22,7 +22,8 @@ if __name__ == '__main__':
   else:
     dbmodule.updateApp()
 
-  os.system("clear")
+  import helper
+  helper.clearScreen()
   console_instance = console.Console()
   try:
     console_instance.cmdloop()

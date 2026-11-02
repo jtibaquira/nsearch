@@ -3,6 +3,7 @@ import nmap
 import os
 import yaml
 import re
+from helper import sanitize
 
 class HelperNmap:
 
@@ -19,17 +20,17 @@ class HelperNmap:
       nm.scan(hosts=str(self.net), arguments=str(self.arguments))
       for host in nm.all_hosts():
         print('----------------------------------------------------')
-        print('Host : %s (%s)' % (host, nm[host].hostname()))
-        print('State : %s' % nm[host].state())
+        print('Host : %s (%s)' % (sanitize(host), sanitize(nm[host].hostname())))
+        print('State : %s' % sanitize(nm[host].state()))
         for proto in nm[host].all_protocols():
           print('----------')
-          print('Protocol : %s' % proto)
+          print('Protocol : %s' % sanitize(proto))
           for port in sorted(nm[host][proto].keys()):
-            if nm[host][proto][port]['state'] == 'open':
-              print('port : %s\tstate : %s %s %s ' % (port, nm[host][proto][port]['state'], nm[host][proto][port].get("product", ""), nm[host][proto][port].get("version", "")))
-              if 'script' in nm[host][proto][port].keys():
-                for k,v in nm[host][proto][port]['script'].items():
-                  print(k + " => " + v)
+            info = nm[host][proto][port]
+            if info['state'] == 'open':
+              print('port : %s\tstate : %s %s %s ' % (port, sanitize(info['state']), sanitize(info.get('product', '')), sanitize(info.get('version', ''))))
+              for k, v in info.get('script', {}).items():
+                print(sanitize(k) + " => " + sanitize(v))
 
   def __validateParams(self):
     argsdic = {}

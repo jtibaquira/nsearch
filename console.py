@@ -12,6 +12,7 @@ try:
 except ImportError:
   pass
 
+
 banner = '\033[0;36m' + r'''
   ================================================
     _   _  _____  _____                     _
@@ -103,7 +104,7 @@ class Console(cmd.Cmd):
 
   def do_clear(self, args):
     """ Clear the shell """
-    os.system("clear")
+    helper.clearScreen()
     print(self.intro)
 
   def do_search(self, args):
@@ -152,7 +153,7 @@ class Console(cmd.Cmd):
       search = helper.Helper()
       search.printlastResult()
     except Exception as e:
-      os.system("clear")
+      helper.clearScreen()
       print(self.intro)
       search = helper.Helper(args,"showfav")
       search.process()

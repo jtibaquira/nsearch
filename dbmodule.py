@@ -5,6 +5,7 @@ import re
 import shutil
 import sqlite3 as lite
 import sys
+import tempfile
 import yaml
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -121,11 +122,11 @@ def updateApp():
         create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
         ranking TEXT NOT NULL)
       ''')
-      newmd5hash = hashlib.md5(open(filePath, 'rb').read()).hexdigest()
-      if newmd5hash == currentChecksum:
+      newhash = hashlib.sha256(open(filePath, 'rb').read()).hexdigest()
+      if newhash == currentChecksum:
         print(i18n.t("setup.db_is_update") + " " + dbname)
       else:
-        __updateHash(currentChecksum, newmd5hash)
+        __updateHash(currentChecksum, newhash)
         print(i18n.t("setup.update_db"))
         cursor.executescript('''
           DROP TABLE IF EXISTS scripts;
@@ -346,17 +347,23 @@ def __fetchScript(fetchall, total=False):
   return fetchlist
 
 
-# private function to update md5hash
 def __updateHash(oldhash, newnhash):
-  with open(config_path, 'r', encoding="utf-8") as f:
-    config = yaml.safe_load(f)
-  newconfig = {'config': {
-                'scriptsPath': scriptsPath,
-                'filePath': filePath,
-                'fileBackup': fileBackup,
-                'scriptdb': dbname,
-                'categories': categories,
-                'checksum': newnhash}
-              }
-  with open(config_path, 'w', encoding="utf-8") as f:
-    yaml.dump(newconfig, f)
+  """Atomic hash update using tempfile and os.replace"""
+  tmpfile = None
+  try:
+    fd, tmpfile = tempfile.mkstemp(dir=os.path.dirname(config_path), suffix='.tmp')
+    with os.fdopen(fd, 'w', encoding='utf-8') as f:
+      newconfig = {'config': {
+        'scriptsPath': scriptsPath,
+        'filePath': filePath,
+        'fileBackup': fileBackup,
+        'scriptdb': dbname,
+        'categories': categories,
+        'checksum': newnhash}}
+      yaml.safe_dump(newconfig, f)
+    os.replace(tmpfile, config_path)
+  except Exception:
+    if tmpfile is not None and os.path.exists(tmpfile):
+      os.unlink(tmpfile)
+    raise
+

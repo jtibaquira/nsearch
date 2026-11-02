@@ -1,5 +1,16 @@
 import dbmodule
 import i18n
+import os
+import re
+import sys
+
+def sanitize(text):
+  return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]", "?", str(text))
+
+def clearScreen():
+  if sys.stdout.isatty():
+    sys.stdout.write("\033[2J\033[H")
+    sys.stdout.flush()
 
 class Helper:
 
@@ -47,19 +58,16 @@ class Helper:
 
   # Display the documentation per script
   def displayDoc(self):
-    validated_path = self.__validateFilePath(self.args)
-    if not validated_path:
-      print(i18n.t("setup.del_fav_error"))
+    if not re.fullmatch(r"[\w+-][\w.+-]*", self.args):
+      print(i18n.t("help.help_doc_not_found"))
       return
-    try:
-      with open(dbmodule.scriptsPath + validated_path, 'r', encoding="utf-8", errors="replace") as scriptFile:
-        self.__readLines(scriptFile)
-    except Exception as e:
-      try:
-        with open(dbmodule.scriptsPath + validated_path + ".nse", 'r', encoding="utf-8", errors="replace") as scriptFile:
+    for name in (self.args, self.args + ".nse"):
+      path = os.path.join(dbmodule.scriptsPath, name)
+      if os.path.isfile(path):
+        with open(path, 'r', encoding="utf-8", errors="replace") as scriptFile:
           self.__readLines(scriptFile)
-      except Exception as e:
-        print(i18n.t("setup.del_fav_error"))
+        return
+    print(i18n.t("help.help_doc_not_found"))
 
   # used for the autocomplete
   def resultitems(self):
@@ -113,18 +121,6 @@ class Helper:
       print(i18n.t("setup.bad_params"))
     return argsdic
 
-  # Private function to validate file path and prevent path traversal
-  def __validateFilePath(self, filepath):
-    import os
-    if not filepath:
-      return None
-    basename = os.path.basename(filepath)
-    if ".." in filepath or "/" in filepath or "\\" in filepath:
-      return None
-    if not basename:
-      return None
-    return basename
-
   #Private function to read lines
   def __readLines(self, scriptFile):
     lines = scriptFile.read().splitlines()
@@ -132,4 +128,4 @@ class Helper:
       if line.startswith("--@output") or line.startswith("-- @output"):
         break
       if not line.lstrip().startswith("local "):
-        print('\033[1;96m' + line + '\033[0m')
+        print('\033[1;96m' + sanitize(line) + '\033[0m')
