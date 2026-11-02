@@ -26,3 +26,6 @@ en:
   help_doc_not_found: Script not found
   help_run_bad_target: Invalid target
   help_run_bad_template: Invalid or missing template
+  help_run_nmap_missing: nmap was not found. Install it and try again
+  help_run_scan_error: The scan failed
+  help_run_interrupted: Scan interrupted

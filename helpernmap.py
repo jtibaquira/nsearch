@@ -1,9 +1,11 @@
 import i18n
 import nmap
 import os
-import yaml
 import re
-from helper import sanitize
+import yaml
+
+from dbmodule import BASE_DIR
+from helper import parseArgs, sanitize
 
 class HelperNmap:
 
@@ -16,8 +18,19 @@ class HelperNmap:
   def process(self):
     if self.__validateParams():
       print(i18n.t("help.running_scan"))
-      nm = nmap.PortScanner()
-      nm.scan(hosts=str(self.net), arguments=str(self.arguments))
+      try:
+        nm = nmap.PortScanner()
+      except nmap.PortScannerError:
+        print(i18n.t("help.help_run_nmap_missing"))
+        return
+      try:
+        nm.scan(hosts=str(self.net), arguments=str(self.arguments))
+      except nmap.PortScannerError as e:
+        print(i18n.t("help.help_run_scan_error") + ": " + sanitize(e))
+        return
+      except KeyboardInterrupt:
+        print(i18n.t("help.help_run_interrupted"))
+        return
       for host in nm.all_hosts():
         print('----------------------------------------------------')
         print('Host : %s (%s)' % (sanitize(host), sanitize(nm[host].hostname())))
@@ -33,20 +46,11 @@ class HelperNmap:
                 print(sanitize(k) + " => " + sanitize(v))
 
   def __validateParams(self):
-    argsdic = {}
-    if self.args.find('net:') != -1 or self.args.find('template:') != -1:
-      if len(self.args.split(":")) == 3:
-        argsdic.update({
-          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-          self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]
-          })
-      elif len(self.args.split(":")) == 2:
-        argsdic.update({
-          self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]
-        })
-    else:
+    params = parseArgs(self.args, ("net", "template"))
+    if params is None:
       print(i18n.t("help.help_run_error"))
-    return self.__setParams(**argsdic)
+      return False
+    return self.__setParams(**params)
 
   #private function to set params
   def __setParams(self, **kwargs):
@@ -61,7 +65,7 @@ class HelperNmap:
     if not re.fullmatch(r"[A-Za-z0-9_-]+", template):
       print(i18n.t("help.help_run_bad_template"))
       return False
-    path = os.path.join(os.getcwd(), "templates", template + ".yaml")
+    path = os.path.join(BASE_DIR, "templates", template + ".yaml")
     try:
       with open(path, 'r', encoding="utf-8") as stream:
         self.arguments = yaml.safe_load(stream)[template]["arguments"]

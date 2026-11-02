@@ -26,3 +26,6 @@ es:
   help_doc_not_found: Script no encontrado
   help_run_bad_target: Objetivo no válido
   help_run_bad_template: Plantilla no válida o inexistente
+  help_run_nmap_missing: No se encontró nmap. Instálelo e inténtelo de nuevo
+  help_run_scan_error: El escaneo falló
+  help_run_interrupted: Escaneo interrumpido

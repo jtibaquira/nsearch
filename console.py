@@ -65,6 +65,14 @@ class Console(cmd.Cmd):
     return self.do_exit(args)
 
   ## Override methods in Cmd object ##
+  def onecmd(self, line):
+    """Report unexpected errors without closing the console."""
+    try:
+      return cmd.Cmd.onecmd(self, line)
+    except Exception as e:
+      print("Error: " + helper.sanitize(e))
+      return False
+
   def preloop(self):
     """Initialization before prompting user for commands.
        Despite the claims in the Cmd documentation, Cmd.preloop() is not a stub.
@@ -148,15 +156,8 @@ class Console(cmd.Cmd):
     return [i for i in resultitems.resultitems() if i.startswith(text)]
 
   def do_last(self,args):
-    """ last help"""
-    try:
-      search = helper.Helper()
-      search.printlastResult()
-    except Exception as e:
-      helper.clearScreen()
-      print(self.intro)
-      search = helper.Helper(args,"showfav")
-      search.process()
+    """ Display the last results """
+    helper.Helper().printlastResult()
 
   def help_last(self):
     print(i18n.t("help.help_last"))

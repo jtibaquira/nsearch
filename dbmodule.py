@@ -14,20 +14,21 @@ config_path = os.environ.get("NSEARCH_CONFIG", os.path.join(BASE_DIR, "config.ya
 try:
   with open(config_path, 'r', encoding="utf-8") as stream:
     item = yaml.safe_load(stream)
+  dbname = os.path.join(BASE_DIR, item["config"]["scriptdb"])
+  categories = list(item["config"]["categories"])
+  filePath = item["config"]["filePath"]
+  fileBackup = os.path.join(BASE_DIR, item["config"]["fileBackup"])
+  scriptsPath = item["config"]["scriptsPath"]
+  currentChecksum = item["config"].get("checksum", "")
 except FileNotFoundError:
-  print("Error: config.yaml not found. Run 'sh install.sh' or copy config.yaml.example to config.yaml")
+  print("Error: config.yaml not found. Run 'bash install.sh' or copy config.yaml.example to config.yaml")
+  sys.exit(1)
+except (yaml.YAMLError, KeyError, TypeError):
+  print("Error: config.yaml is not valid. Run 'bash install.sh' or compare it with config.yaml.example")
   sys.exit(1)
 
-dbname = item["config"]["scriptdb"]
-categories = item["config"]["categories"]
-if isinstance(categories, dict):
-  categories = list(categories.keys())
-filePath = item["config"]["filePath"]
-fileBackup = item["config"]["fileBackup"]
-scriptsPath = item["config"]["scriptsPath"]
-currentChecksum = item["config"].get("checksum", "")
-
 lastresults = {}
+lastresultsFav = False
 
 def __fileHash():
   with open(filePath, 'rb') as scriptFile:
@@ -154,90 +155,60 @@ def searchAll():
 
 #set script as a favorite
 def createFavorite(**kwargs):
-  script = None
-  ranking = None
+  if "name" not in kwargs:
+    print(i18n.t("setup.bad_params"))
+    return
+  script = kwargs["name"]
   conn = lite.connect(dbname)
   try:
     with conn:
-      cursor = conn.cursor()
-      if "name" in kwargs and "ranking" in kwargs:
-        script = kwargs["name"]
-        ranking = kwargs["ranking"]
-      elif "name" in kwargs:
-        script = kwargs["name"]
-        ranking = "normal"
-      else:
-        print(i18n.t("setup.bad_params"))
-      cursor.execute('''
-        Insert into favorites (name,ranking) values (?,?)
-        ''', (script, ranking,))
-      if cursor.rowcount == 1:
-        print("[+] " + script + " " + i18n.t("setup.add_fav_ok"))
+      conn.execute("INSERT INTO favorites (name, ranking) VALUES (?, ?)", (script, kwargs.get("ranking", "normal")))
+    print("[+] " + script + " " + i18n.t("setup.add_fav_ok"))
   except lite.IntegrityError:
     print("[-] " + script + " " + i18n.t("setup.add_fav_error"))
-  except Exception as e:
-    print("Error %s:" % e.args[0])
   finally:
     conn.close()
 
 #update favorite row
 def updateFavorite(**kwargs):
-  sql = None
+  fields, params = [], []
+  for column, key in (("name", "newname"), ("ranking", "newranking")):
+    if key in kwargs:
+      fields.append(column + "=?")
+      params.append(kwargs[key])
+  if "name" not in kwargs or not fields:
+    print(i18n.t("setup.bad_params"))
+    return
+  script = kwargs["name"]
   conn = lite.connect(dbname)
   try:
     with conn:
-      cursor = conn.cursor()
-      if "name" in kwargs and "newname" in kwargs and "newranking" in kwargs:
-        script = kwargs["name"]
-        newname = kwargs["newname"]
-        newranking = kwargs["newranking"]
-        cursor.execute('''
-          UPDATE favorites SET name=?, ranking=? WHERE name=?
-          ''', (newname, newranking, script,))
-      elif "name" in kwargs and "newname" in kwargs:
-        script = kwargs["name"]
-        newname = kwargs["newname"]
-        cursor.execute('''
-          UPDATE favorites SET name=? WHERE name=?
-          ''', (newname, script,))
-      elif "name" in kwargs and "newranking" in kwargs:
-        script = kwargs["name"]
-        newranking = kwargs["newranking"]
-        cursor.execute('''
-          UPDATE favorites SET ranking=? WHERE name=?
-          ''', (newranking, script,))
-      else:
-        print(i18n.t("setup.bad_params"))
-      if cursor.rowcount == 1:
-        print("[+] " + script + " " + i18n.t("setup.update_fav_ok"))
-      elif cursor.rowcount == 0:
-        print(i18n.t("setup.update_fav_error"))
-  except Exception as e:
-    print("Error %s:" % e.args[0])
+      updated = conn.execute("UPDATE favorites SET " + ", ".join(fields) + " WHERE name=?", params + [script]).rowcount
+    if updated:
+      print("[+] " + script + " " + i18n.t("setup.update_fav_ok"))
+    else:
+      print("[-] " + script + " " + i18n.t("setup.update_fav_error"))
+  except lite.IntegrityError:
     print("[-] " + script + " " + i18n.t("setup.update_fav_error"))
   finally:
     conn.close()
 
 #delete script values
 def deleteFavorite(**kwargs):
+  if "name" not in kwargs:
+    print(i18n.t("setup.bad_params"))
+    return
+  script = kwargs["name"]
   conn = lite.connect(dbname)
   try:
     with conn:
-      cursor = conn.cursor()
-      if "name" in kwargs:
-        script = kwargs["name"]
-        cursor.execute('''
-          DELETE FROM favorites WHERE name=?
-          ''', (script,))
-        if cursor.rowcount == 1:
-          print("[+] " + script + " " + i18n.t("setup.del_fav_ok"))
-        elif cursor.rowcount == 0:
-          print("[-] " + script + " " + i18n.t("setup.del_fav_error"))
-  except Exception as e:
-    print("[-] " + script + " " + i18n.t("setup.del_fav_error"))
+      deleted = conn.execute("DELETE FROM favorites WHERE name=?", (script,)).rowcount
+    if deleted:
+      print("[+] " + script + " " + i18n.t("setup.del_fav_ok"))
+    else:
+      print("[-] " + script + " " + i18n.t("setup.del_fav_error"))
   finally:
     conn.close()
-
 
 def searchByCriterial(**kwargs):
   conn = lite.connect(dbname)
@@ -320,23 +291,14 @@ def __fetchScript(fetchall, total=False):
   return fetchlist
 
 
-def __updateHash(oldhash, newnhash):
-  """Atomic hash update using tempfile and os.replace"""
-  tmpfile = None
+def __updateHash(oldhash, newhash):
+  item["config"]["categories"] = categories
+  item["config"]["checksum"] = newhash
+  fd, tmppath = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(config_path)))
   try:
-    fd, tmpfile = tempfile.mkstemp(dir=os.path.dirname(config_path), suffix='.tmp')
-    with os.fdopen(fd, 'w', encoding='utf-8') as f:
-      newconfig = {'config': {
-        'scriptsPath': scriptsPath,
-        'filePath': filePath,
-        'fileBackup': fileBackup,
-        'scriptdb': dbname,
-        'categories': categories,
-        'checksum': newnhash}}
-      yaml.safe_dump(newconfig, f)
-    os.replace(tmpfile, config_path)
+    with os.fdopen(fd, 'w', encoding="utf-8") as f:
+      yaml.safe_dump(item, f)
+    os.replace(tmppath, config_path)
   except Exception:
-    if tmpfile is not None and os.path.exists(tmpfile):
-      os.unlink(tmpfile)
+    os.remove(tmppath)
     raise
-

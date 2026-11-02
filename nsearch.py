@@ -3,6 +3,7 @@
 import console
 
 import dbmodule
+import helper
 import i18n
 import os
 import re
@@ -12,7 +13,7 @@ if __name__ == '__main__':
 
   currentLocale = os.environ.get("LANG", "en")
   currentLocale = re.split(r"[_.]", currentLocale)[0]
-  i18n.load_path.append('i18n')
+  i18n.load_path.append(os.path.join(dbmodule.BASE_DIR, 'i18n'))
   i18n.set("fallback", "en")
   i18n.set("locale", currentLocale)
 
@@ -22,7 +23,6 @@ if __name__ == '__main__':
   else:
     dbmodule.updateApp()
 
-  import helper
   helper.clearScreen()
   console_instance = console.Console()
   try:

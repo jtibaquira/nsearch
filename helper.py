@@ -2,6 +2,7 @@ import dbmodule
 import i18n
 import os
 import re
+import shlex
 import sys
 
 def sanitize(text):
@@ -12,6 +13,20 @@ def clearScreen():
     sys.stdout.write("\033[2J\033[H")
     sys.stdout.flush()
 
+def parseArgs(args, allowed):
+  """Parse 'key:value' tokens. Returns a dict, or None if the input is invalid."""
+  try:
+    tokens = shlex.split(args)
+  except ValueError:
+    return None
+  params = {}
+  for token in tokens:
+    key, sep, value = token.partition(":")
+    if not sep or not value or key not in allowed or key in params:
+      return None
+    params[key] = value
+  return params
+
 class Helper:
 
   def __init__(self, args="", command=""):
@@ -21,40 +36,48 @@ class Helper:
   #process the commands
   def process(self):
     if self.command == "search":
-      if not self.args:
-        dbmodule.lastresults = dbmodule.searchAll()
-        self.printlastResult()
-      elif not self.__searchparams():
+      params = parseArgs(self.args, ("name", "category", "author"))
+      if params is None:
         print(i18n.t("help.help_search_error"))
-      else:
-        dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
-        self.printlastResult()
-    elif self.command == "addfav" and self.args:
-      dbmodule.createFavorite(**self.__addfavparams())
-    elif self.command == "modfav" and self.args:
-      dbmodule.updateFavorite(**self.__modfavparams())
-    elif self.command == "delfav" and self.args:
-      dbmodule.deleteFavorite(**self.__delfavparams())
+        return
+      dbmodule.lastresults = (dbmodule.searchByCriterial(**params) if params else dbmodule.searchAll()) or {}
+      dbmodule.lastresultsFav = False
+      self.printlastResult()
+    elif self.command == "addfav":
+      params = parseArgs(self.args, ("name", "ranking"))
+      if params is None or "name" not in params:
+        print(i18n.t("setup.bad_params"))
+        return
+      dbmodule.createFavorite(**params)
+    elif self.command == "modfav":
+      params = parseArgs(self.args, ("name", "newname", "newranking"))
+      if params is None or "name" not in params or len(params) < 2:
+        print(i18n.t("setup.bad_params"))
+        return
+      dbmodule.updateFavorite(**params)
+    elif self.command == "delfav":
+      params = parseArgs(self.args, ("name",))
+      if not params:
+        print(i18n.t("setup.bad_params"))
+        return
+      dbmodule.deleteFavorite(**params)
     elif self.command == "showfav":
-      if not self.args:
-        dbmodule.lastresults = dbmodule.getFavorites()
-        self.printlastResult(True)
-      else:
-        dbmodule.lastresults = dbmodule.getFavorites(**self.__showfavparams())
-        self.printlastResult(True)
+      params = parseArgs(self.args, ("name", "ranking"))
+      if params is None:
+        print(i18n.t("setup.bad_params"))
+        return
+      dbmodule.lastresults = dbmodule.getFavorites(**params)
+      dbmodule.lastresultsFav = True
+      self.printlastResult()
     else:
       print(i18n.t("help.help_command_error"))
 
   # Display the last results
-  def printlastResult(self, fav=False):
-    if fav == True:
-      print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Ranking"]))
-      for key,value in dbmodule.lastresults.items():
-        print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["ranking"]]))
-    else:
-      print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Author"]))
-      for key,value in dbmodule.lastresults.items():
-        print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["author"] or ""]))
+  def printlastResult(self):
+    column = "ranking" if dbmodule.lastresultsFav else "author"
+    print("\033[1;32m*** {0:40} {1:40}\033[0m".format("Name", column.capitalize()))
+    for value in dbmodule.lastresults.values():
+      print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(sanitize(value["name"]), sanitize(value[column] or "")))
 
   # Display the documentation per script
   def displayDoc(self):
@@ -71,55 +94,7 @@ class Helper:
 
   # used for the autocomplete
   def resultitems(self):
-    items = []
-    for k,v in dbmodule.lastresults.items():
-      items.append(v["name"])
-    return items
-
-  # private function to set params for search command
-  def __searchparams(self):
-    if self.args.find('name:') != -1 or self.args.find('category:') != -1 or self.args.find('author:') != -1:
-      return self.__setParams()
-    else:
-      return False
-
-  #private function to set params for addfav command
-  def __addfavparams(self):
-    if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
-      return self.__setParams()
-
-  #private function to set params for delfav command
-  def __delfavparams(self):
-    if self.args.find('name:') != -1:
-      return self.__setParams()
-
-  #private function to set params for modfav command
-  def __modfavparams(self):
-    if self.args.find('name:') != -1 or self.args.find('newname:') != -1 or self.args.find('newranking:') != -1:
-      return self.__setParams()
-
-  #private function to set params for showfav command
-  def __showfavparams(self):
-    if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
-      return self.__setParams()
-
-  # Set Params validations
-  def __setParams(self):
-    argsdic = {}
-    if len(self.args.split(":")) >= 4:
-      argsdic.update({
-        self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-        self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0],
-        self.args.split(":")[2].split(" ")[1]:self.args.split(":")[3].split(" ")[0]})
-    elif len(self.args.split(":")) == 3:
-      argsdic.update({
-        self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-        self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
-    elif len(self.args.split(":")) == 2:
-      argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
-    else:
-      print(i18n.t("setup.bad_params"))
-    return argsdic
+    return [value["name"] for value in dbmodule.lastresults.values()]
 
   #Private function to read lines
   def __readLines(self, scriptFile):
