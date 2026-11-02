@@ -97,3 +97,13 @@ def test_failed_rebuild_keeps_previous_data(db, monkeypatch, capsys):
   assert "boom" in capsys.readouterr().out
   assert len(db.searchAll()) == 4
   assert checksum(db) == old
+
+def test_favorite_messages_are_sanitized(db, capsys):
+  name = "evil\x1b[2J"
+  db.createFavorite(name=name)
+  db.createFavorite(name=name)
+  db.updateFavorite(name=name, newranking="ok")
+  db.updateFavorite(name="none\x1b[2J", newranking="ok")
+  db.deleteFavorite(name=name)
+  db.deleteFavorite(name="none\x1b[2J")
+  assert "\x1b" not in capsys.readouterr().out

@@ -5,8 +5,7 @@ import re
 import shlex
 import sys
 
-def sanitize(text):
-  return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]", "?", str(text))
+from dbmodule import sanitize
 
 def clearScreen():
   if sys.stdout.isatty():

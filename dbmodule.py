@@ -30,6 +30,9 @@ except (yaml.YAMLError, KeyError, TypeError):
 lastresults = {}
 lastresultsFav = False
 
+def sanitize(text):
+  return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]", "?", str(text))
+
 def __fileHash():
   with open(filePath, 'rb') as scriptFile:
     return hashlib.sha256(scriptFile.read()).hexdigest()
@@ -163,9 +166,9 @@ def createFavorite(**kwargs):
   try:
     with conn:
       conn.execute("INSERT INTO favorites (name, ranking) VALUES (?, ?)", (script, kwargs.get("ranking", "normal")))
-    print("[+] " + script + " " + i18n.t("setup.add_fav_ok"))
+    print("[+] " + sanitize(script) + " " + i18n.t("setup.add_fav_ok"))
   except lite.IntegrityError:
-    print("[-] " + script + " " + i18n.t("setup.add_fav_error"))
+    print("[-] " + sanitize(script) + " " + i18n.t("setup.add_fav_error"))
   finally:
     conn.close()
 
@@ -185,11 +188,11 @@ def updateFavorite(**kwargs):
     with conn:
       updated = conn.execute("UPDATE favorites SET " + ", ".join(fields) + " WHERE name=?", params + [script]).rowcount
     if updated:
-      print("[+] " + script + " " + i18n.t("setup.update_fav_ok"))
+      print("[+] " + sanitize(script) + " " + i18n.t("setup.update_fav_ok"))
     else:
-      print("[-] " + script + " " + i18n.t("setup.update_fav_error"))
+      print("[-] " + sanitize(script) + " " + i18n.t("setup.update_fav_error"))
   except lite.IntegrityError:
-    print("[-] " + script + " " + i18n.t("setup.update_fav_error"))
+    print("[-] " + sanitize(script) + " " + i18n.t("setup.update_fav_error"))
   finally:
     conn.close()
 
@@ -204,9 +207,9 @@ def deleteFavorite(**kwargs):
     with conn:
       deleted = conn.execute("DELETE FROM favorites WHERE name=?", (script,)).rowcount
     if deleted:
-      print("[+] " + script + " " + i18n.t("setup.del_fav_ok"))
+      print("[+] " + sanitize(script) + " " + i18n.t("setup.del_fav_ok"))
     else:
-      print("[-] " + script + " " + i18n.t("setup.del_fav_error"))
+      print("[-] " + sanitize(script) + " " + i18n.t("setup.del_fav_error"))
   finally:
     conn.close()
 
@@ -219,32 +222,32 @@ def searchByCriterial(**kwargs):
       script = kwargs["name"]
       category = kwargs["category"]
       author = kwargs["author"]
-      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author 
-                         FROM scripts JOIN categories ON categories.id=script_category.id_category 
-                         JOIN script_category ON scripts.id=script_category.id_script 
-                         WHERE categories.name LIKE ? AND scripts.name LIKE ? AND scripts.author LIKE ?''', 
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author
+                         FROM scripts JOIN categories ON categories.id=script_category.id_category
+                         JOIN script_category ON scripts.id=script_category.id_script
+                         WHERE categories.name LIKE ? AND scripts.name LIKE ? AND scripts.author LIKE ?''',
                     ('%'+category+'%', '%'+script+'%', '%'+author+'%'))
     elif "name" in kwargs and "category" in kwargs:
       script = kwargs["name"]
       category = kwargs["category"]
-      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author 
-                         FROM scripts JOIN categories ON categories.id=script_category.id_category 
-                         JOIN script_category ON scripts.id=script_category.id_script 
-                         WHERE categories.name LIKE ? AND scripts.name LIKE ?''', 
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author
+                         FROM scripts JOIN categories ON categories.id=script_category.id_category
+                         JOIN script_category ON scripts.id=script_category.id_script
+                         WHERE categories.name LIKE ? AND scripts.name LIKE ?''',
                     ('%'+category+'%', '%'+script+'%'))
     elif "name" in kwargs and "author" in kwargs:
       author = kwargs["author"]
       script = kwargs["name"]
-      cursor.execute('''SELECT id, name, author FROM scripts WHERE name LIKE ? AND author LIKE ?''', 
+      cursor.execute('''SELECT id, name, author FROM scripts WHERE name LIKE ? AND author LIKE ?''',
                     ('%'+script+'%', '%'+author+'%'))
     elif "name" in kwargs:
       script = kwargs["name"]
       cursor.execute('''SELECT id, name, author FROM scripts WHERE name LIKE ?''', ('%'+script+'%',))
     elif "category" in kwargs:
       category = kwargs["category"]
-      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author 
-                         FROM scripts JOIN script_category ON scripts.id=script_category.id_script 
-                         JOIN categories ON categories.id=script_category.id_category 
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author
+                         FROM scripts JOIN script_category ON scripts.id=script_category.id_script
+                         JOIN categories ON categories.id=script_category.id_category
                          WHERE categories.name LIKE ?''', ('%'+category+'%',))
     elif "author" in kwargs:
       author = kwargs["author"]
