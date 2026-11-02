@@ -33,7 +33,7 @@ class Helper:
     self.args = args
     self.command = command
 
-  #process the commands
+  # Process the commands
   def process(self):
     if self.command == "search":
       params = parseArgs(self.args, ("name", "category", "author"))
@@ -92,11 +92,11 @@ class Helper:
         return
     print(i18n.t("help.help_doc_not_found"))
 
-  # used for the autocomplete
+  # Used for autocompletion
   def resultitems(self):
     return [value["name"] for value in dbmodule.lastresults.values()]
 
-  #Private function to read lines
+  # Private function to read the script lines
   def __readLines(self, scriptFile):
     lines = scriptFile.read().splitlines()
     for line in lines:

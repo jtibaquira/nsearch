@@ -76,7 +76,7 @@ def initSetup():
     print("Error %s:" % e)
     sys.exit(1)
 
-#create file backups
+# Create a backup of script.db
 def createBackUp():
   print("\n" + i18n.t("setup.create_backup"))
   shutil.copy2(filePath, fileBackup)
@@ -115,7 +115,7 @@ def setData(cursor):
         if category in categoryIds:
           insertScriptCategory(cursor, lastrowid, categoryIds[category])
 
-#update app if the db exists
+# Update the app if the database exists
 def updateApp():
   print(i18n.t("setup.checking_db") + " " + dbname)
   try:
@@ -129,18 +129,18 @@ def updateApp():
   except (OSError, lite.Error) as e:
     print("Error %s:" % e)
 
-# Insert each Script and Author
+# Insert a script and its author
 def insertScript(cursor, script, author):
   cursor.execute("INSERT INTO scripts (name, author) VALUES (?, ?)", (script, author))
   return cursor.lastrowid
 
-#Insert the scripts_id and categories_id
+# Insert the script and category ids
 def insertScriptCategory(cursor, scriptid, categoryid):
   cursor.execute("INSERT INTO script_category (id_category, id_script) VALUES (?, ?)", (categoryid, scriptid))
   sys.stdout.write("#")
   sys.stdout.flush()
 
-#get all scripts
+# Get all scripts
 def searchAll():
   conn = lite.connect(dbname)
   try:
@@ -153,7 +153,7 @@ def searchAll():
   finally:
     conn.close()
 
-#set script as a favorite
+# Set a script as a favorite
 def createFavorite(**kwargs):
   if "name" not in kwargs:
     print(i18n.t("setup.bad_params"))
@@ -169,7 +169,7 @@ def createFavorite(**kwargs):
   finally:
     conn.close()
 
-#update favorite row
+# Update a favorite
 def updateFavorite(**kwargs):
   fields, params = [], []
   for column, key in (("name", "newname"), ("ranking", "newranking")):
@@ -193,7 +193,7 @@ def updateFavorite(**kwargs):
   finally:
     conn.close()
 
-#delete script values
+# Delete a favorite
 def deleteFavorite(**kwargs):
   if "name" not in kwargs:
     print(i18n.t("setup.bad_params"))
@@ -257,7 +257,7 @@ def searchByCriterial(**kwargs):
     conn.close()
 
 
-# get favs scripts filter
+# Get favorites, with optional filters
 def getFavorites(**kwargs):
   conn = lite.connect(dbname)
   try:
@@ -279,7 +279,7 @@ def getFavorites(**kwargs):
   finally:
     conn.close()
 
-# private function to fetch all results into a dict
+# Private function to fetch all results into a dict
 def __fetchScript(fetchall, total=False):
   fetchlist = {}
   if total:

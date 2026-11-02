@@ -8,7 +8,7 @@ import i18n
 import os
 import re
 
-# main action
+# Main action
 if __name__ == '__main__':
 
   currentLocale = os.environ.get("LANG", "en")

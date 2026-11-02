@@ -1,20 +1,20 @@
 en:
-  create_db: Creating the Database
-  update_db: Updating the Database
-  db_is_update: The DB is updated
-  checking_db: Cheking DB ...
-  create_backup: Creating backup for file script.db
-  create_backup_ok: The Backup was created successfully
-  create_backup_error: The Backup was not created
-  create_script_table: Creating Table For Script ....
-  create_category_table: Creating Table for Categories ....
-  create_category_script_table: Creating Table for Scripts per Category ....
-  upload_categories: Upload Categories ....
-  create_favorites_table: Create Favorites Table ...
-  add_fav_ok: The Script was added successfully
-  add_fav_error: The script already exists
-  update_fav_ok: The Script was updated successfully
-  update_fav_error: The Script was not updated
-  del_fav_ok: The Script was removed successfully
-  del_fav_error: The Script dont exists
-  bad_params: The params are not allowed
+  create_db: Creating the database
+  update_db: Updating the database
+  db_is_update: The database is up to date
+  checking_db: Checking the database ...
+  create_backup: Creating a backup of script.db
+  create_backup_ok: The backup was created successfully
+  create_backup_error: The backup was not created
+  create_script_table: Creating table for scripts ...
+  create_category_table: Creating table for categories ...
+  create_category_script_table: Creating table for scripts per category ...
+  upload_categories: Uploading categories ...
+  create_favorites_table: Creating table for favorites ...
+  add_fav_ok: The script was added successfully
+  add_fav_error: The script is already in favorites
+  update_fav_ok: The script was updated successfully
+  update_fav_error: The script was not updated
+  del_fav_ok: The script was removed successfully
+  del_fav_error: The script is not in favorites
+  bad_params: Invalid parameters

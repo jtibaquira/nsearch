@@ -52,7 +52,7 @@ class HelperNmap:
       return False
     return self.__setParams(**params)
 
-  #private function to set params
+  # Private function to validate and set the params
   def __setParams(self, **kwargs):
     if "net" not in kwargs or "template" not in kwargs:
       print(i18n.t("help.help_run_error"))

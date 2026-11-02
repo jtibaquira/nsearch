@@ -38,7 +38,7 @@ class Console(cmd.Cmd):
     self.undoc_header = i18n.t("help.undoc_header")
     self.ruler = '='
 
-  ## autocomplete definition list
+  ## Autocomplete definition list
   searchCommands = [ 'name', 'category', 'help', 'author']
   showfavOptions = ['name', 'ranking', 'help']
 
@@ -48,7 +48,7 @@ class Console(cmd.Cmd):
     print(self._history)
 
   def do_exit(self, args):
-    """Exits from the console"""
+    """Exit the console"""
     return -1
 
   def do_help(self, args):
@@ -56,12 +56,12 @@ class Console(cmd.Cmd):
        'help' or '?' with no arguments prints a list of commands for which help is available
        'help <command>' or '? <command>' gives help on <command>
     """
-    ## The only reason to define this method is for the help text in the doc string
+    ## This method exists only to provide the help text in the docstring
     cmd.Cmd.do_help(self, args)
 
   ## Command definitions to support Cmd object functionality ##
   def do_EOF(self, args):
-    """Exit on system end of file character"""
+    """Exit on end of file"""
     return self.do_exit(args)
 
   ## Override methods in Cmd object ##
@@ -111,12 +111,12 @@ class Console(cmd.Cmd):
     pass
 
   def do_clear(self, args):
-    """ Clear the shell """
+    """ Clear the screen """
     helper.clearScreen()
     print(self.intro)
 
   def do_search(self, args):
-    """ Search """
+    """ Search for scripts """
     search = helper.Helper(args,"search")
     search.process()
 
@@ -131,7 +131,7 @@ class Console(cmd.Cmd):
     return commands
 
   def help_search(self):
-    print('\n'.join([ "\n\tname     : " + i18n.t("help.help_search_name") + "",
+    print('\n'.join([ "\n\tname     : " + i18n.t("help.help_fav_name") + "",
       "\tcategory : " + i18n.t("help.help_search_category") + "",
       "\tauthor   : " + i18n.t("help.help_search_author") + "",
       '\t' + i18n.t("help.help_usage") + ':',
@@ -141,7 +141,7 @@ class Console(cmd.Cmd):
       '\t\tsearch name:http category:exploit author:fyodor']))
 
   def do_doc(self, args):
-    """ Display Script Documentation"""
+    """ Display the documentation of a script """
     doc = helper.Helper(args)
     doc.displayDoc()
 
@@ -162,7 +162,7 @@ class Console(cmd.Cmd):
   def help_last(self):
     print(i18n.t("help.help_last"))
 
-  # handler fav actions
+  # Favorite actions
   def do_addfav(self,args):
     search = helper.Helper(args,"addfav")
     search.process()
@@ -203,7 +203,7 @@ class Console(cmd.Cmd):
   def help_modfav(self):
     print('\n'.join([
       "\t" + i18n.t("help.help_modfav") + "",
-      "\tname     : " + i18n.t("help.help_search_name") + "",
+      "\tname     : " + i18n.t("help.help_fav_name") + "",
       "\tnewname : " + i18n.t("help.help_fav_name") + "",
       "\tnewranking   : " + i18n.t("help.help_fav_ranking") + "",
       '\t' + i18n.t("help.help_usage") + ':',

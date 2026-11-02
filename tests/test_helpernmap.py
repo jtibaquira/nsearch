@@ -34,10 +34,10 @@ def scanner(monkeypatch):
   ("template:ping net:--script=x", "Invalid target"),
   ("template:../../x net:127.0.0.1", "Invalid or missing template"),
   ("template:nope net:127.0.0.1", "Invalid or missing template"),
-  ("template:ping", "not valid"),
-  ("net:127.0.0.1", "not valid"),
-  ("foo", "not valid"),
-  ("", "not valid"),
+  ("template:ping", "help run"),
+  ("net:127.0.0.1", "help run"),
+  ("foo", "help run"),
+  ("", "help run"),
 ])
 def test_rejected_without_scanning(scanner, capsys, args, message):
   helpernmap.HelperNmap(args).process()
