@@ -1,4 +1,4 @@
-import mock
+import unittest.mock as mock
 import nmap
 import pytest
 import yaml
@@ -38,6 +38,10 @@ class FakeScanner:
     self.results = {}
     self.error = None
     self.current = {}
+  @property
+  def hosts(self):
+    "List of up hosts from current scan"
+    return list(self.current.keys()) if self.current else []
   def scan(self, hosts, ports=None, arguments=""):
     self.calls.append((hosts, ports, arguments))
     if self.error is not None and len(self.calls) >= self.error[0]:
@@ -338,18 +342,19 @@ def test_list_and_status(db, workflows, capsys):
 def test_resume_validation(db, workflows):
   # Cannot resume non-existent run
   obj = helperworkflow.HelperWorkflow("id:999", "resume")
-  with pytest.raises(SystemExit): pass
+  with pytest.raises(SystemExit):
+    obj.process()
   details = db.getRun(999)
   assert details is None
   
 def test_resume_completed_workflow_must_fail(db, workflows):
   workflows("resume_test", CHAIN)
-  run_id = db.createRun("resume test work", "10.0.0.1/32", ["test", {"name": "discover"}])
+  run_id = db.createRun("resume test work", "10.0.0.1/32", [{"name": "test"}, {"name": "discover"}])
   db.setStageStatus(run_id, 0, "completed")
   db.setRunStatus(run_id, "completed")
   obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
-  with mock.patch("helperworkflow.askConfirmation"): pass
-  obj.process()
+  with mock.patch("helperworkflow.askConfirmation"):
+    obj.process()
   assert db.getRun(run_id)["run"]["status"] == "completed"
 
 def test_resume_interrupted_workflow(db, workflows, scanner):
@@ -358,7 +363,8 @@ def test_resume_interrupted_workflow(db, workflows, scanner):
     [{"name": "test", "arguments": ""}, {"name": "vuln_scan", "arguments": "", "from": "services"}])
   db.setStageStatus(run_id, 0, "completed")
   db.setStageStatus(run_id, 1, "interrupted")
-  db.addRunHost(run_id, scanner.hosts[0], {"id": scanner.hostnames[0]})
+  if scanner.hosts:
+    db.addRunHost(run_id, {"address": scanner.hosts[0], "state": "up"})
   obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
   with mock.patch("helperworkflow.askConfirmation", return_value=True): pass
   obj.process()

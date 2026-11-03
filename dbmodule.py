@@ -316,7 +316,7 @@ WORKFLOW_SCHEMA = """
     started_at TEXT NOT NULL, finished_at TEXT NULL);
   create table if not exists workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL,
-    arguments TEXT NOT NULL, status TEXT NOT NULL, UNIQUE(run_id, position));
+    arguments TEXT NULL, status TEXT NOT NULL, UNIQUE(run_id, position));
   create table if not exists workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL,
     hostname TEXT NULL, state TEXT NOT NULL, PRIMARY KEY(run_id, address));
   create table if not exists workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL,
@@ -342,7 +342,7 @@ def createRun(workflow, target, stages):
     runId = conn.execute("INSERT INTO workflow_runs (workflow, target, status, started_at) VALUES (?, ?, 'running', ?)",
       (workflow, target, __now())).lastrowid
     conn.executemany("INSERT INTO workflow_stages (run_id, position, name, arguments, status) VALUES (?, ?, ?, ?, 'pending')",
-      [(runId, position, stage["name"], stage["arguments"]) for position, stage in enumerate(stages)])
+      [(runId, position, stage["name"], stage.get("arguments")) for position, stage in enumerate(stages)])
     return runId
 
 def setStageStatus(runId, position, status):
@@ -375,6 +375,13 @@ def getLiveHosts(runId):
   with closing(__workflowConnect()) as conn:
     return [row["address"] for row in conn.execute(
       "SELECT address FROM workflow_hosts WHERE run_id=? AND state='up' ORDER BY address", (runId,))]
+
+def addRunHost(runId, host_info):
+  """Add a host to the workflow run. host_info is {'address': str, 'state': str}"""
+  with closing(__workflowConnect()) as conn:
+    conn.execute(
+      "INSERT INTO workflow_hosts (run_id, address, state) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+      (runId, host_info["address"], host_info.get("state", "unknown")))
 
 # Open ports per host, optionally only for the given service names
 def getOpenPorts(runId, services=None):
