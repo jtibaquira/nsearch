@@ -107,3 +107,62 @@ def test_favorite_messages_are_sanitized(db, capsys):
   db.deleteFavorite(name=name)
   db.deleteFavorite(name="none\x1b[2J")
   assert "\x1b" not in capsys.readouterr().out
+
+STAGES = [{"name": "discovery", "arguments": "-sn"}, {"name": "ports", "arguments": "-F"}]
+
+def workflowRun(db):
+  runId = db.createRun("web", "10.0.0.0/24", STAGES)
+  db.saveStageResults(runId, "discovery", [
+    {"address": "10.0.0.1", "hostname": "one", "state": "up"},
+    {"address": "10.0.0.2", "hostname": "", "state": "down"}], [], [])
+  db.saveStageResults(runId, "ports", [], [
+    {"address": "10.0.0.1", "protocol": "tcp", "port": 80, "state": "open", "service": "http", "product": "", "version": ""},
+    {"address": "10.0.0.1", "protocol": "tcp", "port": 22, "state": "open", "service": "ssh", "product": "", "version": ""},
+    {"address": "10.0.0.1", "protocol": "tcp", "port": 23, "state": "closed", "service": "telnet", "product": "", "version": ""}],
+    [{"address": "10.0.0.1", "port": 80, "script": "http-title", "output": "Home"}])
+  return runId
+
+def test_workflow_results_are_queryable(db):
+  runId = workflowRun(db)
+  assert db.getLiveHosts(runId) == ["10.0.0.1"]
+  assert db.getOpenPorts(runId) == {"10.0.0.1": [22, 80]}
+  assert db.getOpenPorts(runId, ["http", "https"]) == {"10.0.0.1": [80]}
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "running"
+  assert [stage["name"] for stage in details["stages"]] == ["discovery", "ports"]
+  assert details["findings"][0]["output"] == "Home"
+
+def test_later_stage_keeps_known_service_details(db):
+  runId = workflowRun(db)
+  db.saveStageResults(runId, "services", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 80,
+    "state": "open", "service": "", "product": "nginx", "version": "1.2"}], [])
+  service = [item for item in db.getRun(runId)["services"] if item["port"] == 80][0]
+  assert (service["service"], service["product"], service["version"]) == ("http", "nginx", "1.2")
+
+def test_status_updates_and_missing_run(db):
+  runId = workflowRun(db)
+  db.setStageStatus(runId, 0, "completed")
+  db.setRunStatus(runId, "completed")
+  details = db.getRun(runId)
+  assert details["stages"][0]["status"] == "completed"
+  assert details["run"]["status"] == "completed" and details["run"]["finished_at"]
+  assert db.getRuns()[0]["id"] == runId
+  assert db.getRun(9999) is None
+
+def test_rebuild_keeps_workflows(db, monkeypatch):
+  runId = workflowRun(db)
+  monkeypatch.setattr(db, "currentChecksum", "different")
+  db.updateApp()
+  assert db.getLiveHosts(runId) == ["10.0.0.1"]
+
+def test_workflow_tables_are_added_to_existing_databases(db):
+  conn = sqlite3.connect(db.dbname)
+  tables = [row[0] for row in conn.execute("select name from sqlite_master where name like 'workflow%'")]
+  conn.close()
+  assert tables == []
+  assert db.getRuns() == []
+
+def test_script_categories(db):
+  categories = db.scriptCategories()
+  assert categories["http-title"] == {"default", "safe"}
+  assert "http-title.nse" not in categories

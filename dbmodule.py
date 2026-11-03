@@ -8,6 +8,9 @@ import sys
 import tempfile
 import yaml
 
+from contextlib import closing
+from datetime import datetime, timezone
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 config_path = os.environ.get("NSEARCH_CONFIG", os.path.join(BASE_DIR, "config.yaml"))
 
@@ -305,3 +308,112 @@ def __updateHash(oldhash, newhash):
   except Exception:
     os.remove(tmppath)
     raise
+
+# Workflow tables are kept when the script tables are rebuilt
+WORKFLOW_SCHEMA = """
+  create table if not exists workflow_runs(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    workflow TEXT NOT NULL, target TEXT NOT NULL, status TEXT NOT NULL,
+    started_at TEXT NOT NULL, finished_at TEXT NULL);
+  create table if not exists workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL,
+    arguments TEXT NOT NULL, status TEXT NOT NULL, UNIQUE(run_id, position));
+  create table if not exists workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL,
+    hostname TEXT NULL, state TEXT NOT NULL, PRIMARY KEY(run_id, address));
+  create table if not exists workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL,
+    protocol TEXT NOT NULL, port INTEGER NOT NULL, state TEXT NOT NULL, service TEXT NULL,
+    product TEXT NULL, version TEXT NULL, PRIMARY KEY(run_id, address, protocol, port));
+  create table if not exists workflow_findings(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    run_id INTEGER NOT NULL, stage TEXT NOT NULL, address TEXT NOT NULL, port INTEGER NULL,
+    script TEXT NOT NULL, output TEXT NOT NULL);
+"""
+
+def __workflowConnect():
+  conn = lite.connect(dbname)
+  conn.row_factory = lite.Row
+  conn.executescript(WORKFLOW_SCHEMA)
+  return conn
+
+def __now():
+  return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+# Create a workflow run and its pending stages
+def createRun(workflow, target, stages):
+  with closing(__workflowConnect()) as conn, conn:
+    runId = conn.execute("INSERT INTO workflow_runs (workflow, target, status, started_at) VALUES (?, ?, 'running', ?)",
+      (workflow, target, __now())).lastrowid
+    conn.executemany("INSERT INTO workflow_stages (run_id, position, name, arguments, status) VALUES (?, ?, ?, ?, 'pending')",
+      [(runId, position, stage["name"], stage["arguments"]) for position, stage in enumerate(stages)])
+    return runId
+
+def setStageStatus(runId, position, status):
+  with closing(__workflowConnect()) as conn, conn:
+    conn.execute("UPDATE workflow_stages SET status=? WHERE run_id=? AND position=?", (status, runId, position))
+
+def setRunStatus(runId, status):
+  with closing(__workflowConnect()) as conn, conn:
+    conn.execute("UPDATE workflow_runs SET status=?, finished_at=? WHERE id=?", (status, __now(), runId))
+
+# Save everything found by one stage in a single transaction
+def saveStageResults(runId, stage, hosts, services, findings):
+  with closing(__workflowConnect()) as conn, conn:
+    conn.executemany("""INSERT INTO workflow_hosts (run_id, address, hostname, state) VALUES (?, ?, ?, ?)
+      ON CONFLICT(run_id, address) DO UPDATE SET state=excluded.state,
+      hostname=COALESCE(NULLIF(excluded.hostname, ''), hostname)""",
+      [(runId, host["address"], host["hostname"], host["state"]) for host in hosts])
+    conn.executemany("""INSERT INTO workflow_services (run_id, address, protocol, port, state, service, product, version)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(run_id, address, protocol, port) DO UPDATE SET state=excluded.state,
+      service=COALESCE(NULLIF(excluded.service, ''), service),
+      product=COALESCE(NULLIF(excluded.product, ''), product),
+      version=COALESCE(NULLIF(excluded.version, ''), version)""",
+      [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"])
+        for item in services])
+    conn.executemany("INSERT INTO workflow_findings (run_id, stage, address, port, script, output) VALUES (?, ?, ?, ?, ?, ?)",
+      [(runId, stage, item["address"], item["port"], item["script"], item["output"]) for item in findings])
+
+def getLiveHosts(runId):
+  with closing(__workflowConnect()) as conn:
+    return [row["address"] for row in conn.execute(
+      "SELECT address FROM workflow_hosts WHERE run_id=? AND state='up' ORDER BY address", (runId,))]
+
+# Open ports per host, optionally only for the given service names
+def getOpenPorts(runId, services=None):
+  sql = "SELECT address, port FROM workflow_services WHERE run_id=? AND state='open'"
+  params = [runId]
+  if services:
+    sql += " AND service IN (" + ", ".join("?" for _ in services) + ")"
+    params += services
+  ports = {}
+  with closing(__workflowConnect()) as conn:
+    for row in conn.execute(sql + " ORDER BY address, port", params):
+      ports.setdefault(row["address"], []).append(row["port"])
+  return ports
+
+def getRuns():
+  with closing(__workflowConnect()) as conn:
+    return [dict(row) for row in conn.execute("SELECT * FROM workflow_runs ORDER BY id DESC")]
+
+def getRun(runId):
+  with closing(__workflowConnect()) as conn:
+    run = conn.execute("SELECT * FROM workflow_runs WHERE id=?", (runId,)).fetchone()
+    if run is None:
+      return None
+    details = {"run": dict(run)}
+    for key, sql in (
+      ("stages", "SELECT * FROM workflow_stages WHERE run_id=? ORDER BY position"),
+      ("hosts", "SELECT * FROM workflow_hosts WHERE run_id=? ORDER BY address"),
+      ("services", "SELECT * FROM workflow_services WHERE run_id=? AND state='open' ORDER BY address, port"),
+      ("findings", "SELECT * FROM workflow_findings WHERE run_id=? ORDER BY id")):
+      details[key] = [dict(row) for row in conn.execute(sql, (runId,))]
+    return details
+
+# Script names mapped to their categories
+def scriptCategories():
+  sql = """SELECT scripts.name AS script, categories.name AS category FROM scripts
+    JOIN script_category ON scripts.id = script_category.id_script
+    JOIN categories ON categories.id = script_category.id_category"""
+  scripts = {}
+  with closing(lite.connect(dbname)) as conn:
+    for script, category in conn.execute(sql):
+      scripts.setdefault(re.sub(r"\.nse$", "", script), set()).add(category)
+  return scripts
