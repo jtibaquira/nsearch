@@ -37,8 +37,18 @@ def __scriptMatches(token, scripts):
 def __validateScripts(expression, confirm, scripts):
   normalized = expression.replace(",", " or ")
   needsConfirm = False
+  depth = 0
   for token in re.findall(r"[()]|[^\s()]+", normalized):
-    if token in ("(", ")", "and", "or"):
+    if token == "(":
+      depth += 1
+      continue
+    if token == ")":
+      depth -= 1
+      # An unbalanced expression could escape the exclusions added below
+      if depth < 0:
+        raise WorkflowError("unbalanced parentheses: " + expression)
+      continue
+    if token in ("and", "or"):
       continue
     if token == "not":
       needsConfirm = True
@@ -53,6 +63,8 @@ def __validateScripts(expression, confirm, scripts):
       raise WorkflowError("script not allowed: " + token)
     if any("safe" not in found for found in matches.values()):
       needsConfirm = True
+  if depth != 0:
+    raise WorkflowError("unbalanced parentheses: " + expression)
   if needsConfirm and not confirm:
     raise WorkflowError("these scripts require confirm: true: " + expression)
   return "(" + normalized + ") and not (" + " or ".join(sorted(BLOCKED_SCRIPTS)) + ")"
@@ -140,7 +152,7 @@ def validAddress(address):
 def askConfirmation(message):
   try:
     return input(message + " [y/N] ").strip().lower() in ("y", "yes", "s", "si", "sí")
-  except EOFError:
+  except (EOFError, KeyboardInterrupt):
     return False
 
 # Convert the python-nmap result, ignoring anything outside the scope of the run
@@ -245,7 +257,7 @@ class HelperWorkflow:
           arguments = ("-6 " if ":" in target else "") + stage["arguments"]
           nm.scan(hosts=target, ports=ports, arguments=arguments)
           dbmodule.saveStageResults(runId, stage["name"], *collectResults(nm, scope))
-      except nmap.PortScannerError as e:
+      except (nmap.PortScannerError, OSError, dbmodule.lite.Error) as e:
         dbmodule.setStageStatus(runId, position, "failed")
         dbmodule.setRunStatus(runId, "failed")
         print(label + ": " + i18n.t("help.help_run_scan_error") + ": " + sanitize(e))

@@ -113,6 +113,12 @@ def test_forbidden_scripts_are_rejected_even_with_confirm(expression):
   with pytest.raises(WorkflowError):
     args("--script '" + expression + "'", "services", True)
 
+@pytest.mark.parametrize("expression", ["bc) or (http-title", "vuln) or (http-title", "(http-title", "http-title)", "http-title) or (", ")("])
+def test_unbalanced_expressions_cannot_escape_the_exclusions(expression):
+  for confirm in (False, True):
+    with pytest.raises(WorkflowError):
+      args("--script '" + expression + "'", "services", confirm)
+
 def test_script_args_rules():
   with pytest.raises(WorkflowError):
     args("--script http-title --script-args a=1", "services")
@@ -270,6 +276,26 @@ def test_failures_keep_earlier_results(db, scanner, workflows, answers, monkeypa
   assert [host["address"] for host in details["hosts"]] == ["10.0.0.1"]
   assert details["stages"][0]["status"] == "completed"
   assert details["stages"][1]["status"] == status
+
+def test_storage_errors_mark_the_run_as_failed(db, scanner, workflows, answers, monkeypatch, capsys):
+  workflows("w", CHAIN)
+  monkeypatch.setattr(db, "scriptCategories", lambda: SCRIPTS)
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}}
+  answers.append("y")
+  def fail(*args):
+    raise dbmodule.lite.OperationalError("disk full")
+  monkeypatch.setattr(db, "saveStageResults", fail)
+  helperworkflow.HelperWorkflow("name:w net:10.0.0.1", "run").process()
+  assert "disk full" in capsys.readouterr().out
+  details = db.getRun(1)
+  assert details["run"]["status"] == "failed"
+  assert details["stages"][0]["status"] == "failed"
+
+def test_interrupted_confirmation_counts_as_no(monkeypatch):
+  def interrupt(message):
+    raise KeyboardInterrupt
+  monkeypatch.setattr("builtins.input", interrupt)
+  assert not helperworkflow.askConfirmation("x")
 
 def test_missing_nmap(db, workflows, answers, monkeypatch, capsys):
   workflows("w", CHAIN)
