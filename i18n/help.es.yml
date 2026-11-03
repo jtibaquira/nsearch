@@ -4,21 +4,28 @@ es:
   undoc_header: Otros Comandos
   help_usage: Uso
   help_search_name: Buscar por el Nombre del Script
-  help_search_category: Buscar por Categoria
+  help_search_category: Buscar por Categoría
   help_search_author: Buscar por Autor
-  help_search_error: Escriba 'help search' para ver el menu de ayuda
+  help_search_error: Escriba 'help search' para ver el menú de ayuda
   help_last: Muestra la lista de los resultados de la última consulta
   help_doc: Muestra la documentación de un script seleccionado
   help_doc_exmp: doc <nombre del script incluido .nse>
   help_fav_name: Nombre del Script
   help_fav_ranking: Ranking del Script
   help_showfav: Muestra los Scripts Favoritos
-  help_addfav: Estable un script como Favorito
+  help_addfav: Establece un script como Favorito
   help_delfav: Elimina un script como Favorito
   help_modfav: Actualiza un script Favorito
-  help_run: Ejecuta nmap usando las platillas
-  help_run_template: Nombre de la platilla
+  help_run: Ejecuta nmap usando las plantillas
+  help_run_template: Nombre de la plantilla
   help_run_net: Red o Host Objetivo
-  help_run_error: El comando no es valido por favor use 'help run'
-  help_command_error: Escriba 'help command' para ver el menu de ayuda
+  help_run_error: El comando no es válido por favor use 'help run'
+  help_command_error: Escriba 'help command' para ver el menú de ayuda
   running_scan: Ejecutando Escaneo
+  help_unknown_command: "Comando desconocido. Escriba 'help' para ver los comandos disponibles"
+  help_doc_not_found: Script no encontrado
+  help_run_bad_target: Objetivo no válido
+  help_run_bad_template: Plantilla no válida o inexistente
+  help_run_nmap_missing: No se encontró nmap. Instálelo e inténtelo de nuevo
+  help_run_scan_error: El escaneo falló
+  help_run_interrupted: Escaneo interrumpido

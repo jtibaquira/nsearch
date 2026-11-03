@@ -1,24 +1,31 @@
 en:
   doc_header: Nsearch Commands
   misc_header: Nsearch Plugins
-  undoc_header: Others Commands
+  undoc_header: Other Commands
   help_usage: Usage
-  help_search_name: Search by script's name
+  help_search_name: Search by script name
   help_search_category: Search by category
   help_search_author: Search by author
-  help_search_error: Type <<help search>> to see the help menu
-  help_last: Display the last query's result
-  help_doc: Displays the documentation of a selected script
-  help_doc_exmp: doc <script's name including .nse>
-  help_fav_name: Name of the Script
-  help_fav_ranking: Set the ranking
-  help_showfav: Display the favorites scripts
-  help_addfav: Set  favorite script
-  help_delfav: Unset favorite script
-  help_modfav: Update favorite script
-  help_run: Run nmap with the templates
+  help_search_error: "Type 'help search' to see the help menu"
+  help_last: Display the results of the last query
+  help_doc: Display the documentation of a script
+  help_doc_exmp: doc <script name>
+  help_fav_name: Name of the script
+  help_fav_ranking: Ranking of the script
+  help_showfav: Display favorite scripts
+  help_addfav: Add a script to favorites
+  help_delfav: Remove a script from favorites
+  help_modfav: Update a favorite script
+  help_run: Run nmap with a template
   help_run_template: Name of the template
   help_run_net: Target
-  help_run_error: The command is not valid please type help run
-  help_command_error: Type 'help command' to see the help menu
-  running_scan: Running Scan
+  help_run_error: "Invalid command. Type 'help run' for usage"
+  help_command_error: "Type 'help <command>' to see the help menu"
+  running_scan: Running scan
+  help_unknown_command: "Unknown command. Type 'help' to see the available commands"
+  help_doc_not_found: Script not found
+  help_run_bad_target: Invalid target
+  help_run_bad_template: Invalid or missing template
+  help_run_nmap_missing: nmap was not found. Install it and try again
+  help_run_scan_error: The scan failed
+  help_run_interrupted: Scan interrupted
