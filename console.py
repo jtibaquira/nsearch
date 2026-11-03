@@ -3,6 +3,7 @@
 import cmd
 import helper
 import helpernmap
+import helperworkflow
 import i18n
 import os
 import sys
@@ -251,6 +252,26 @@ class Console(cmd.Cmd):
       '\t' + i18n.t("help.help_usage") + ':',
       '\t\trun template:http net:target']))
 
+
+  def do_workflow(self, args):
+    """ Run a chain of scans, where each stage uses what the previous one found """
+    command, _, rest = args.partition(" ")
+    helperworkflow.HelperWorkflow(rest.strip(), command).process()
+
+  def help_workflow(self):
+    print('\n'.join([
+      "\t" + i18n.t("help.help_workflow") + "",
+      "\tname : " + i18n.t("help.help_workflow_name") + "",
+      "\tnet  : " + i18n.t("help.help_run_net") + "",
+      "\tid   : " + i18n.t("help.help_workflow_id") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
+      '\t\tworkflow list',
+      '\t\tworkflow run name:basic net:target',
+      '\t\tworkflow status',
+      '\t\tworkflow status id:1']))
+
+  def complete_workflow(self, text, line, begidx, endidx):
+    return [f for f in ['list', 'run', 'status'] if f.startswith(text)]
 
   def default(self, line):
     """Called when the command is not recognized."""

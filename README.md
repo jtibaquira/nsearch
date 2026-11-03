@@ -174,6 +174,65 @@ The templates are in the `templates` directory:
 | `http` | Runs the `http-*` scripts, except `http-slowloris` and `http-brute` |
 | `ssh` | Lists the algorithms supported by SSH servers |
 
+### Workflows
+
+**Only scan systems that you own or are explicitly authorized to test.**
+
+A workflow is a chain of scans. Each stage only scans what earlier stages found, so a network is scanned once and then only the discovered hosts and ports are examined further.
+
+```
+nsearch> workflow list
+[+] basic
+[+] ssh
+[+] web
+
+nsearch> workflow run name:basic net:127.0.0.1
+nsearch> workflow status
+nsearch> workflow status id:1
+```
+
+`workflow run` shows the plan and asks for confirmation before it starts. Results are stored in the local database.
+
+The workflows are in the `workflows` directory:
+
+```yaml
+web:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: http_enum
+      from: services
+      when: {service: [http, https]}
+      arguments: "--script http-headers,http-title"
+    - name: http_vuln
+      from: services
+      when: {service: [http, https]}
+      arguments: "--script vuln"
+      confirm: true
+```
+
+| Key | Meaning |
+|---|---|
+| `from` | What the stage scans: `live_hosts`, `open_ports`, or `services`. Only the first stage has no `from`, and it scans the target you gave. |
+| `when` | With `from: services`, limits the stage to these service names. |
+| `confirm` | Asks before running the stage. Required for any script that is not in the `safe` category. |
+| `host_timeout` | Maximum time per host. The default is 15 minutes. |
+
+Safety rules:
+
+- Only an allowed set of nmap options is accepted, so a workflow cannot add targets or read and write files.
+- Stages after the first only scan hosts found by the first stage. Results outside that scope are ignored.
+- Data from scanned hosts is never used to build nmap arguments.
+- `dos` and `broadcast` scripts never run. They are excluded from every script expression, even in confirmed stages.
+
+Workflows use TCP only. Without root privileges, nmap uses a connect scan, and OS detection (`-O`) is not available.
+
 ## Tests
 
 ```

@@ -1,0 +1,14 @@
+ssh:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: ssh_enum
+      from: services
+      when: {service: [ssh]}
+      arguments: "--script ssh-hostkey,ssh2-enum-algos"

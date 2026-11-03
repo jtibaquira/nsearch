@@ -29,3 +29,17 @@ es:
   help_run_nmap_missing: No se encontró nmap. Instálelo e inténtelo de nuevo
   help_run_scan_error: El escaneo falló
   help_run_interrupted: Escaneo interrumpido
+  help_workflow: Ejecuta una cadena de escaneos, donde cada etapa usa lo que encontró la anterior
+  help_workflow_name: Nombre del workflow
+  help_workflow_id: Número de una ejecución anterior
+  workflow_error: "El comando no es válido. Escriba 'help workflow' para ver el uso"
+  workflow_invalid: El workflow no es válido
+  workflow_plan: Plan del workflow para el objetivo
+  workflow_authorized: ¿Tiene autorización para escanear este objetivo y desea iniciar?
+  workflow_cancelled: Workflow cancelado
+  workflow_started: Ejecución del workflow
+  workflow_no_targets: omitida, no hay nada que escanear
+  workflow_confirm_stage: esta etapa puede ser intrusiva. Ejecutarla contra
+  workflow_declined: omitida, sin confirmación
+  workflow_out_of_scope: Resultado ignorado por estar fuera del alcance
+  workflow_not_found: Ejecución del workflow no encontrada

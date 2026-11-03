@@ -12,6 +12,9 @@ def clearScreen():
     sys.stdout.write("\033[2J\033[H")
     sys.stdout.flush()
 
+def isValidTarget(net):
+  return re.fullmatch(r"[A-Za-z0-9:][A-Za-z0-9.:/,*-]*", net) is not None
+
 def parseArgs(args, allowed):
   """Parse 'key:value' tokens. Returns a dict, or None if the input is invalid."""
   try:

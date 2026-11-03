@@ -1,0 +1,19 @@
+web:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: http_enum
+      from: services
+      when: {service: [http, https]}
+      arguments: "--script http-headers,http-title"
+    - name: http_vuln
+      from: services
+      when: {service: [http, https]}
+      arguments: "--script vuln"
+      confirm: true

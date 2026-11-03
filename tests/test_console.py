@@ -16,3 +16,7 @@ def test_unexpected_errors_do_not_close_console(monkeypatch, capsys):
 
 def test_exit_stops_the_loop():
   assert console.Console().onecmd("exit")
+
+def test_workflow_command_reports_bad_usage(capsys):
+  console.Console().onecmd("workflow nope")
+  assert "help workflow" in capsys.readouterr().out

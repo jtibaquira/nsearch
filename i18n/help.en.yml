@@ -29,3 +29,17 @@ en:
   help_run_nmap_missing: nmap was not found. Install it and try again
   help_run_scan_error: The scan failed
   help_run_interrupted: Scan interrupted
+  help_workflow: Run a chain of scans, where each stage uses what the previous one found
+  help_workflow_name: Name of the workflow
+  help_workflow_id: Number of a previous run
+  workflow_error: "Invalid command. Type 'help workflow' for usage"
+  workflow_invalid: The workflow is not valid
+  workflow_plan: Workflow plan for target
+  workflow_authorized: Are you authorized to scan this target, and do you want to start?
+  workflow_cancelled: Workflow cancelled
+  workflow_started: Workflow run
+  workflow_no_targets: skipped, nothing to scan
+  workflow_confirm_stage: this stage can be intrusive. Run it against
+  workflow_declined: skipped, not confirmed
+  workflow_out_of_scope: Ignored result outside the scope
+  workflow_not_found: Workflow run not found

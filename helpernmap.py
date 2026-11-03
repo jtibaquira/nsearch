@@ -5,7 +5,7 @@ import re
 import yaml
 
 from dbmodule import BASE_DIR
-from helper import parseArgs, sanitize
+from helper import isValidTarget, parseArgs, sanitize
 
 class HelperNmap:
 
@@ -59,7 +59,7 @@ class HelperNmap:
       return False
     net = kwargs["net"]
     template = kwargs["template"]
-    if not re.fullmatch(r"[A-Za-z0-9:][A-Za-z0-9.:/,*-]*", net):
+    if not isValidTarget(net):
       print(i18n.t("help.help_run_bad_target"))
       return False
     if not re.fullmatch(r"[A-Za-z0-9_-]+", template):
