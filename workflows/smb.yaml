@@ -1,0 +1,26 @@
+name: SMB Enumeration
+description: Safe SMB vulnerability assessment and enumeration
+stages:
+  - name: Host Discovery
+    arguments: scripts/discovery.sh --timeout 3s
+    confirm: false
+
+  - name: SMB Port Detection
+    arguments: scripts/portscan.py --ports 445,139 --timeout 5s
+    confirm: false
+
+  - name: SMB Service Enumeration
+    arguments: scripts/smb_enum.sh --safe-mode
+    confirm: true
+
+  - name: SMB Vulnerability Checks
+    arguments: scripts/smb_check.sh --vulns MSSB2017-0144,MS17-10,CVE-2020-0796
+    confirm: true
+
+  - name: Share Enumeration
+    arguments: scripts/smb_shares.sh --anonymous-only
+    confirm: true
+
+  - name: User Enumeration
+    arguments: scripts/smb_users.sh --policy-check
+    confirm: true

@@ -1,3 +1,4 @@
+import mock
 import nmap
 import pytest
 import yaml
@@ -333,3 +334,54 @@ def test_list_and_status(db, workflows, capsys):
   assert "\x1b" not in capsys.readouterr().out
   helperworkflow.HelperWorkflow("id:1", "status").process()
   assert "\x1b" not in capsys.readouterr().out
+
+def test_resume_validation(db, workflows):
+  # Cannot resume non-existent run
+  obj = helperworkflow.HelperWorkflow("id:999", "resume")
+  with pytest.raises(SystemExit): pass
+  details = db.getRun(999)
+  assert details is None
+  
+def test_resume_completed_workflow_must_fail(db, workflows):
+  workflows("resume_test", CHAIN)
+  run_id = db.createRun("resume test work", "10.0.0.1/32", ["test", {"name": "discover"}])
+  db.setStageStatus(run_id, 0, "completed")
+  db.setRunStatus(run_id, "completed")
+  obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
+  with mock.patch("helperworkflow.askConfirmation"): pass
+  obj.process()
+  assert db.getRun(run_id)["run"]["status"] == "completed"
+
+def test_resume_interrupted_workflow(db, workflows, scanner):
+  workflows("resume_test", CHAIN)
+  run_id = db.createRun("resume interrupted work", "10.0.0.1/32", 
+    [{"name": "test", "arguments": ""}, {"name": "vuln_scan", "arguments": "", "from": "services"}])
+  db.setStageStatus(run_id, 0, "completed")
+  db.setStageStatus(run_id, 1, "interrupted")
+  db.addRunHost(run_id, scanner.hosts[0], {"id": scanner.hostnames[0]})
+  obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
+  with mock.patch("helperworkflow.askConfirmation", return_value=True): pass
+  obj.process()
+  stages = [s for s in db.getRun(run_id)["stages"]]
+  assert len(stages) > 1
+  statuses = [s["status"] for s in stages]
+  assert "completed" in statuses or "skipped" in statuses
+
+def test_resume_preserves_target(db, workflows):
+  workflows("resume_test", CHAIN)
+  target = "192.168.1.0/24"
+  run_id = db.createRun("preserve target work", target, [{"name": "discover"}])
+  db.setStageStatus(run_id, 0, "failed")
+  obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
+  with mock.patch("helperworkflow.askConfirmation", return_value=False): pass
+  obj.process()
+  run_details = db.getRun(run_id)
+  assert run_details["run"]["target"] == target
+
+def test_resume_invalid_state(db, workflows):
+  workflows("resume_test", CHAIN)
+  run_id = db.createRun("invalid state work", "10.0.0.1/32", [])
+  db.setStageStatus(run_id, 0, "pending")
+  obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
+  with mock.patch("helperworkflow.askConfirmation"): pass
+  obj.process()

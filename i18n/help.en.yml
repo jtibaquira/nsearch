@@ -43,3 +43,10 @@ en:
   workflow_declined: skipped, not confirmed
   workflow_out_of_scope: Ignored result outside the scope
   workflow_not_found: Workflow run not found
+  workflow_resume_completed: Run %d is already completed and cannot be resumed
+  workflow_resume_invalid_state: Workflow is in invalid state '%s' for resumption
+  workflow_resume_no_stages: No incomplete stages to resume
+  workflow_resume_info: Resume run %d against target %s
+  workflow_resume_confirm: Do you want to resume the workflow execution?
+  workflow_resume_cancelled: Workflow resumption cancelled
+  workflow_resume_reload_error: Error reloading the workflow

@@ -368,8 +368,8 @@ def saveStageResults(runId, stage, hosts, services, findings):
       version=COALESCE(NULLIF(excluded.version, ''), version)""",
       [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"])
         for item in services])
-    conn.executemany("INSERT INTO workflow_findings (run_id, stage, address, port, script, output) VALUES (?, ?, ?, ?, ?, ?)",
-      [(runId, stage, item["address"], item["port"], item["script"], item["output"]) for item in findings])
+    conn.executemany("INSERT INTO workflow_findings (run_id, stage, address, port, script, output) VALUES (?, ?, ?, ?, ?, ?)" +
+      " ON CONFLICT DO NOTHING", [(runId, stage, item["address"], item["port"], item["script"], item["output"]) for item in findings])
 
 def getLiveHosts(runId):
   with closing(__workflowConnect()) as conn:

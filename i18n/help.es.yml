@@ -43,3 +43,10 @@ es:
   workflow_declined: omitida, sin confirmación
   workflow_out_of_scope: Resultado ignorado por estar fuera del alcance
   workflow_not_found: Ejecución del workflow no encontrada
+  workflow_resume_completed: La ejecución %d ya está completada y no se puede reanudar
+  workflow_resume_invalid_state: El workflow está en estado inválido '%s' para reanudación
+  workflow_resume_no_stages: No hay etapas incompletas que reanudar
+  workflow_resume_info: Reanudar ejecución %d contra el objetivo %s
+  workflow_resume_confirm: ¿Desea reanudar la ejecución del workflow?
+  workflow_resume_cancelled: Reanudación del workflow cancelada
+  workflow_resume_reload_error: Error al recargar el workflow
