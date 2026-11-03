@@ -39,7 +39,7 @@ The script supports Debian, Ubuntu, Red Hat, Fedora, CentOS, and macOS. On Linux
 $ bash install.sh
 ```
 
-Use `bash`, not `sh`: the script does not run under `sh`.
+Use `bash`, not `sh`: under `sh`, the script stops and asks you to run it with `bash`.
 
 ### Manual installation
 

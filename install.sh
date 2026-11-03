@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+
+# This check must stay POSIX: sh stops at the first bash-only line below
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "[-] This script requires bash. Run it with: bash install.sh" >&2
+  exit 1
+fi
+
 set -euo pipefail
 
 printf "\n"
