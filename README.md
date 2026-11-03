@@ -189,9 +189,12 @@ nsearch> workflow list
 nsearch> workflow run name:basic net:127.0.0.1
 nsearch> workflow status
 nsearch> workflow status id:1
+nsearch> workflow resume id:1
 ```
 
 `workflow run` shows the plan and asks for confirmation before it starts. Results are stored in the local database.
+
+If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue from where it stopped. It works on workflows with status `running`, `interrupted`, or `failed`. It skips stages that already completed and shows you what remains before continuing. Stages that require confirmation will be re-prompted.
 
 The workflows are in the `workflows` directory:
 

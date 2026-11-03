@@ -268,10 +268,11 @@ class Console(cmd.Cmd):
       '\t\tworkflow list',
       '\t\tworkflow run name:basic net:target',
       '\t\tworkflow status',
-      '\t\tworkflow status id:1']))
+      '\t\tworkflow status id:1',
+      '\t\tworkflow resume id:1']))
 
   def complete_workflow(self, text, line, begidx, endidx):
-    return [f for f in ['list', 'run', 'status'] if f.startswith(text)]
+    return [f for f in ['list', 'run', 'status', 'resume'] if f.startswith(text)]
 
   def default(self, line):
     """Called when the command is not recognized."""
