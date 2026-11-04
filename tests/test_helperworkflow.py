@@ -1249,3 +1249,58 @@ def test_findings_are_found_by_run_without_a_full_scan(db):
   plan = " ".join(str(row[3]) for row in connection.execute("EXPLAIN QUERY PLAN SELECT * FROM workflow_findings WHERE run_id=1 ORDER BY id"))
   connection.close()
   assert "workflow_findings_run" in plan
+
+# ---- Exact output
+
+def test_plan_output_is_exact(db, workflows, catalog, answers, capsys):
+  workflows("w", CHAIN[:2] + [{"name": "vuln", "from": "live_hosts", "arguments": "--script http-sql", "confirm": True}])
+  answers.append("n")
+  helperworkflow.HelperWorkflow("name:w net:10.0.0.0/24", "run").process()
+  assert capsys.readouterr().out.splitlines() == [
+    "Workflow plan for target: 10.0.0.0/24",
+    "  1. discovery: -sn --host-timeout 15m",
+    "  2. ports: -F --host-timeout 15m",
+    "  3. vuln: --script '(http-sql) and not (broadcast or dos)' --host-timeout 15m (confirm)",
+    "Workflow cancelled",
+  ]
+
+def test_run_and_status_output_is_exact(db, scanner, workflows, catalog, answers, capsys):
+  workflows("w", CHAIN[:2])
+  answers.append("y")
+  scanner.results = {0: {"10.0.0.1": FakeHost({}, hostname="host\x1b", hostscript=[{"id": "smb", "output": "out"}])},
+    1: {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http", "product": "nginx", "version": "1.0", "script": {"http-title": "Hi"}}})}}
+  helperworkflow.HelperWorkflow("name:w net:10.0.0.0/24", "run").process()
+  details = [
+    "[1] w 10.0.0.0/24: completed",
+    "  discovery: completed",
+    "  ports: completed",
+    "Host : 10.0.0.1 (host?) up",
+    "  10.0.0.1 80/tcp http nginx 1.0",
+    "  [discovery] 10.0.0.1:- smb => out",
+    "  [ports] 10.0.0.1:80 http-title => Hi",
+  ]
+  assert capsys.readouterr().out.splitlines() == [
+    "Workflow plan for target: 10.0.0.0/24",
+    "  1. discovery: -sn --host-timeout 15m",
+    "  2. ports: -F --host-timeout 15m",
+    "Workflow run: 1",
+    "[1/2] discovery: Running scan",
+    "[2/2] ports: Running scan",
+  ] + details
+  helperworkflow.HelperWorkflow("id:1", "status").process()
+  assert capsys.readouterr().out.splitlines() == details
+  helperworkflow.HelperWorkflow("", "status").process()
+  assert capsys.readouterr().out == "[1] w 10.0.0.0/24 completed " + db.getRun(1)["run"]["started_at"] + "\n"
+
+def test_suggest_output_is_exact(db, scanner, catalog, answers, capsys):
+  runId = foundRun(db)
+  answers.append("")
+  suggest(runId)
+  assert capsys.readouterr().out.splitlines() == ["[+] http: 10.0.0.1:80", "  1. http-headers", "  2. http-title"]
+
+def test_compare_output_is_exact(db, scanner, workflows, answers, catalog, capsys):
+  host = FakeHost({80: {"state": "open", "name": "http", "product": "nginx", "version": "2.0", "script": {"http-title": "Welcome"}}})
+  twoRuns(scanner, workflows, answers, later(host))
+  capsys.readouterr()
+  compare()
+  assert capsys.readouterr().out == "[~] Service changed: 10.0.0.1 80/tcp (http nginx 1.0 => http nginx 2.0)\n"

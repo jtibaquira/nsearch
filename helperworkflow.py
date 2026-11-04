@@ -433,7 +433,7 @@ class HelperWorkflow:
   def __printPlan(self, net, stages):
     print(i18n.t("help.workflow_plan") + ": " + sanitize(net))
     for position, stage in stages:
-      print("  %d. %s: %s%s" % (position + 1, stage["name"], stage["arguments"], " (confirm)" if stage["confirm"] else ""))
+      print(f"  {position + 1}. {stage['name']}: {stage['arguments']}{' (confirm)' if stage['confirm'] else ''}")
 
   def __execute(self, name, net, stages, runId=None, finished=(), status=None):
     try:
@@ -454,7 +454,7 @@ class HelperWorkflow:
       # Later stages can only touch the hosts found by the first one
       if position > 0 and scope is None:
         scope = set(dbmodule.getLiveHosts(runId))
-      label = "[%d/%d] %s" % (position + 1, len(stages), stage["name"])
+      label = f"[{position + 1}/{len(stages)}] {stage['name']}"
       targets = stageTargets(runId, stage, net)
       dbmodule.setStageTargets(runId, position, targets)
       if not targets:
@@ -506,7 +506,7 @@ class HelperWorkflow:
         self.__printRun(details)
       return
     for run in dbmodule.getRuns():
-      print("[%d] %s %s %s %s" % (run["id"], sanitize(run["workflow"]), sanitize(run["target"]), sanitize(run["status"]), sanitize(run["started_at"])))
+      print(f"[{run['id']}] {sanitize(run['workflow'])} {sanitize(run['target'])} {sanitize(run['status'])} {sanitize(run['started_at'])}")
 
   def __resume(self):
     params = parseArgs(self.args, ("id",))
@@ -592,7 +592,8 @@ class HelperWorkflow:
     if not changes:
       print(i18n.t("help.workflow_compare_same"))
     for sign, label, key, values in changes:
-      print("[%s] %s: %s%s" % (sign, i18n.t("help.compare_" + label), sanitize(" ".join(key)), " (" + sanitize(values[0]) + " => " + sanitize(values[1]) + ")" if values else ""))
+      detail = " (" + sanitize(values[0]) + " => " + sanitize(values[1]) + ")" if values else ""
+      print("[" + sign + "] " + i18n.t("help.compare_" + label) + ": " + sanitize(" ".join(key)) + detail)
 
   def __suggest(self):
     params = parseArgs(self.args, ("id",))
@@ -624,7 +625,7 @@ class HelperWorkflow:
       places = sanitize(", ".join(target + ":" + ports for target, ports in targets))
       print("[+] " + service + ": " + places)
       for number, name in enumerate(names, 1):
-        print("  %d. %s" % (number, sanitize(name)))
+        print(f"  {number}. {sanitize(name)}")
       selected = askSelection(i18n.t("help.workflow_suggest_select"), names)
       if not selected:
         continue
@@ -653,12 +654,12 @@ class HelperWorkflow:
 
   def __printRun(self, details):
     run = details["run"]
-    print("[%d] %s %s: %s" % (run["id"], sanitize(run["workflow"]), sanitize(run["target"]), sanitize(run["status"])))
+    print(f"[{run['id']}] {sanitize(run['workflow'])} {sanitize(run['target'])}: {sanitize(run['status'])}")
     for stage in details["stages"]:
-      print("  %s: %s" % (sanitize(stage["name"]), sanitize(stage["status"])))
+      print(f"  {sanitize(stage['name'])}: {sanitize(stage['status'])}")
     for host in details["hosts"]:
-      print("Host : %s (%s) %s" % (sanitize(host["address"]), sanitize(host["hostname"] or ""), sanitize(host["state"])))
+      print(f"Host : {sanitize(host['address'])} ({sanitize(host['hostname'] or '')}) {sanitize(host['state'])}")
     for item in details["services"]:
-      print("  %s %d/%s %s %s %s" % (sanitize(item["address"]), item["port"], sanitize(item["protocol"]), sanitize(item["service"] or ""), sanitize(item["product"] or ""), sanitize(item["version"] or "")))
+      print(f"  {sanitize(item['address'])} {item['port']}/{sanitize(item['protocol'])} {sanitize(item['service'] or '')} {sanitize(item['product'] or '')} {sanitize(item['version'] or '')}")
     for item in details["findings"]:
-      print("  [%s] %s:%s %s => %s" % (sanitize(item["stage"]), sanitize(item["address"]), item["port"] or "-", sanitize(item["script"]), sanitize(item["output"])))
+      print(f"  [{sanitize(item['stage'])}] {sanitize(item['address'])}:{item['port'] or '-'} {sanitize(item['script'])} => {sanitize(item['output'])}")

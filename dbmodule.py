@@ -81,7 +81,7 @@ def initSetup():
     createBackUp()
     __updateHash(currentChecksum, __fileHash())
   except (OSError, lite.Error) as e:
-    print("Error %s:" % e)
+    print(f"Error {e}:")
     sys.exit(1)
 
 # Create a backup of script.db
@@ -135,7 +135,7 @@ def updateApp():
     __buildDb()
     __updateHash(currentChecksum, newhash)
   except (OSError, lite.Error) as e:
-    print("Error %s:" % e)
+    print(f"Error {e}:")
 
 # Insert a script and its author
 def insertScript(cursor, script, author):
@@ -157,7 +157,7 @@ def searchAll():
     cursor.execute("select id, name, author from scripts ORDER BY name")
     return __fetchScript(cursor.fetchall())
   except Exception as e:
-    print("Error %s:" % e.args[0])
+    print(f"Error {e.args[0]}:")
   finally:
     conn.close()
 

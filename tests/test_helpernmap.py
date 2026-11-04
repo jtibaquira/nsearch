@@ -75,3 +75,16 @@ def test_scan_failures_return_to_prompt(scanner, monkeypatch, capsys, error, mes
   monkeypatch.setattr(FakeScanner, "scan", fail)
   helpernmap.HelperNmap("template:ping net:127.0.0.1").process()
   assert message in capsys.readouterr().out
+
+def test_scan_output_is_exact(scanner, capsys):
+  helpernmap.HelperNmap("net:127.0.0.1 template:ping").process()
+  lines = capsys.readouterr().out.splitlines()
+  start = lines.index("----------------------------------------------------")
+  assert lines[start + 1:] == [
+    "Host : 127.0.0.1 (evil?[31m)",
+    "State : up",
+    "----------",
+    "Protocol : tcp",
+    "port : 80\tstate : open ?]0;pwn 1 ",
+    "id => out?[2J",
+  ]

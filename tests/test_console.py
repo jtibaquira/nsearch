@@ -5,7 +5,7 @@ import console
 
 def test_unknown_input_is_not_executed(tmp_path, capsys):
   marker = tmp_path / "pwn"
-  console.Console().onecmd("open(%r, 'w')" % str(marker))
+  console.Console().onecmd(f"open({str(marker)!r}, 'w')")
   assert not marker.exists()
   assert "Unknown command" in capsys.readouterr().out
 

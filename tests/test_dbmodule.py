@@ -167,3 +167,20 @@ def test_script_categories(db):
   categories = db.scriptCategories()
   assert categories["http-title"] == {"default", "safe"}
   assert "http-title.nse" not in categories
+
+def test_a_database_error_in_search_is_reported(db, capsys):
+  connection = db.lite.connect(db.dbname)
+  connection.execute("DROP TABLE script_category")
+  connection.execute("DROP TABLE scripts")
+  connection.commit()
+  connection.close()
+  assert db.searchAll() is None
+  assert capsys.readouterr().out == "Error no such table: scripts:\n"
+
+def test_an_unexpected_error_in_search_reaches_the_console(db, monkeypatch, capsys):
+  import console
+  def fail(*args):
+    raise ValueError("boom")
+  monkeypatch.setattr(db, "__fetchScript", fail)
+  assert not console.Console().onecmd("search")
+  assert "boom" in capsys.readouterr().out

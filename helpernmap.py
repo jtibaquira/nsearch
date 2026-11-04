@@ -35,15 +35,15 @@ class HelperNmap:
         return
       for host in nm.all_hosts():
         print('----------------------------------------------------')
-        print('Host : %s (%s)' % (sanitize(host), sanitize(nm[host].hostname())))
-        print('State : %s' % sanitize(nm[host].state()))
+        print(f"Host : {sanitize(host)} ({sanitize(nm[host].hostname())})")
+        print(f"State : {sanitize(nm[host].state())}")
         for proto in nm[host].all_protocols():
           print('----------')
-          print('Protocol : %s' % sanitize(proto))
+          print(f"Protocol : {sanitize(proto)}")
           for port in sorted(nm[host][proto].keys()):
             info = nm[host][proto][port]
             if info['state'] == 'open':
-              print('port : %s\tstate : %s %s %s ' % (port, sanitize(info['state']), sanitize(info.get('product', '')), sanitize(info.get('version', ''))))
+              print(f"port : {port}\tstate : {sanitize(info['state'])} {sanitize(info.get('product', ''))} {sanitize(info.get('version', ''))} ")
               for k, v in info.get('script', {}).items():
                 print(sanitize(k) + " => " + sanitize(v))
 

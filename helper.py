@@ -79,9 +79,9 @@ class Helper:
   # Display the last results
   def printlastResult(self):
     column = "ranking" if dbmodule.lastresultsFav else "author"
-    print("\033[1;32m*** {0:40} {1:40}\033[0m".format("Name", column.capitalize()))
+    print("\033[1;32m*** {:40} {:40}\033[0m".format("Name", column.capitalize()))
     for value in dbmodule.lastresults.values():
-      print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(sanitize(value["name"]), sanitize(value[column] or "")))
+      print("\033[1;32m[+] {:40} {:35}\033[0m".format(sanitize(value["name"]), sanitize(value[column] or "")))
 
   # Display the documentation per script
   def displayDoc(self):
