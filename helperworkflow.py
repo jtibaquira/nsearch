@@ -29,6 +29,7 @@ BLOCKED_SCRIPTS = {"dos", "broadcast"}
 NMAP_PORT_TABLE_CONF = "3"
 RESUMABLE_RUNS = ("interrupted", "failed", "running")
 FINISHED_STAGES = ("completed", "skipped", "declined")
+COMPLETED_RUNS = ("completed", "completed_with_warnings")
 # Script name prefixes per service. A service name comes from the scanned host, so it is only ever
 # looked up here, and what reaches nmap comes from this table and the script database
 SUGGESTIONS = {
@@ -197,6 +198,62 @@ def collectResults(nm, scope):
         for script, output in info.get("script", {}).items():
           findings.append({"address": address, "port": int(port), "script": script, "output": output})
   return hosts, services, findings
+
+# Compare one nmap call with what the run knew. A stage that scans something found earlier must see it again,
+# and not seeing it says nothing about why: nmap does not tell a closed port from a blocked scan
+def compareObservations(openBefore, target, ports, hosts, services):
+  warnings, missingHosts, missingPorts = [], [], []
+  reported = {(item["address"], item["protocol"], item["port"]): item["state"] for item in services}
+  for key, state in reported.items():
+    if key in openBefore and state != "open":
+      warnings.append({"type": "port_changed", "address": key[0], "protocol": key[1], "port": key[2], "before": "open", "after": state})
+  if not any(host["address"] == target and host["state"] == "up" for host in hosts):
+    warnings.append({"type": "host_missing", "address": target})
+    missingHosts.append(target)
+    missingPorts = [key for key in openBefore if key[0] == target and key not in reported]
+    return warnings, missingHosts, missingPorts
+  expected = {int(port) for port in ports.split(",")} if ports else set()
+  for key in sorted(openBefore):
+    if key[0] == target and key[2] in expected and key not in reported:
+      warnings.append({"type": "port_missing", "address": key[0], "protocol": key[1], "port": key[2]})
+      missingPorts.append(key)
+  return warnings, missingHosts, missingPorts
+
+# Stages that look for ports. Later stages only scan what these found
+def findsPorts(stage):
+  definition = loadStored(stage["definition"])
+  if not isinstance(definition, dict) or definition.get("source") not in (None, "live_hosts") or not isinstance(definition.get("arguments"), str):
+    return False
+  try:
+    return "source" in definition and "-sn" not in shlex.split(definition["arguments"])
+  except ValueError:
+    return False
+
+# Ports that the closest earlier run saw and this one did not. That run must have looked for ports in the same
+# way, whether or not it had warnings: a port that really closed is then only reported by the first run after it
+def missingSinceLastRun(runId, target):
+  stages = [stage for stage in dbmodule.getStages(runId) if findsPorts(stage)]
+  if not stages or any(stage["status"] not in ("completed", "skipped") for stage in stages):
+    return stages, []
+  for earlier in dbmodule.getEarlierRuns(runId, target, COMPLETED_RUNS):
+    previous = [stage for stage in dbmodule.getStages(earlier) if findsPorts(stage)]
+    if [stage["definition"] for stage in previous] == [stage["definition"] for stage in stages] and all(stage["status"] == "completed" for stage in previous):
+      return stages, [{"type": "port_not_seen", "address": address, "protocol": protocol, "port": port, "run": earlier}
+        for address, protocol, port in sorted(dbmodule.getSeenPorts(earlier) - dbmodule.getSeenPorts(runId))]
+  return stages, []
+
+def stageWarnings(stage):
+  warnings = loadStored(stage.get("warnings"))
+  return [warning for warning in warnings if isinstance(warning, dict)] if isinstance(warnings, list) else []
+
+def finishedStatus(runId):
+  return "completed_with_warnings" if any(stageWarnings(stage) for stage in dbmodule.getStages(runId)) else "completed"
+
+def finishRun(runId, target):
+  stages, warnings = missingSinceLastRun(runId, target)
+  if warnings:
+    dbmodule.recordObservations(runId, stages[-1]["position"], warnings)
+  dbmodule.setRunStatus(runId, finishedStatus(runId))
 
 # Build the nmap calls of a stage, using only data from earlier stages of this run
 def stageTargets(runId, stage, net):
@@ -470,7 +527,7 @@ class HelperWorkflow:
         dbmodule.setRunStatus(runId, problem)
         print(i18n.t("help.workflow_resume_hint") + ": workflow resume id:" + str(runId))
         return
-    dbmodule.setRunStatus(runId, "completed")
+    finishRun(runId, net)
     self.__printRun(dbmodule.getRun(runId))
 
   # Returns the status of the stage if it could not finish
@@ -481,7 +538,10 @@ class HelperWorkflow:
       for target, ports in targets:
         arguments = ("-6 " if ":" in target else "") + stage["arguments"]
         nm.scan(hosts=target, ports=ports, arguments=arguments)
-        dbmodule.saveStageResults(runId, stage["name"], *collectResults(nm, scope))
+        hosts, services, findings = collectResults(nm, scope)
+        observations = compareObservations(dbmodule.getOpenServices(runId), target, ports, hosts, services) if stage["source"] is not None else ([], [], [])
+        dbmodule.saveStageResults(runId, stage["name"], hosts, services, findings)
+        dbmodule.recordObservations(runId, position, *observations)
     except (nmap.PortScannerError, OSError, dbmodule.lite.Error) as e:
       dbmodule.setStageStatus(runId, position, "failed")
       print(label + ": " + i18n.t("help.help_run_scan_error") + ": " + sanitize(e))
@@ -538,7 +598,7 @@ class HelperWorkflow:
     finished = {stage["position"] for stage in details["stages"] if stage["status"] in FINISHED_STAGES}
     remaining = [(position, stage) for position, stage in enumerate(stages) if position not in finished]
     if not remaining:
-      dbmodule.setRunStatus(runId, "completed")
+      finishRun(runId, net)
       print(i18n.t("help.workflow_resume_nothing"))
       self.__printRun(dbmodule.getRun(runId))
       return

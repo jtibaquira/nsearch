@@ -47,7 +47,11 @@ class FakeScanner:
     self.calls.append((hosts, ports, arguments))
     if self.error is not None and len(self.calls) >= self.error[0]:
       raise self.error[1]
-    self.current = self.results.get(len(self.calls) - 1, {})
+    # A call without a result of its own finds what it asked for, so only the tests that want it get a host that stops answering
+    self.current = self.results.get(len(self.calls) - 1)
+    if self.current is None:
+      found = {int(port): {"state": "open", "name": ""} for port in ports.split(",")} if ports else {}
+      self.current = {hosts: FakeHost(found)} if helperworkflow.validAddress(hosts) else {}
   def all_hosts(self):
     return list(self.current)
   def __getitem__(self, host):
@@ -1318,3 +1322,144 @@ def test_status_sanitizes_ports_from_a_tampered_database(db, capsys):
   out = capsys.readouterr().out
   assert "\x1b" not in out
   assert "?[2J/tcp" in out and "10.0.0.1:?[2J" in out
+
+# ---- Scans that stop seeing the target
+
+HTTP_OPEN = {"state": "open", "name": "http"}
+UP = {"10.0.0.1": FakeHost({})}
+
+def runChain(db, scanner, workflows, answers, monkeypatch, results, stages=None, net="10.0.0.1"):
+  workflows("w", CHAIN if stages is None else stages)
+  monkeypatch.setattr(db, "scriptCategories", lambda: SCRIPTS)
+  scanner.calls.clear()
+  scanner.results = results
+  answers.append("y")
+  helperworkflow.HelperWorkflow("name:w net:" + net, "run").process()
+  return db.getRuns()[0]["id"]
+
+def warningsOf(details):
+  return [warning for stage in details["stages"] for warning in json.loads(stage["warnings"] or "[]")]
+
+@pytest.mark.parametrize("state", ["filtered", "closed"])
+def test_an_open_port_that_a_later_stage_stops_seeing_is_reported(db, scanner, workflows, answers, monkeypatch, state):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({80: {"state": state, "name": "http"}})}})
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert [stage["status"] for stage in details["stages"]] == ["completed", "completed", "completed", "skipped"]
+  assert warningsOf(details) == [{"type": "port_changed", "address": "10.0.0.1", "protocol": "tcp", "port": 80, "before": "open", "after": state}]
+  assert details["services"] == []
+  assert len(scanner.calls) == 3
+
+def test_a_port_that_a_later_stage_does_not_report_is_not_used_again(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: UP, 1: {"10.0.0.1": FakeHost({22: {"state": "open", "name": "ssh"}, 80: HTTP_OPEN})},
+    2: {"10.0.0.1": FakeHost({22: {"state": "open", "name": "ssh"}})}})
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "port_missing", "address": "10.0.0.1", "protocol": "tcp", "port": 80}]
+  assert db.getOpenPorts(runId) == {"10.0.0.1": [22]}
+  assert len(scanner.calls) == 3
+
+@pytest.mark.parametrize("answer", [{}, {"10.0.0.1": FakeHost({}, state="down")}])
+def test_a_host_that_stops_answering_is_reported(db, scanner, workflows, answers, monkeypatch, answer):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: answer})
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_missing", "address": "10.0.0.1"}]
+  assert db.getLiveHosts(runId) == []
+  assert len(scanner.calls) == 2
+
+def test_silence_does_not_mark_a_host_as_down(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {}})
+  assert db.getRun(runId)["hosts"][0]["state"] == "up"
+
+def test_the_open_ports_of_a_host_that_stops_answering_are_not_used_again(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {}})
+  details = db.getRun(runId)
+  assert warningsOf(details) == [{"type": "host_missing", "address": "10.0.0.1"}]
+  assert db.getOpenPorts(runId) == {}
+  assert len(scanner.calls) == 3
+
+def test_a_port_seen_open_again_stays_open(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 3: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}})
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed"
+  assert warningsOf(details) == []
+
+def test_a_host_without_open_ports_gives_no_warning(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: UP})
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed"
+  assert warningsOf(details) == []
+  assert len(scanner.calls) == 2
+
+def test_a_first_stage_without_answer_gives_no_warning(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed"
+  assert warningsOf(details) == []
+
+def test_a_stage_skipped_for_another_service_gives_no_warning(db, scanner, workflows, answers, monkeypatch):
+  stages = CHAIN[:3] + [{"name": "enum", "from": "services", "when": {"service": ["smb"]}, "arguments": "--script http-title"}]
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}}, stages)
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed"
+  assert details["stages"][3]["status"] == "skipped"
+  assert warningsOf(details) == []
+
+FULL_RUN = {0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 3: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}}
+
+def test_ports_seen_by_the_previous_run_are_reported_when_they_are_not_seen_now(db, scanner, workflows, answers, monkeypatch):
+  first = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  second = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: UP})
+  details = db.getRun(second)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "port_not_seen", "address": "10.0.0.1", "protocol": "tcp", "port": 80, "run": first}]
+  assert json.loads(details["stages"][1]["warnings"]) == warningsOf(details)
+
+def test_a_port_that_really_closed_only_warns_once(db, scanner, workflows, answers, monkeypatch):
+  runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: UP})
+  third = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: UP})
+  assert db.getRun(third)["run"]["status"] == "completed"
+
+def test_a_run_with_warnings_counts_as_the_previous_run(db, scanner, workflows, answers, monkeypatch):
+  blocked = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({80: {"state": "filtered", "name": "http"}})}})
+  last = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: UP})
+  assert warningsOf(db.getRun(last)) == [{"type": "port_not_seen", "address": "10.0.0.1", "protocol": "tcp", "port": 80, "run": blocked}]
+
+def test_a_previous_run_that_scanned_other_ports_is_not_compared(db, scanner, workflows, answers, monkeypatch):
+  runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  stages = [CHAIN[0], dict(CHAIN[1], arguments="--top-ports 10"), CHAIN[2], CHAIN[3]]
+  last = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: UP}, stages)
+  assert db.getRun(last)["run"]["status"] == "completed"
+
+def test_a_previous_run_of_another_target_is_not_compared(db, scanner, workflows, answers, monkeypatch):
+  runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  other = {"10.0.0.2": FakeHost({})}
+  last = runChain(db, scanner, workflows, answers, monkeypatch, {0: other, 1: other}, net="10.0.0.2")
+  assert db.getRun(last)["run"]["status"] == "completed"
+
+def test_a_previous_run_that_did_not_finish_is_not_compared(db, scanner, workflows, answers, monkeypatch):
+  scanner.error = (3, nmap.PortScannerError("boom"))
+  failed = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}})
+  assert db.getRun(failed)["run"]["status"] == "failed"
+  scanner.error = None
+  last = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: UP})
+  assert db.getRun(last)["run"]["status"] == "completed"
+
+def test_a_warning_survives_resuming_the_run(db, scanner, workflows, answers, monkeypatch):
+  two = {"10.0.0.1": FakeHost({}), "10.0.0.2": FakeHost({})}
+  scanner.error = (5, nmap.PortScannerError("boom"))
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: two, 1: {"10.0.0.1": FakeHost({22: {"state": "open", "name": "ssh"}})}, 2: {"10.0.0.2": FakeHost({22: {"state": "open", "name": "ssh"}})},
+    3: {"10.0.0.1": FakeHost({22: {"state": "filtered", "name": "ssh"}})}}, net="10.0.0.0/24")
+  assert db.getRun(runId)["run"]["status"] == "failed"
+  scanner.error = None
+  scanner.results = {5: {"10.0.0.2": FakeHost({22: {"state": "open", "name": "ssh"}})}}
+  answers.append("y")
+  helperworkflow.HelperWorkflow("id:" + str(runId), "resume").process()
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "port_changed", "address": "10.0.0.1", "protocol": "tcp", "port": 22, "before": "open", "after": "filtered"}]
