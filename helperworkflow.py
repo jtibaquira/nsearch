@@ -240,7 +240,7 @@ class HelperWorkflow:
     for position, stage in stages:
       print("  %d. %s: %s%s" % (position + 1, stage["name"], stage["arguments"], " (confirm)" if stage["confirm"] else ""))
 
-  def __execute(self, name, net, stages, runId=None, finished=()):
+  def __execute(self, name, net, stages, runId=None, finished=(), status=None):
     try:
       nm = nmap.PortScanner()
     except nmap.PortScannerError:
@@ -248,8 +248,9 @@ class HelperWorkflow:
       return
     if runId is None:
       runId = dbmodule.createRun(name, net, stages)
-    else:
-      dbmodule.setRunStatus(runId, "running")
+    elif not dbmodule.claimRun(runId, status):
+      print(i18n.t("help.workflow_already_resumed"))
+      return
     print(i18n.t("help.workflow_started") + ": " + str(runId))
     scope = None
     for position, stage in enumerate(stages):
@@ -330,7 +331,7 @@ class HelperWorkflow:
       print(i18n.t("help.workflow_invalid") + ": " + sanitize(e))
       return
     # The confirmation given for this run only covers the stages it started with
-    if [(stage["name"], stage["arguments"]) for stage in stages] != [(stage["name"], stage["arguments"]) for stage in details["stages"]]:
+    if [dbmodule.stageDefinition(stage) for stage in stages] != [stage["definition"] for stage in details["stages"]]:
       print(i18n.t("help.workflow_changed"))
       return
     finished = {stage["position"] for stage in details["stages"] if stage["status"] in FINISHED_STAGES}
@@ -341,10 +342,13 @@ class HelperWorkflow:
       self.__printRun(dbmodule.getRun(runId))
       return
     self.__printPlan(net, remaining)
+    status = details["run"]["status"]
+    if status == "running":
+      print(i18n.t("help.workflow_resume_running"))
     if not askConfirmation(i18n.t("help.workflow_authorized")):
       print(i18n.t("help.workflow_cancelled"))
       return
-    self.__execute(name, net, stages, runId, finished)
+    self.__execute(name, net, stages, runId, finished, status)
 
   def __printRun(self, details):
     run = details["run"]

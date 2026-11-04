@@ -47,3 +47,5 @@ es:
   workflow_changed: El workflow cambió después de iniciar esta ejecución, así que no se puede reanudar
   workflow_resume_nothing: No quedan etapas por ejecutar. La ejecución queda completada
   workflow_resume_hint: Para continuar esta ejecución, use
+  workflow_resume_running: Esta ejecución figura en curso. Continúe solo si ninguna otra consola está trabajando en ella
+  workflow_already_resumed: Otra consola ya reanudó esta ejecución

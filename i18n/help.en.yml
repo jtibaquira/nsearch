@@ -47,3 +47,5 @@ en:
   workflow_changed: The workflow changed after this run started, so the run cannot be resumed
   workflow_resume_nothing: No stages left to run. The run is now completed
   workflow_resume_hint: To continue this run, use
+  workflow_resume_running: This run is marked as running. Continue only if no other console is working on it
+  workflow_already_resumed: Another console has already resumed this run

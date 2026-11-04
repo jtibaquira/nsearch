@@ -1,5 +1,6 @@
 import hashlib
 import i18n
+import json
 import os
 import re
 import shutil
@@ -316,7 +317,7 @@ WORKFLOW_SCHEMA = """
     started_at TEXT NOT NULL, finished_at TEXT NULL);
   create table if not exists workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL,
-    arguments TEXT NOT NULL, status TEXT NOT NULL, UNIQUE(run_id, position));
+    arguments TEXT NOT NULL, status TEXT NOT NULL, definition TEXT NULL, UNIQUE(run_id, position));
   create table if not exists workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL,
     hostname TEXT NULL, state TEXT NOT NULL, PRIMARY KEY(run_id, address));
   create table if not exists workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL,
@@ -331,18 +332,25 @@ def __workflowConnect():
   conn = lite.connect(dbname)
   conn.row_factory = lite.Row
   conn.executescript(WORKFLOW_SCHEMA)
+  # Stages saved by earlier versions keep an empty definition, so their runs cannot be resumed
+  if "definition" not in [row["name"] for row in conn.execute("PRAGMA table_info(workflow_stages)")]:
+    conn.execute("ALTER TABLE workflow_stages ADD COLUMN definition TEXT NULL")
   return conn
 
 def __now():
   return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+# Everything that decides what a stage scans and whether it asks first
+def stageDefinition(stage):
+  return json.dumps({key: stage.get(key) for key in ("name", "source", "services", "confirm", "arguments")}, sort_keys=True)
 
 # Create a workflow run and its pending stages
 def createRun(workflow, target, stages):
   with closing(__workflowConnect()) as conn, conn:
     runId = conn.execute("INSERT INTO workflow_runs (workflow, target, status, started_at) VALUES (?, ?, 'running', ?)",
       (workflow, target, __now())).lastrowid
-    conn.executemany("INSERT INTO workflow_stages (run_id, position, name, arguments, status) VALUES (?, ?, ?, ?, 'pending')",
-      [(runId, position, stage["name"], stage["arguments"]) for position, stage in enumerate(stages)])
+    conn.executemany("INSERT INTO workflow_stages (run_id, position, name, arguments, status, definition) VALUES (?, ?, ?, ?, 'pending', ?)",
+      [(runId, position, stage["name"], stage["arguments"], stageDefinition(stage)) for position, stage in enumerate(stages)])
     return runId
 
 def setStageStatus(runId, position, status):
@@ -353,6 +361,11 @@ def setRunStatus(runId, status):
   with closing(__workflowConnect()) as conn, conn:
     conn.execute("UPDATE workflow_runs SET status=?, finished_at=? WHERE id=?",
       (status, None if status == "running" else __now(), runId))
+
+# Mark a run as running only if it still has the status that was read, so a second console cannot take it
+def claimRun(runId, status):
+  with closing(__workflowConnect()) as conn, conn:
+    return conn.execute("UPDATE workflow_runs SET status='running', finished_at=NULL WHERE id=? AND status=?", (runId, status)).rowcount == 1
 
 # Save everything found by one stage in a single transaction
 def saveStageResults(runId, stage, hosts, services, findings):

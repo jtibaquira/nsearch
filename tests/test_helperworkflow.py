@@ -1,5 +1,6 @@
 import nmap
 import pytest
+import re
 import yaml
 
 import dbmodule
@@ -491,6 +492,10 @@ def test_saved_targets_are_validated_again(db, scanner, workflows, catalog, caps
   CHAIN + [{"name": "extra", "from": "services", "arguments": "--script http-headers"}],
   [dict(CHAIN[0], name="renamed")] + CHAIN[1:],
   CHAIN[:1] + [dict(CHAIN[1], arguments="--top-ports 10")] + CHAIN[2:],
+  CHAIN[:2] + [dict(CHAIN[2], **{"from": "live_hosts"})] + CHAIN[3:],
+  CHAIN[:3] + [dict(CHAIN[3], when={"service": ["ssh"]})],
+  CHAIN[:2] + [dict(CHAIN[2], confirm=True)] + CHAIN[3:],
+  CHAIN[:2] + [dict(CHAIN[2], host_timeout="1m")] + CHAIN[3:],
 ])
 def test_changed_workflows_are_rejected(db, scanner, workflows, catalog, capsys, changed):
   runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
@@ -501,6 +506,44 @@ def test_changed_workflows_are_rejected(db, scanner, workflows, catalog, capsys,
   assert "changed" in out or "not valid" in out
   assert scanner.calls == []
   assert db.getRun(runId) == before
+
+def test_removing_a_confirmation_or_widening_the_ports_is_rejected(db, scanner, workflows, catalog, capsys):
+  stages = CHAIN[:3] + [{"name": "inspect", "from": "services", "when": {"service": ["ssh"]}, "arguments": "-sV", "confirm": True}]
+  runId = savedRun(db, ["completed", "completed", "completed", "interrupted"], stages=stages, workflows=workflows)
+  foundFirstStage(db, runId)
+  workflows("w", CHAIN[:3] + [{"name": "inspect", "from": "live_hosts", "arguments": "-sV"}])
+  resume(runId)
+  assert "changed" in capsys.readouterr().out
+  assert scanner.calls == []
+
+def test_runs_from_earlier_versions_cannot_be_resumed(db, scanner, workflows, catalog, capsys):
+  runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
+  conn = dbmodule.lite.connect(dbmodule.dbname)
+  conn.execute("ALTER TABLE workflow_stages DROP COLUMN definition")
+  conn.commit()
+  conn.close()
+  resume(runId)
+  assert "changed" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert db.getRun(runId)["stages"][0]["definition"] is None
+
+@pytest.mark.parametrize("status", ["interrupted", "failed"])
+def test_two_consoles_cannot_resume_the_same_run(db, scanner, workflows, catalog, monkeypatch, capsys, status):
+  runId = savedRun(db, ["completed", status], runStatus=status, workflows=workflows)
+  def otherConsoleWins(message):
+    assert db.claimRun(runId, status)
+    return "y"
+  monkeypatch.setattr("builtins.input", otherConsoleWins)
+  resume(runId)
+  assert "already resumed" in capsys.readouterr().out
+  assert scanner.calls == []
+
+def test_running_runs_warn_before_resuming(db, scanner, workflows, answers, catalog, capsys):
+  runId = savedRun(db, ["completed", "running"], runStatus="running", workflows=workflows)
+  answers.append("n")
+  resume(runId)
+  assert "no other console" in capsys.readouterr().out
+  assert scanner.calls == []
 
 def test_workflows_that_are_no_longer_valid_are_rejected(db, scanner, workflows, catalog, capsys, tmp_path):
   runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
@@ -588,22 +631,29 @@ def test_resume_does_not_print_control_characters(db, scanner, workflows, answer
   resume(runId)
   assert "\x1b" not in capsys.readouterr().out
 
+def installedScripts():
+  for path in ("/opt/homebrew/share/nmap/scripts/script.db", "/usr/local/share/nmap/scripts/script.db", "/usr/share/nmap/scripts/script.db"):
+    if helperworkflow.os.path.exists(path):
+      with open(path, encoding="utf-8") as f:
+        return {name: set(re.findall(r'"([a-z]+)"', categories)) for name, categories in re.findall(r'filename = "([^"]+)\.nse", categories = \{([^}]*)\}', f.read())}
+  pytest.skip("nmap is not installed")
+
 def test_smb_only_uses_safe_scripts_for_smb_services():
   with open(helperworkflow.os.path.join(helperworkflow.BASE_DIR, "workflows", "smb.yaml"), encoding="utf-8") as f:
     content = yaml.safe_load(f)
   stages = content["smb"]["stages"]
   assert not any(stage.get("confirm") for stage in stages)
   assert stages[-1]["when"] == {"service": ["microsoft-ds", "netbios-ssn"]}
-  categories = dict(SCRIPTS)
+  installed = installedScripts()
   for script in stages[-1]["arguments"].split()[1].split(","):
-    categories[script] = {"safe"}
-  validateWorkflow("smb", content, categories)
+    assert "safe" in installed[script]
+  validateWorkflow("smb", content, installed)
 
 def test_resume_messages_exist_in_every_language():
   for language in ("en", "es"):
     with open(helperworkflow.os.path.join(helperworkflow.BASE_DIR, "i18n", "help." + language + ".yml"), encoding="utf-8") as f:
       messages = yaml.safe_load(f)[language]
-    for key in ("workflow_not_resumable", "workflow_changed", "workflow_resume_nothing", "workflow_resume_hint"):
+    for key in ("workflow_not_resumable", "workflow_changed", "workflow_resume_nothing", "workflow_resume_hint", "workflow_resume_running", "workflow_already_resumed"):
       assert messages[key]
 
 def test_a_resumed_run_is_running_while_it_scans(db, scanner, workflows, answers, catalog, monkeypatch):

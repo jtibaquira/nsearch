@@ -200,7 +200,8 @@ If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue
 - It shows the target and the remaining stages, and asks for confirmation again. Stages with `confirm` ask again too.
 - Stages that were completed, skipped, or not confirmed do not run again. An unfinished stage runs again from its first target, and results already saved from it are kept.
 - It uses the original target and scope, and rejects the run if the target is no longer valid.
-- It rejects the run if the workflow file is no longer valid, or if the names, order, or arguments of its stages changed.
+- It rejects the run if the workflow file is no longer valid, or if anything in its stages changed: names, order, arguments, `from`, `when`, `confirm`, or `host_timeout`.
+- A run with status `running` may belong to a console that is still working, so check that before you confirm.
 
 The workflows are in the `workflows` directory:
 
