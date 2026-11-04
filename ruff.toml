@@ -1,6 +1,6 @@
 # The rules are the defaults of the ruff version pinned in requirements-dev.txt
-# README.md supports Python 3.9, so ruff cannot suggest anything newer, such as datetime.UTC
-target-version = "py39"
+# Python 3.12 is the minimum stated in README.md and checked by nsearch.py and install.sh
+target-version = "py312"
 
 # The i18n folder of this repository makes ruff take the python-i18n package for a local module
 [lint.isort]

@@ -7,7 +7,7 @@ import sqlite3 as lite
 import sys
 import tempfile
 from contextlib import closing
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import i18n
@@ -342,7 +342,7 @@ def __workflowConnect():
   return conn
 
 def __now():
-  return datetime.now(timezone.utc).isoformat(timespec="seconds")
+  return datetime.now(UTC).isoformat(timespec="seconds")
 
 # Everything that decides what a stage scans and whether it asks first
 def stageDefinition(stage):

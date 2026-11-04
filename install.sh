@@ -61,6 +61,13 @@ function requireTools(){
   fi
 }
 
+function requirePython(){
+  if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 12))'; then
+    echo "[-] NSEarch requires Python 3.12 or later, and python3 is $(python3 --version). Install a newer Python, then run this script again." >&2
+    exit 1
+  fi
+}
+
 function installRequirements(){
   printf "[+] Installing Python requirements in .venv ...\n"
   python3 -m venv .venv
@@ -109,6 +116,7 @@ case "$(uname -s)" in
   *) requireTools ;;
 esac
 
+requirePython
 installRequirements
 createConfigFile
 

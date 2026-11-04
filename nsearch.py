@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+import sys
+
+# This runs before the other imports, so an old Python gets this message and not an unrelated error
+if sys.version_info < (3, 12):  # noqa: UP036 - ruff assumes 3.12, but this runs on whatever Python starts it
+  sys.exit("Error: NSEarch requires Python 3.12 or later")
+
 import os
 import re
 

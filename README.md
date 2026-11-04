@@ -24,7 +24,7 @@ NSEarch helps you find the scripts used by nmap (NSE). You can search by name, c
 
 ## Requirements
 
-- Python 3.9 or later
+- Python 3.12 or later. It is the oldest version with at least one more year of security support, until October 2028
 - nmap
 
 The Python dependencies are listed in `requirements.txt`. The install script places them in a local virtual environment.
@@ -43,7 +43,7 @@ Use `bash`, not `sh`: under `sh`, the script stops and asks you to run it with `
 
 ### Manual installation
 
-Install nmap and Python 3, then create the virtual environment:
+Install nmap and Python 3.12 or later, then create the virtual environment:
 
 ```
 $ python3 -m venv .venv
