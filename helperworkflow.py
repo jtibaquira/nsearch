@@ -229,7 +229,7 @@ def stageReason(stage):
     reason = i18n.t("help.report_reason_open_ports")
   elif source == "services" and isinstance(services, list) and services:
     reason = i18n.t("help.report_reason_services") + ": " + ", ".join(str(service) for service in services)
-  elif source == "services":
+  elif source == "services" and services in (None, []):
     reason = i18n.t("help.report_reason_all_services")
   elif source == "suggestion" and isinstance(services, list):
     reason = i18n.t("help.report_reason_suggestion") + ": " + ", ".join(str(service) for service in services)
@@ -240,7 +240,9 @@ def stageReason(stage):
   if stage["status"] == "declined":
     return reason + ". " + i18n.t("help.report_declined")
   if definition.get("confirm") is True and stage["status"] in ("completed", "failed", "interrupted"):
-    return reason + ". " + i18n.t("help.report_confirmed")
+    reason += ". " + i18n.t("help.report_confirmed")
+  if stage["status"] in ("failed", "interrupted", "running"):
+    reason += ". " + i18n.t("help.report_unfinished")
   return reason
 
 def stageReportTargets(stage):
@@ -314,6 +316,8 @@ def reportMarkdown(report):
 # The name is built from the run id, and only this user can read the file. A temporary file
 # means a symlink left at the final path is replaced, not followed
 def writeReport(runId, extension, content):
+  if os.path.islink(REPORTS_DIR):
+    raise OSError(i18n.t("help.workflow_report_symlink"))
   os.makedirs(REPORTS_DIR, mode=0o700, exist_ok=True)
   path = os.path.join(REPORTS_DIR, "workflow-" + str(runId) + "." + extension)
   fd, tmppath = tempfile.mkstemp(dir=REPORTS_DIR)
@@ -321,9 +325,9 @@ def writeReport(runId, extension, content):
     with os.fdopen(fd, 'w', encoding="utf-8") as f:
       f.write(content)
     os.replace(tmppath, path)
-  except Exception:
-    os.remove(tmppath)
-    raise
+  finally:
+    if os.path.exists(tmppath):
+      os.remove(tmppath)
   return path
 
 def compareRuns(base, other):
@@ -580,6 +584,8 @@ class HelperWorkflow:
     # A missing host or port means nothing if that run did not scan the same thing
     if base["run"]["workflow"] != other["run"]["workflow"] or base["run"]["target"] != other["run"]["target"]:
       print(i18n.t("help.workflow_compare_different"))
+    elif [stage["definition"] for stage in base["stages"]] != [stage["definition"] for stage in other["stages"]]:
+      print(i18n.t("help.workflow_compare_stages"))
     if any(details["run"]["status"] != "completed" or any(stage["status"] not in ("completed", "skipped") for stage in details["stages"]) for details in (base, other)):
       print(i18n.t("help.workflow_compare_incomplete"))
     changes = compareRuns(base, other)

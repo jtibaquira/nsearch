@@ -35,7 +35,7 @@ lastresults = {}
 lastresultsFav = False
 
 def sanitize(text):
-  return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]", "?", str(text))
+  return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]", "?", str(text))
 
 def __fileHash():
   with open(filePath, 'rb') as scriptFile:
@@ -326,6 +326,7 @@ WORKFLOW_SCHEMA = """
   create table if not exists workflow_findings(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     run_id INTEGER NOT NULL, stage TEXT NOT NULL, address TEXT NOT NULL, port INTEGER NULL,
     script TEXT NOT NULL, output TEXT NOT NULL);
+  create index if not exists workflow_findings_run on workflow_findings(run_id);
 """
 
 def __workflowConnect():

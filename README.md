@@ -206,9 +206,9 @@ If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue
 - It rejects the run if the workflow file is no longer valid, or if anything in its stages changed: names, order, arguments, `from`, `when`, `confirm`, or `host_timeout`.
 - A run with status `running` may belong to a console that is still working, so check that before you confirm.
 
-`workflow report id:<id>` writes a report of any run to `reports/workflow-<id>.md`, or to `reports/workflow-<id>.json` with `format:json`. For each stage, it says why it ran, or why it did not, and what it scanned. Reports can contain sensitive results, so only your user can read them. Writing a report again replaces the previous one. Runs from earlier versions do not have the targets or the reasons of their stages, so their reports say they were not recorded.
+`workflow report id:<id>` writes a report of any run to `reports/workflow-<id>.md`, or to `reports/workflow-<id>.json` with `format:json`. For each stage, it says why it ran, or why it did not, and what it scanned. Reports can contain sensitive results, so only your user can read them, and a `reports` folder that is a symbolic link is rejected. Writing a report again replaces the previous one. Runs from earlier versions do not have the targets or the reasons of their stages, so their reports say they were not recorded.
 
-`workflow compare id:<id> with:<id>` shows what changed from the first run to the second: hosts, open ports, services, and script results. It warns you if the runs used a different workflow or target, or did not finish every stage, because in those cases a missing result may just not have been scanned.
+`workflow compare id:<id> with:<id>` shows what changed from the first run to the second: hosts, open ports, services, and script results. It warns you if the runs used a different workflow or target, or did not finish every stage, because in those cases a missing result may just not have been scanned. Runs with suggested stages count as having different stages.
 
 `workflow suggest id:<id>` lists scripts for the services found by a completed run, and runs only the ones you pick:
 

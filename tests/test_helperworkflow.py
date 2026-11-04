@@ -894,7 +894,7 @@ def test_compare_sanitizes_remote_data(db, scanner, workflows, answers, catalog,
   assert "\x1b" not in capsys.readouterr().out
 
 @pytest.mark.parametrize("args,message", [("", "help workflow"), ("id:1", "help workflow"), ("with:1", "help workflow"), ("id:x with:1", "help workflow"),
-  ("id:1 with:²", "help workflow"), ("id:1 with:2 net:x", "help workflow"), ("id:1 with:2", "not found")])
+  ("id:1 with:\u00b2", "help workflow"), ("id:1 with:2 net:x", "help workflow"), ("id:1 with:2", "not found")])
 def test_compare_rejects_bad_arguments(db, scanner, capsys, args, message):
   helperworkflow.HelperWorkflow(args, "compare").process()
   assert message in capsys.readouterr().out
@@ -945,7 +945,7 @@ def test_suggestions_are_listed_and_nothing_runs_without_approval(db, scanner, c
   assert answers == [] and scanner.calls == []
   assert db.getRun(runId) == before
 
-@pytest.mark.parametrize("answer", ["", "   ", "0", "3", "x", "1,", "1;2", "-1", "²", "1 2", "http-title", "99999", EOFError, KeyboardInterrupt])
+@pytest.mark.parametrize("answer", ["", "   ", "0", "3", "x", "1,", "1;2", "-1", "\u00b2", "1 2", "http-title", "99999", EOFError, KeyboardInterrupt])
 def test_anything_but_a_valid_selection_runs_nothing(db, scanner, catalog, monkeypatch, answer):
   runId = foundRun(db)
   before = db.getRun(runId)
@@ -1066,7 +1066,7 @@ def test_suggestions_need_a_completed_run(db, scanner, catalog, capsys, status):
   assert scanner.calls == []
   assert db.getRun(runId) == before
 
-@pytest.mark.parametrize("args,message", [("", "help workflow"), ("foo:1", "help workflow"), ("id:x", "help workflow"), ("id:²", "help workflow"),
+@pytest.mark.parametrize("args,message", [("", "help workflow"), ("foo:1", "help workflow"), ("id:x", "help workflow"), ("id:\u00b2", "help workflow"),
   ("id:1 net:10.0.0.1", "help workflow"), ("id:99", "not found")])
 def test_suggest_rejects_bad_arguments(db, scanner, capsys, args, message):
   helperworkflow.HelperWorkflow(args, "suggest").process()
@@ -1176,3 +1176,74 @@ def test_a_guess_fills_in_an_empty_service(db):
   runId = foundRun(db, ports=((8081, ""),))
   db.saveStageResults(runId, "x", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 8081, "state": "open", "service": "http-proxy", "product": "", "version": "", "guess": True}], [])
   assert db.getRun(runId)["services"][0]["service"] == "http-proxy"
+
+# ---- Findings from the validation of the reports
+
+def test_compare_warns_when_the_stages_differ(db, scanner, workflows, answers, catalog, capsys):
+  fullRun(scanner, workflows, answers, stages=CHAIN[:2], results={0: {"10.0.0.1": FakeHost({})}, 1: HTTP_HOST})
+  fullRun(scanner, workflows, answers, stages=CHAIN[:1], results={0: {"10.0.0.1": FakeHost({})}})
+  capsys.readouterr()
+  compare()
+  out = capsys.readouterr().out
+  assert "used different stages" in out and "Port no longer open" in out
+
+def test_compare_warns_about_suggested_stages(db, scanner, workflows, answers, catalog, capsys):
+  twoRuns(scanner, workflows, answers, later(HTTP_HOST["10.0.0.1"]))
+  answers += ["1", "y"]
+  suggest(2)
+  capsys.readouterr()
+  compare()
+  assert "used different stages" in capsys.readouterr().out
+
+def test_compare_does_not_warn_about_equal_stages(db, scanner, workflows, answers, catalog, capsys):
+  twoRuns(scanner, workflows, answers, later(HTTP_HOST["10.0.0.1"]))
+  capsys.readouterr()
+  compare()
+  assert "different stages" not in capsys.readouterr().out
+
+@pytest.mark.skipif(os.name == "nt", reason="symlink permissions")
+def test_report_rejects_a_symlinked_folder(db, scanner, workflows, answers, catalog, reports, tmp_path, capsys):
+  fullRun(scanner, workflows, answers)
+  outside = tmp_path / "outside"
+  outside.mkdir()
+  reports.symlink_to(outside)
+  capsys.readouterr()
+  report()
+  assert "symbolic link" in capsys.readouterr().out
+  assert os.listdir(outside) == []
+
+@pytest.mark.parametrize("character", ["\u202e", "\u2066", "\u200f", "\u2028", "\u2029"])
+def test_direction_and_line_controls_are_neutralized(character):
+  assert character not in helperworkflow.mdCode("a" + character + "b")
+  assert character not in helperworkflow.mdBlock("a" + character + "b")
+  assert character not in helperworkflow.sanitize("a" + character + "b")
+
+@pytest.mark.parametrize("error", [KeyboardInterrupt, OSError])
+def test_no_temporary_file_is_left_behind(db, scanner, workflows, answers, catalog, reports, monkeypatch, error):
+  fullRun(scanner, workflows, answers)
+  def fail(source, target):
+    raise error("stop")
+  monkeypatch.setattr(helperworkflow.os, "replace", fail)
+  with pytest.raises(error):
+    helperworkflow.writeReport(1, "md", "content")
+  assert os.listdir(reports) == []
+
+@pytest.mark.parametrize("definition", ['{"source": "services", "services": "ssh"}', '{"source": "services", "services": 3}', '{"source": "suggestion", "services": "ssh"}'])
+def test_badly_typed_definitions_give_no_reason(definition):
+  assert "Not recorded" in helperworkflow.stageReason({"definition": definition, "status": "completed"})
+
+@pytest.mark.parametrize("services", ["null", "[]"])
+def test_all_services_reason(services):
+  assert "the services found" in helperworkflow.stageReason({"definition": '{"source": "services", "services": ' + services + "}", "status": "completed"})
+
+@pytest.mark.parametrize("status,unfinished", [("failed", True), ("interrupted", True), ("running", True), ("completed", False), ("pending", False)])
+def test_report_says_when_a_stage_did_not_finish(status, unfinished):
+  reason = helperworkflow.stageReason({"definition": '{"source": "live_hosts", "confirm": true}', "status": status})
+  assert ("It did not finish" in reason) == unfinished
+
+def test_findings_are_found_by_run_without_a_full_scan(db):
+  db.getRuns()
+  connection = db.lite.connect(db.dbname)
+  plan = " ".join(str(row[3]) for row in connection.execute("EXPLAIN QUERY PLAN SELECT * FROM workflow_findings WHERE run_id=1 ORDER BY id"))
+  connection.close()
+  assert "workflow_findings_run" in plan

@@ -51,7 +51,9 @@ es:
   workflow_already_resumed: Otra consola ya reanudó esta ejecución
   workflow_report_saved: Reporte guardado en
   workflow_report_error: No se pudo escribir el reporte
+  workflow_report_symlink: la carpeta de reportes es un enlace simbólico
   workflow_compare_different: Estas ejecuciones usaron otro workflow u otro objetivo, así que lo que falta puede no haberse escaneado
+  workflow_compare_stages: Estas ejecuciones usaron etapas distintas, así que lo que falta puede no haberse escaneado
   workflow_compare_incomplete: Al menos una de estas ejecuciones no terminó todas sus etapas, así que lo que falta puede no haberse escaneado
   workflow_compare_same: No hay diferencias entre estas ejecuciones
   compare_new_host: Host nuevo
@@ -91,4 +93,5 @@ es:
   report_reason_unknown: No lo registró la versión que ejecutó esta etapa
   report_skipped: No se ejecutó porque no había nada que escanear
   report_declined: No se ejecutó porque no se confirmó
+  report_unfinished: No terminó, así que puede no haber escaneado todos estos objetivos
   report_confirmed: Puede ser intrusiva, así que preguntó antes y se confirmó
