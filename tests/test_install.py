@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 import subprocess
 import sys
 
@@ -57,3 +58,11 @@ def test_nsearch_checks_python_before_importing_anything_else(version, stops):
     assert result.stdout.strip() == "False"
   else:
     assert result.returncode == 0 and result.stdout.strip().endswith("True")
+
+def test_installer_explains_a_missing_python(tmp_path):
+  function = re.search(r"function requirePython\(\)\{.*?\n\}", script(), re.DOTALL).group(0)
+  bash = shutil.which("bash")
+  result = subprocess.run([bash, "-c", function + "\nrequirePython\necho reached"], capture_output=True, text=True, check=False,
+    env={"PATH": str(tmp_path)}, stdin=subprocess.DEVNULL)
+  assert result.returncode == 1 and "reached" not in result.stdout
+  assert "python3 is not installed" in result.stderr and "command not found" not in result.stderr

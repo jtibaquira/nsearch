@@ -62,6 +62,10 @@ function requireTools(){
 }
 
 function requirePython(){
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "[-] NSEarch requires Python 3.12 or later, and python3 is not installed. Install it, then run this script again." >&2
+    exit 1
+  fi
   if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 12))'; then
     echo "[-] NSEarch requires Python 3.12 or later, and python3 is $(python3 --version). Install a newer Python, then run this script again." >&2
     exit 1
