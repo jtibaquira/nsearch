@@ -55,6 +55,17 @@ es:
   workflow_compare_different: Estas ejecuciones usaron otro workflow u otro objetivo, así que lo que falta puede no haberse escaneado
   workflow_compare_stages: Estas ejecuciones usaron etapas distintas, así que lo que falta puede no haberse escaneado
   workflow_compare_incomplete: Al menos una de estas ejecuciones no terminó todas sus etapas, así que lo que falta puede no haberse escaneado
+  workflow_compare_warning: Al menos una de estas ejecuciones tiene advertencias, así que lo que falta puede ser una observación incompleta o un cambio real
+  workflow_run_warning: Algunas observaciones del escaneo fueron inconsistentes o faltaron. Que un resultado no aparezca no demuestra que el puerto esté cerrado. Vuelve a ejecutar el workflow más tarde si hace falta
+  workflow_no_targets_warning: omitida, no queda nada que escanear tras las advertencias de esta ejecución
+  workflow_resume_warning: Esta ejecución tiene advertencias y no se puede reanudar. Inicia otra más tarde si hace falta
+  workflow_warning_host_missing: el host no respondió a esta etapa
+  workflow_warning_port_changed: abierto antes en esta ejecución, ahora se ve distinto
+  workflow_warning_port_missing: abierto antes en esta ejecución, esta etapa no lo informó
+  workflow_warning_port_not_seen: visto abierto por una ejecución anterior, esta no lo vio
+  workflow_warning_unknown: advertencia desconocida
+  workflow_warning_run: ejecución
+  report_warnings: Advertencias
   workflow_compare_same: No hay diferencias entre estas ejecuciones
   compare_new_host: Host nuevo
   compare_gone_host: Host que ya no se encuentra

@@ -55,6 +55,17 @@ en:
   workflow_compare_different: These runs used a different workflow or target, so missing results may just not have been scanned
   workflow_compare_stages: These runs used different stages, so missing results may just not have been scanned
   workflow_compare_incomplete: At least one of these runs did not finish every stage, so missing results may just not have been scanned
+  workflow_compare_warning: At least one of these runs has warnings, so a missing result may be an incomplete observation or a real change
+  workflow_run_warning: Some scan observations were inconsistent or missing. A missing result does not prove that a port is closed. Run a new workflow later if needed
+  workflow_no_targets_warning: skipped, nothing left to scan after the warnings of this run
+  workflow_resume_warning: This run has warnings and cannot be resumed. Start a new run later if needed
+  workflow_warning_host_missing: the host did not answer this stage
+  workflow_warning_port_changed: open earlier in this run, now seen differently
+  workflow_warning_port_missing: open earlier in this run, not reported by this stage
+  workflow_warning_port_not_seen: seen open by an earlier run, not seen by this one
+  workflow_warning_unknown: unknown warning
+  workflow_warning_run: run
+  report_warnings: Warnings
   workflow_compare_same: No differences between these runs
   compare_new_host: New host
   compare_gone_host: Host no longer found

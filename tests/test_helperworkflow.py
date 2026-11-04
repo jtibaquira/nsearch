@@ -1463,3 +1463,145 @@ def test_a_warning_survives_resuming_the_run(db, scanner, workflows, answers, mo
   details = db.getRun(runId)
   assert details["run"]["status"] == "completed_with_warnings"
   assert warningsOf(details) == [{"type": "port_changed", "address": "10.0.0.1", "protocol": "tcp", "port": 22, "before": "open", "after": "filtered"}]
+
+# ---- How a run with warnings is shown
+
+FILTERED_RUN = {0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({80: {"state": "filtered", "name": "http"}})}}
+
+def warnedRun(db, scanner, workflows, answers, monkeypatch):
+  return runChain(db, scanner, workflows, answers, monkeypatch, FILTERED_RUN)
+
+def test_a_run_with_warnings_says_so(db, scanner, workflows, answers, monkeypatch, capsys):
+  runId = warnedRun(db, scanner, workflows, answers, monkeypatch)
+  out = capsys.readouterr().out
+  assert "[4/4] enum: skipped, nothing left to scan after the warnings of this run" in out
+  assert "nothing to scan" not in out
+  assert f"[{runId}] w 10.0.0.1: completed_with_warnings\n" in out
+  assert "    [!] 10.0.0.1 80/tcp open earlier in this run, now seen differently (open => filtered)\n" in out
+  assert "A missing result does not prove that a port is closed" in out
+  helperworkflow.HelperWorkflow("id:" + str(runId), "status").process()
+  assert "[!] 10.0.0.1 80/tcp" in capsys.readouterr().out
+
+def test_a_run_without_warnings_prints_what_it_always_did(db, scanner, workflows, answers, monkeypatch, capsys):
+  runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: UP})
+  out = capsys.readouterr().out
+  assert "[3/4] services: skipped, nothing to scan\n" in out
+  assert "[!]" not in out and "warnings" not in out and "missing result" not in out
+
+def test_a_run_with_warnings_cannot_be_resumed(db, scanner, workflows, answers, monkeypatch, capsys):
+  runId = warnedRun(db, scanner, workflows, answers, monkeypatch)
+  calls = len(scanner.calls)
+  capsys.readouterr()
+  helperworkflow.HelperWorkflow("id:" + str(runId), "resume").process()
+  assert capsys.readouterr().out == "This run has warnings and cannot be resumed. Start a new run later if needed\n"
+  assert len(scanner.calls) == calls
+
+def test_a_run_with_warnings_gets_no_suggestions(db, scanner, workflows, answers, monkeypatch, capsys):
+  runId = warnedRun(db, scanner, workflows, answers, monkeypatch)
+  calls = len(scanner.calls)
+  capsys.readouterr()
+  helperworkflow.HelperWorkflow("id:" + str(runId), "suggest").process()
+  assert capsys.readouterr().out == "Suggestions need a completed run. Status: completed_with_warnings\n"
+  assert len(scanner.calls) == calls
+
+def test_compare_warns_about_runs_with_warnings(db, scanner, workflows, answers, monkeypatch, capsys):
+  first = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  second = warnedRun(db, scanner, workflows, answers, monkeypatch)
+  capsys.readouterr()
+  helperworkflow.HelperWorkflow(f"id:{first} with:{second}", "compare").process()
+  out = capsys.readouterr().out
+  assert "At least one of these runs has warnings" in out
+  assert "did not finish every stage" not in out
+  assert "[-] " in out
+
+def test_compare_without_warnings_prints_what_it_always_did(db, scanner, workflows, answers, monkeypatch, capsys):
+  first = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  second = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  capsys.readouterr()
+  helperworkflow.HelperWorkflow(f"id:{first} with:{second}", "compare").process()
+  assert capsys.readouterr().out == "No differences between these runs\n"
+
+def test_a_suggested_stage_that_stops_seeing_a_port_marks_the_run(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  scanner.calls.clear()
+  scanner.results = {0: {"10.0.0.1": FakeHost({80: {"state": "filtered", "name": "http"}})}}
+  answers += ["1", "y"]
+  helperworkflow.HelperWorkflow("id:" + str(runId), "suggest").process()
+  assert db.getRun(runId)["run"]["status"] == "completed_with_warnings"
+
+def test_a_suggested_stage_without_changes_keeps_the_run_completed(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  scanner.calls.clear()
+  scanner.results = {}
+  answers += ["1", "y"]
+  helperworkflow.HelperWorkflow("id:" + str(runId), "suggest").process()
+  assert db.getRun(runId)["run"]["status"] == "completed"
+
+def test_the_reports_include_the_warnings(db, scanner, workflows, answers, monkeypatch, tmp_path):
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(tmp_path / "reports"))
+  runId = warnedRun(db, scanner, workflows, answers, monkeypatch)
+  helperworkflow.HelperWorkflow("id:" + str(runId) + " format:json", "report").process()
+  report = json.loads((tmp_path / "reports" / ("workflow-" + str(runId) + ".json")).read_text(encoding="utf-8"))
+  assert report["run"]["status"] == "completed_with_warnings"
+  assert report["stages"][2]["warnings"] == [{"type": "port_changed", "address": "10.0.0.1", "protocol": "tcp", "port": 80, "before": "open", "after": "filtered"}]
+  assert report["stages"][0]["warnings"] == []
+  helperworkflow.HelperWorkflow("id:" + str(runId), "report").process()
+  text = (tmp_path / "reports" / ("workflow-" + str(runId) + ".md")).read_text(encoding="utf-8")
+  assert "- Warnings:\n  - 10.0.0.1 80/tcp open earlier in this run, now seen differently" in text
+  assert "A missing result does not prove that a port is closed" in text
+
+def test_a_report_without_warnings_has_no_warning_text(db, scanner, workflows, answers, monkeypatch, tmp_path):
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(tmp_path / "reports"))
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  helperworkflow.HelperWorkflow("id:" + str(runId), "report").process()
+  text = (tmp_path / "reports" / ("workflow-" + str(runId) + ".md")).read_text(encoding="utf-8")
+  assert "Warnings" not in text and "missing result" not in text
+
+@pytest.mark.parametrize("stored", ["not json", '{"type": "x"}', "[1, null]", None])
+def test_tampered_warnings_are_ignored(db, scanner, workflows, answers, monkeypatch, capsys, stored):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  conn = db.lite.connect(db.dbname)
+  conn.execute("UPDATE workflow_stages SET warnings=? WHERE run_id=?", (stored, runId))
+  conn.commit()
+  conn.close()
+  capsys.readouterr()
+  helperworkflow.HelperWorkflow("id:" + str(runId), "status").process()
+  assert "[!]" not in capsys.readouterr().out
+
+def test_hostile_warning_data_is_neutralized(db, scanner, workflows, answers, monkeypatch, capsys, tmp_path):
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(tmp_path / "reports"))
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  hostile = json.dumps([{"type": "port_changed", "address": "\x1b[31m<b>[x](y)", "protocol": "tcp", "port": 1, "before": "open", "after": "`\n# h"}, {"type": "\x1b[31mnope", "address": "a"}])
+  conn = db.lite.connect(db.dbname)
+  conn.execute("UPDATE workflow_stages SET warnings=? WHERE run_id=? AND position=0", (hostile, runId))
+  conn.commit()
+  conn.close()
+  capsys.readouterr()
+  helperworkflow.HelperWorkflow("id:" + str(runId), "status").process()
+  out = capsys.readouterr().out
+  assert "\x1b" not in out and "\n# h" not in out and "unknown warning" in out
+  helperworkflow.HelperWorkflow("id:" + str(runId), "report").process()
+  text = (tmp_path / "reports" / ("workflow-" + str(runId) + ".md")).read_text(encoding="utf-8")
+  assert "\x1b" not in text and "\n# h" not in text and "<b>" not in text and "[x](y)" not in text
+
+def test_an_intrusive_stage_shows_the_ports_it_will_scan(db, scanner, workflows, monkeypatch):
+  stages = CHAIN[:3] + [{"name": "vuln", "from": "services", "arguments": "--script http-sql", "confirm": True}]
+  workflows("w", stages)
+  monkeypatch.setattr(db, "scriptCategories", lambda: SCRIPTS)
+  scanner.results = {0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}}
+  asked = []
+  def answer(message):
+    asked.append(message)
+    return "n" if len(asked) > 1 else "y"
+  monkeypatch.setattr("builtins.input", answer)
+  helperworkflow.HelperWorkflow("name:w net:10.0.0.1", "run").process()
+  assert "Run it against 10.0.0.1:80 [y/N]" in asked[1]
+
+def test_the_warning_messages_exist_in_every_language():
+  for lang in ("en", "es"):
+    with open(os.path.join(dbmodule.BASE_DIR, "i18n", "help." + lang + ".yml"), encoding="utf-8") as f:
+      messages = yaml.safe_load(f)[lang]
+    for key in ("workflow_compare_warning", "workflow_run_warning", "workflow_no_targets_warning", "workflow_resume_warning", "workflow_warning_unknown", "workflow_warning_run", "report_warnings"):
+      assert key in messages
+    for kind in helperworkflow.WARNING_TYPES:
+      assert "workflow_warning_" + kind in messages

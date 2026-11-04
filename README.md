@@ -217,6 +217,14 @@ If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue
 - It only scans the hosts and ports of that service in that run. Each approved set is added to the run as a new stage, and appears in its status and report.
 - If a suggested stage is interrupted or fails, the run stays `completed`, what was saved is kept, and `workflow suggest` offers the scripts again.
 
+A run that stops seeing something it found ends with status `completed_with_warnings`, and its status and reports say what happened. This covers a port that was open and a later stage sees as filtered or closed, or does not report, a host that stops answering, and a port that the previous comparable run of the same target saw and this one did not. NSEarch cannot tell a scan being blocked from a real change, so a warning does not say which one it was:
+
+- Hosts and ports that were not seen again are not scanned by later stages, and the stages left without targets are skipped.
+- NSEarch never retries or slows down a scan on its own. If you want to check again, start a new run later.
+- These runs cannot be resumed, and `workflow suggest` does not work on them, because they may not have seen everything. `workflow compare` works, and warns you.
+- A previous run is only comparable if it finished and looked for ports in the same way. A port that really closed is only reported by the first run after it.
+- A single run where a host answers and shows no open ports gives no warning, because that is also what a host with nothing exposed looks like.
+
 The workflows are in the `workflows` directory:
 
 ```yaml

@@ -30,6 +30,7 @@ NMAP_PORT_TABLE_CONF = "3"
 RESUMABLE_RUNS = ("interrupted", "failed", "running")
 FINISHED_STAGES = ("completed", "skipped", "declined")
 COMPLETED_RUNS = ("completed", "completed_with_warnings")
+WARNING_TYPES = ("host_missing", "port_changed", "port_missing", "port_not_seen")
 # Script name prefixes per service. A service name comes from the scanned host, so it is only ever
 # looked up here, and what reaches nmap comes from this table and the script database
 SUGGESTIONS = {
@@ -246,6 +247,17 @@ def stageWarnings(stage):
   warnings = loadStored(stage.get("warnings"))
   return [warning for warning in warnings if isinstance(warning, dict)] if isinstance(warnings, list) else []
 
+# The address, port and states come from the database, so this stays on one line, and whoever prints it must sanitize or escape it
+def warningText(warning):
+  kind = warning.get("type")
+  text = i18n.t("help.workflow_warning_" + kind) if kind in WARNING_TYPES else i18n.t("help.workflow_warning_unknown")
+  port = str(warning.get("port")) + "/" + str(warning.get("protocol")) + " " if "port" in warning else ""
+  if kind == "port_changed":
+    text += " (" + str(warning.get("before")) + " => " + str(warning.get("after")) + ")"
+  elif kind == "port_not_seen":
+    text += " (" + i18n.t("help.workflow_warning_run") + " " + str(warning.get("run")) + ")"
+  return " ".join((str(warning.get("address")) + " " + port + text).split())
+
 def finishedStatus(runId):
   return "completed_with_warnings" if any(stageWarnings(stage) for stage in dbmodule.getStages(runId)) else "completed"
 
@@ -313,7 +325,7 @@ def buildReport(details):
   return {
     "run": {key: run[key] for key in ("id", "workflow", "target", "status", "started_at", "finished_at")},
     "stages": [{"position": stage["position"] + 1, "name": stage["name"], "status": stage["status"], "arguments": stage["arguments"],
-      "reason": stageReason(stage), "targets": stageReportTargets(stage)} for stage in details["stages"]],
+      "reason": stageReason(stage), "targets": stageReportTargets(stage), "warnings": stageWarnings(stage)} for stage in details["stages"]],
     "hosts": [{key: host[key] for key in ("address", "hostname", "state")} for host in details["hosts"]],
     "services": [{key: item[key] for key in ("address", "protocol", "port", "service", "product", "version")} for item in details["services"]],
     "findings": [{key: item[key] for key in ("stage", "address", "port", "script", "output")} for item in details["findings"]],
@@ -343,6 +355,8 @@ def reportMarkdown(report):
   lines = ["# " + i18n.t("help.report_title") + " " + str(run["id"]), ""]
   for label, key in (("report_workflow", "workflow"), ("report_target", "target"), ("report_status", "status"), ("report_started", "started_at"), ("report_finished", "finished_at")):
     lines.append("- " + i18n.t("help." + label) + ": " + mdCode(run[key]))
+  if any(stage["warnings"] for stage in report["stages"]):
+    lines += ["", "**" + mdText(i18n.t("help.workflow_run_warning")) + "**"]
   lines += ["", "## " + i18n.t("help.report_stages"), ""]
   for stage in report["stages"]:
     lines += ["### " + str(stage["position"]) + ". " + mdCode(stage["name"]) + " " + mdCode(stage["status"]), "",
@@ -357,6 +371,9 @@ def reportMarkdown(report):
       for target in stage["targets"]:
         ports = " " + i18n.t("help.report_ports") + " " + mdCode(target["ports"]) if target["ports"] else ""
         lines.append("  - " + mdCode(target["target"]) + ports)
+    if stage["warnings"]:
+      lines.append("- " + i18n.t("help.report_warnings") + ":")
+      lines += ["  - " + mdText(warningText(warning)) for warning in stage["warnings"]]
     lines.append("")
   lines += ["## " + i18n.t("help.report_hosts"), ""]
   lines += ["- " + mdCode(host["address"]) + " " + mdCode(host["hostname"]) + " " + mdCode(host["state"]) for host in report["hosts"]] or [i18n.t("help.report_none")]
@@ -516,9 +533,10 @@ class HelperWorkflow:
       dbmodule.setStageTargets(runId, position, targets)
       if not targets:
         dbmodule.setStageStatus(runId, position, "skipped")
-        print(label + ": " + i18n.t("help.workflow_no_targets"))
+        warned = any(stageWarnings(item) for item in dbmodule.getStages(runId))
+        print(label + ": " + i18n.t("help.workflow_no_targets_warning" if warned else "help.workflow_no_targets"))
         continue
-      if stage["confirm"] and not askConfirmation(label + ": " + i18n.t("help.workflow_confirm_stage") + " " + sanitize(", ".join(target for target, _ in targets))):
+      if stage["confirm"] and not askConfirmation(label + ": " + i18n.t("help.workflow_confirm_stage") + " " + sanitize(", ".join(target + (":" + ports if ports else "") for target, ports in targets))):
         dbmodule.setStageStatus(runId, position, "declined")
         print(label + ": " + i18n.t("help.workflow_declined"))
         continue
@@ -577,6 +595,9 @@ class HelperWorkflow:
     details = dbmodule.getRun(runId)
     if details is None:
       print(i18n.t("help.workflow_not_found"))
+      return
+    if details["run"]["status"] == "completed_with_warnings":
+      print(i18n.t("help.workflow_resume_warning"))
       return
     if details["run"]["status"] not in RESUMABLE_RUNS:
       print(i18n.t("help.workflow_not_resumable") + ": " + sanitize(details["run"]["status"]))
@@ -646,8 +667,10 @@ class HelperWorkflow:
       print(i18n.t("help.workflow_compare_different"))
     elif [stage["definition"] for stage in base["stages"]] != [stage["definition"] for stage in other["stages"]]:
       print(i18n.t("help.workflow_compare_stages"))
-    if any(details["run"]["status"] != "completed" or any(stage["status"] not in ("completed", "skipped") for stage in details["stages"]) for details in (base, other)):
+    if any(details["run"]["status"] not in COMPLETED_RUNS or any(stage["status"] not in ("completed", "skipped") for stage in details["stages"]) for details in (base, other)):
       print(i18n.t("help.workflow_compare_incomplete"))
+    if any(stageWarnings(stage) for details in (base, other) for stage in details["stages"]):
+      print(i18n.t("help.workflow_compare_warning"))
     changes = compareRuns(base, other)
     if not changes:
       print(i18n.t("help.workflow_compare_same"))
@@ -665,7 +688,7 @@ class HelperWorkflow:
     if details is None:
       print(i18n.t("help.workflow_not_found"))
       return
-    # Stages added to an unfinished run would stop it from being resumed
+    # Stages added to an unfinished run would stop it from being resumed, and a run with warnings may not have seen everything
     if details["run"]["status"] != "completed":
       print(i18n.t("help.workflow_suggest_not_completed") + ": " + sanitize(details["run"]["status"]))
       return
@@ -706,8 +729,11 @@ class HelperWorkflow:
         return
       position, stage = dbmodule.addStage(runId, "suggested", {"source": "suggestion", "services": [service], "confirm": False, "arguments": arguments})
       dbmodule.setStageTargets(runId, position, targets)
-      if self.__scanStage(nm, runId, position, stage, targets, scope, "[" + stage["name"] + "]"):
+      problem = self.__scanStage(nm, runId, position, stage, targets, scope, "[" + stage["name"] + "]")
+      # A suggested stage can stop seeing a port too. If it did not finish, the run keeps its status
+      if problem:
         return
+      dbmodule.setRunStatus(runId, finishedStatus(runId))
       scanned = True
     if scanned:
       self.__printRun(dbmodule.getRun(runId))
@@ -717,9 +743,13 @@ class HelperWorkflow:
     print(f"[{run['id']}] {sanitize(run['workflow'])} {sanitize(run['target'])}: {sanitize(run['status'])}")
     for stage in details["stages"]:
       print(f"  {sanitize(stage['name'])}: {sanitize(stage['status'])}")
+      for warning in stageWarnings(stage):
+        print("    [!] " + sanitize(warningText(warning)))
     for host in details["hosts"]:
       print(f"Host : {sanitize(host['address'])} ({sanitize(host['hostname'] or '')}) {sanitize(host['state'])}")
     for item in details["services"]:
       print(f"  {sanitize(item['address'])} {sanitize(item['port'])}/{sanitize(item['protocol'])} {sanitize(item['service'] or '')} {sanitize(item['product'] or '')} {sanitize(item['version'] or '')}")
     for item in details["findings"]:
       print(f"  [{sanitize(item['stage'])}] {sanitize(item['address'])}:{sanitize(item['port'] or '-')} {sanitize(item['script'])} => {sanitize(item['output'])}")
+    if any(stageWarnings(stage) for stage in details["stages"]):
+      print(i18n.t("help.workflow_run_warning"))
