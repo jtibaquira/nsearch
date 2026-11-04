@@ -1,3 +1,4 @@
+import json
 import sqlite3
 
 import pytest
@@ -184,3 +185,73 @@ def test_an_unexpected_error_in_search_reaches_the_console(db, monkeypatch, caps
   monkeypatch.setattr(db, "__fetchScript", fail)
   assert not console.Console().onecmd("search")
   assert capsys.readouterr().out == "Error: boom\n"
+
+# ---- Observations of a workflow run
+
+def test_a_later_state_keeps_the_evidence_that_the_port_was_open(db):
+  runId = db.createRun("w", "10.0.0.1", [{"name": "ports", "arguments": "-F"}])
+  service = {"address": "10.0.0.1", "protocol": "tcp", "port": 22, "state": "open", "service": "ssh", "product": "", "version": ""}
+  db.saveStageResults(runId, "ports", [], [service], [])
+  db.saveStageResults(runId, "services", [], [dict(service, state="filtered")], [])
+  assert db.getOpenPorts(runId) == {}
+  assert db.getOpenServices(runId) == set()
+  assert db.getSeenPorts(runId) == {("10.0.0.1", "tcp", 22)}
+
+def test_a_missing_observation_is_not_used_as_a_target(db):
+  runId = db.createRun("w", "10.0.0.1", [{"name": "ports", "arguments": "-F"}])
+  service = {"address": "10.0.0.1", "protocol": "tcp", "port": 22, "state": "open", "service": "ssh", "product": "", "version": ""}
+  db.saveStageResults(runId, "ports", [{"address": "10.0.0.1", "hostname": "", "state": "up"}], [service], [])
+  db.recordObservations(runId, 0, [{"type": "host_missing", "address": "10.0.0.1"}], ["10.0.0.1"], [("10.0.0.1", "tcp", 22)])
+  details = db.getRun(runId)
+  assert db.getOpenPorts(runId) == {}
+  assert db.getLiveHosts(runId) == []
+  assert details["services"] == []
+  assert details["hosts"][0]["state"] == "up"
+  assert db.getSeenPorts(runId) == {("10.0.0.1", "tcp", 22)}
+  db.saveStageResults(runId, "ports", [{"address": "10.0.0.1", "hostname": "", "state": "up"}], [service], [])
+  assert db.getOpenPorts(runId) == {"10.0.0.1": [22]}
+  assert db.getLiveHosts(runId) == ["10.0.0.1"]
+
+def test_repeated_warnings_are_saved_once(db):
+  runId = db.createRun("w", "10.0.0.1", [{"name": "ports", "arguments": "-F"}])
+  warning = {"type": "host_missing", "address": "10.0.0.1"}
+  db.recordObservations(runId, 0, [warning])
+  db.recordObservations(runId, 0, [warning])
+  assert json.loads(db.getRun(runId)["stages"][0]["warnings"]) == [warning]
+
+def test_earlier_runs_only_lists_older_runs_of_the_target_with_the_status(db):
+  first = db.createRun("w", "10.0.0.1", [])
+  db.setRunStatus(first, "completed")
+  failed = db.createRun("w", "10.0.0.1", [])
+  db.setRunStatus(failed, "failed")
+  other = db.createRun("w", "10.0.0.2", [])
+  db.setRunStatus(other, "completed")
+  second = db.createRun("w", "10.0.0.1", [])
+  db.setRunStatus(second, "completed")
+  last = db.createRun("w", "10.0.0.1", [])
+  assert db.getEarlierRuns(last, "10.0.0.1", ("completed",)) == [second, first]
+  assert db.getEarlierRuns(first, "10.0.0.1", ("completed",)) == []
+
+def test_a_database_from_an_earlier_version_keeps_its_results(db):
+  conn = sqlite3.connect(db.dbname)
+  conn.executescript("""
+    create table workflow_runs(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, workflow TEXT NOT NULL, target TEXT NOT NULL, status TEXT NOT NULL, started_at TEXT NOT NULL, finished_at TEXT NULL);
+    create table workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL, arguments TEXT NOT NULL, status TEXT NOT NULL, definition TEXT NULL, targets TEXT NULL, UNIQUE(run_id, position));
+    create table workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL, hostname TEXT NULL, state TEXT NOT NULL, PRIMARY KEY(run_id, address));
+    create table workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL, protocol TEXT NOT NULL, port INTEGER NOT NULL, state TEXT NOT NULL, service TEXT NULL, product TEXT NULL, version TEXT NULL, PRIMARY KEY(run_id, address, protocol, port));
+    insert into workflow_runs values (1, 'w', '10.0.0.1', 'completed', 'x', 'y');
+    insert into workflow_stages values (1, 1, 0, 'ports', '-F', 'completed', NULL, NULL);
+    insert into workflow_hosts values (1, '10.0.0.1', 'h', 'up');
+    insert into workflow_services values (1, '10.0.0.1', 'tcp', 22, 'open', 'ssh', '', '');
+    insert into workflow_services values (1, '10.0.0.1', 'tcp', 23, 'filtered', 'telnet', '', '');
+  """)
+  conn.commit()
+  conn.close()
+  details = db.getRun(1)
+  assert details["stages"][0]["warnings"] is None
+  assert [item["port"] for item in details["services"]] == [22]
+  assert details["services"][0]["ever_open"] is None
+  assert db.getOpenPorts(1) == {"10.0.0.1": [22]}
+  assert db.getLiveHosts(1) == ["10.0.0.1"]
+  # A port that is filtered now may have been open before this was recorded, and nothing claims it was
+  assert db.getSeenPorts(1) == {("10.0.0.1", "tcp", 22)}

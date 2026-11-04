@@ -318,27 +318,35 @@ WORKFLOW_SCHEMA = """
     started_at TEXT NOT NULL, finished_at TEXT NULL);
   create table if not exists workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL,
-    arguments TEXT NOT NULL, status TEXT NOT NULL, definition TEXT NULL, targets TEXT NULL, UNIQUE(run_id, position));
+    arguments TEXT NOT NULL, status TEXT NOT NULL, definition TEXT NULL, targets TEXT NULL, warnings TEXT NULL, UNIQUE(run_id, position));
   create table if not exists workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL,
-    hostname TEXT NULL, state TEXT NOT NULL, PRIMARY KEY(run_id, address));
+    hostname TEXT NULL, state TEXT NOT NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address));
   create table if not exists workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL,
     protocol TEXT NOT NULL, port INTEGER NOT NULL, state TEXT NOT NULL, service TEXT NULL,
-    product TEXT NULL, version TEXT NULL, PRIMARY KEY(run_id, address, protocol, port));
+    product TEXT NULL, version TEXT NULL, ever_open INTEGER NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address, protocol, port));
   create table if not exists workflow_findings(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     run_id INTEGER NOT NULL, stage TEXT NOT NULL, address TEXT NOT NULL, port INTEGER NULL,
     script TEXT NOT NULL, output TEXT NOT NULL);
   create index if not exists workflow_findings_run on workflow_findings(run_id);
 """
 
+WORKFLOW_COLUMNS = (
+  ("workflow_stages", (("definition", "TEXT"), ("targets", "TEXT"), ("warnings", "TEXT"))),
+  ("workflow_hosts", (("last_observation", "TEXT"),)),
+  ("workflow_services", (("ever_open", "INTEGER"), ("last_observation", "TEXT"))),
+)
+
 def __workflowConnect():
   conn = lite.connect(dbname)
   conn.row_factory = lite.Row
   conn.executescript(WORKFLOW_SCHEMA)
-  # Stages saved by earlier versions keep these empty: their runs cannot be resumed, and their reports say it was not recorded
-  columns = [row["name"] for row in conn.execute("PRAGMA table_info(workflow_stages)")]
-  for column in ("definition", "targets"):
-    if column not in columns:
-      conn.execute("ALTER TABLE workflow_stages ADD COLUMN " + column + " TEXT NULL")
+  # Stages saved by earlier versions keep these empty: their runs cannot be resumed, and their reports say it was not recorded.
+  # Their results keep what they had too, because what a later stage replaced is not known
+  for table, added in WORKFLOW_COLUMNS:
+    columns = [row["name"] for row in conn.execute("PRAGMA table_info(" + table + ")")]
+    for column, kind in added:
+      if column not in columns:
+        conn.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + kind + " NULL")
   return conn
 
 def __now():
@@ -388,20 +396,22 @@ def claimRun(runId, status):
     return conn.execute("UPDATE workflow_runs SET status='running', finished_at=NULL WHERE id=? AND status=?", (runId, status)).rowcount == 1
 
 # Save everything found by one stage in a single transaction. A service name that nmap only
-# guessed from the port number does not replace one that was already found
+# guessed from the port number does not replace one that was already found, and a port keeps
+# the fact that it was seen open when a later stage sees it differently
 def saveStageResults(runId, stage, hosts, services, findings):
   with closing(__workflowConnect()) as conn, conn:
-    conn.executemany("""INSERT INTO workflow_hosts (run_id, address, hostname, state) VALUES (?, ?, ?, ?)
-      ON CONFLICT(run_id, address) DO UPDATE SET state=excluded.state,
+    conn.executemany("""INSERT INTO workflow_hosts (run_id, address, hostname, state, last_observation) VALUES (?, ?, ?, ?, 'reported')
+      ON CONFLICT(run_id, address) DO UPDATE SET state=excluded.state, last_observation='reported',
       hostname=COALESCE(NULLIF(excluded.hostname, ''), hostname)""",
       [(runId, host["address"], host["hostname"], host["state"]) for host in hosts])
-    conn.executemany("""INSERT INTO workflow_services (run_id, address, protocol, port, state, service, product, version)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(run_id, address, protocol, port) DO UPDATE SET state=excluded.state,
+    conn.executemany("""INSERT INTO workflow_services (run_id, address, protocol, port, state, service, product, version, ever_open, last_observation)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'reported')
+      ON CONFLICT(run_id, address, protocol, port) DO UPDATE SET state=excluded.state, last_observation='reported',
+      ever_open=CASE WHEN excluded.state='open' OR state='open' THEN 1 ELSE ever_open END,
       service=CASE WHEN ? THEN COALESCE(NULLIF(service, ''), excluded.service) ELSE COALESCE(NULLIF(excluded.service, ''), service) END,
       product=COALESCE(NULLIF(excluded.product, ''), product),
       version=COALESCE(NULLIF(excluded.version, ''), version)""",
-      [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"], item.get("guess", False))
+      [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"], int(item["state"] == "open"), item.get("guess", False))
         for item in services])
     # A resumed stage scans its targets again, and the new findings replace the old ones
     conn.executemany("DELETE FROM workflow_findings WHERE run_id=? AND stage=? AND address=?",
@@ -409,14 +419,29 @@ def saveStageResults(runId, stage, hosts, services, findings):
     conn.executemany("INSERT INTO workflow_findings (run_id, stage, address, port, script, output) VALUES (?, ?, ?, ?, ?, ?)",
       [(runId, stage, item["address"], item["port"], item["script"], item["output"]) for item in findings])
 
+# Something a stage had to see and did not is no longer a target, and rows from earlier versions have no observation
+OBSERVED = "COALESCE(last_observation, 'reported') != 'missing'"
+
+# Save what a stage expected and did not see, and its warnings. A stage that runs again keeps the ones it had
+def recordObservations(runId, position, warnings, hosts=(), ports=()):
+  with closing(__workflowConnect()) as conn, conn:
+    row = conn.execute("SELECT warnings FROM workflow_stages WHERE run_id=? AND position=?", (runId, position)).fetchone()
+    saved = json.loads(row["warnings"]) if row is not None and row["warnings"] else []
+    conn.execute("UPDATE workflow_stages SET warnings=? WHERE run_id=? AND position=?",
+      (json.dumps(saved + [warning for warning in warnings if warning not in saved]), runId, position))
+    conn.executemany("UPDATE workflow_hosts SET last_observation='missing' WHERE run_id=? AND address=?",
+      [(runId, address) for address in hosts])
+    conn.executemany("UPDATE workflow_services SET last_observation='missing' WHERE run_id=? AND address=? AND protocol=? AND port=?",
+      [(runId, *port) for port in ports])
+
 def getLiveHosts(runId):
   with closing(__workflowConnect()) as conn:
     return [row["address"] for row in conn.execute(
-      "SELECT address FROM workflow_hosts WHERE run_id=? AND state='up' ORDER BY address", (runId,))]
+      "SELECT address FROM workflow_hosts WHERE run_id=? AND state='up' AND " + OBSERVED + " ORDER BY address", (runId,))]
 
 # Open ports per host, optionally only for the given service names
 def getOpenPorts(runId, services=None):
-  sql = "SELECT address, port FROM workflow_services WHERE run_id=? AND state='open'"
+  sql = "SELECT address, port FROM workflow_services WHERE run_id=? AND state='open' AND " + OBSERVED
   params = [runId]
   if services:
     sql += " AND service IN (" + ", ".join("?" for _ in services) + ")"
@@ -426,6 +451,29 @@ def getOpenPorts(runId, services=None):
     for row in conn.execute(sql + " ORDER BY address, port", params):
       ports.setdefault(row["address"], []).append(row["port"])
   return ports
+
+def __ports(runId, condition):
+  with closing(__workflowConnect()) as conn:
+    return {(row["address"], row["protocol"], row["port"]) for row in conn.execute(
+      "SELECT address, protocol, port FROM workflow_services WHERE run_id=? AND " + condition, (runId,))}
+
+# Ports that are open as far as the run knows
+def getOpenServices(runId):
+  return __ports(runId, "state='open' AND " + OBSERVED)
+
+# Ports that any stage of the run saw open
+def getSeenPorts(runId):
+  return __ports(runId, "(ever_open=1 OR state='open')")
+
+def getStages(runId):
+  with closing(__workflowConnect()) as conn:
+    return [dict(row) for row in conn.execute("SELECT * FROM workflow_stages WHERE run_id=? ORDER BY position", (runId,))]
+
+# Older runs of a target with any of these statuses, newest first
+def getEarlierRuns(runId, target, statuses):
+  sql = "SELECT id FROM workflow_runs WHERE id<? AND target=? AND status IN (" + ", ".join("?" for _ in statuses) + ") ORDER BY id DESC"
+  with closing(__workflowConnect()) as conn:
+    return [row["id"] for row in conn.execute(sql, (runId, target, *statuses))]
 
 def getRuns():
   with closing(__workflowConnect()) as conn:
@@ -440,7 +488,7 @@ def getRun(runId):
     for key, sql in (
       ("stages", "SELECT * FROM workflow_stages WHERE run_id=? ORDER BY position"),
       ("hosts", "SELECT * FROM workflow_hosts WHERE run_id=? ORDER BY address"),
-      ("services", "SELECT * FROM workflow_services WHERE run_id=? AND state='open' ORDER BY address, port"),
+      ("services", "SELECT * FROM workflow_services WHERE run_id=? AND state='open' AND " + OBSERVED + " ORDER BY address, port"),
       ("findings", "SELECT * FROM workflow_findings WHERE run_id=? ORDER BY id")):
       details[key] = [dict(row) for row in conn.execute(sql, (runId,))]
     return details
