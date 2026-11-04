@@ -1304,3 +1304,17 @@ def test_compare_output_is_exact(db, scanner, workflows, answers, catalog, capsy
   capsys.readouterr()
   compare()
   assert capsys.readouterr().out == "[~] Service changed: 10.0.0.1 80/tcp (http nginx 1.0 => http nginx 2.0)\n"
+
+def test_status_sanitizes_ports_from_a_tampered_database(db, capsys):
+  runId = foundRun(db)
+  db.saveStageResults(runId, "discovery", [], [], [{"address": "10.0.0.1", "port": 80, "script": "s", "output": "o"}])
+  connection = db.lite.connect(db.dbname)
+  connection.execute("UPDATE workflow_services SET port=?", ("\x1b[2J",))
+  connection.execute("UPDATE workflow_findings SET port=?", ("\x1b[2J",))
+  connection.commit()
+  connection.close()
+  capsys.readouterr()
+  helperworkflow.HelperWorkflow("id:" + str(runId), "status").process()
+  out = capsys.readouterr().out
+  assert "\x1b" not in out
+  assert "?[2J/tcp" in out and "10.0.0.1:?[2J" in out

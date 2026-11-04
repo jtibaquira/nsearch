@@ -183,4 +183,4 @@ def test_an_unexpected_error_in_search_reaches_the_console(db, monkeypatch, caps
     raise ValueError("boom")
   monkeypatch.setattr(db, "__fetchScript", fail)
   assert not console.Console().onecmd("search")
-  assert "boom" in capsys.readouterr().out
+  assert capsys.readouterr().out == "Error: boom\n"

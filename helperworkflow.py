@@ -660,6 +660,6 @@ class HelperWorkflow:
     for host in details["hosts"]:
       print(f"Host : {sanitize(host['address'])} ({sanitize(host['hostname'] or '')}) {sanitize(host['state'])}")
     for item in details["services"]:
-      print(f"  {sanitize(item['address'])} {item['port']}/{sanitize(item['protocol'])} {sanitize(item['service'] or '')} {sanitize(item['product'] or '')} {sanitize(item['version'] or '')}")
+      print(f"  {sanitize(item['address'])} {sanitize(item['port'])}/{sanitize(item['protocol'])} {sanitize(item['service'] or '')} {sanitize(item['product'] or '')} {sanitize(item['version'] or '')}")
     for item in details["findings"]:
-      print(f"  [{sanitize(item['stage'])}] {sanitize(item['address'])}:{item['port'] or '-'} {sanitize(item['script'])} => {sanitize(item['output'])}")
+      print(f"  [{sanitize(item['stage'])}] {sanitize(item['address'])}:{sanitize(item['port'] or '-')} {sanitize(item['script'])} => {sanitize(item['output'])}")
