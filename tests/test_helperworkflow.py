@@ -3,6 +3,7 @@ import os
 import re
 import shlex
 import stat
+from typing import Any
 
 import nmap
 import pytest
@@ -73,7 +74,7 @@ def answers(monkeypatch):
   monkeypatch.setattr("builtins.input", fake)
   return given
 
-CHAIN = [
+CHAIN: list[dict[str, Any]] = [
   {"name": "discovery", "arguments": "-sn"},
   {"name": "ports", "from": "live_hosts", "arguments": "-F"},
   {"name": "services", "from": "open_ports", "arguments": "-sV"},

@@ -8,6 +8,7 @@ import sys
 import tempfile
 from contextlib import closing
 from datetime import datetime, timezone
+from typing import Any
 
 import i18n
 import yaml
@@ -31,7 +32,7 @@ except (yaml.YAMLError, KeyError, TypeError):
   print("Error: config.yaml is not valid. Run 'bash install.sh' or compare it with config.yaml.example")
   sys.exit(1)
 
-lastresults = {}
+lastresults: dict[int, dict[str, Any]] = {}
 lastresultsFav = False
 
 def sanitize(text):

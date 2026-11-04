@@ -14,9 +14,9 @@ if __name__ == '__main__':
 
   currentLocale = os.environ.get("LANG", "en")
   currentLocale = re.split(r"[_.]", currentLocale)[0]
-  i18n.load_path.append(os.path.join(dbmodule.BASE_DIR, 'i18n'))
-  i18n.set("fallback", "en")
-  i18n.set("locale", currentLocale)
+  i18n.load_path.append(os.path.join(dbmodule.BASE_DIR, 'i18n'))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+  i18n.set("fallback", "en")  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+  i18n.set("locale", currentLocale)  # type: ignore[attr-defined]  # python-i18n sets these at runtime
 
   print(console.banner)
   if not os.path.isfile(dbmodule.dbname):

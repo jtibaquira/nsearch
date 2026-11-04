@@ -40,8 +40,8 @@ class Console(cmd.Cmd):
     self.ruler = '='
 
   ## Autocomplete definition list
-  searchCommands = [ 'name', 'category', 'help', 'author']
-  showfavOptions = ['name', 'ranking', 'help']
+  searchCommands = ('name', 'category', 'help', 'author')
+  showfavOptions = ('name', 'ranking', 'help')
 
   ## Command definitions ##
   def do_history(self, args):
@@ -122,7 +122,7 @@ class Console(cmd.Cmd):
 
   def complete_search(self, text, line, begidx, endidx):
     if not text:
-      commands = self.searchCommands[:]
+      commands = list(self.searchCommands)
     else:
       commands = [ f
                       for f in self.searchCommands
@@ -230,7 +230,7 @@ class Console(cmd.Cmd):
 
   def complete_showfav(self, text, line, begidx, endidx):
     if not text:
-      commands = self.showfavOptions[:]
+      commands = list(self.showfavOptions)
     else:
       commands = [ f
                       for f in self.showfavOptions

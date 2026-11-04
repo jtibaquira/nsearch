@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 import nmap
 import pytest
 
@@ -16,7 +18,7 @@ class FakeHost:
             81: {"state": "closed"}}
 
 class FakeScanner:
-  calls = []
+  calls: ClassVar[list[tuple[str, str]]] = []
   def scan(self, hosts, arguments):
     FakeScanner.calls.append((hosts, arguments))
   def all_hosts(self):

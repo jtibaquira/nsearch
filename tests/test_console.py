@@ -1,3 +1,5 @@
+import pytest
+
 import console
 
 
@@ -36,3 +38,12 @@ def test_workflow_report_and_compare_are_in_help_and_completion(capsys):
   shell.onecmd("help workflow")
   out = capsys.readouterr().out
   assert "workflow report id:1 format:json" in out and "workflow compare id:1 with:2" in out and "workflow suggest id:1" in out
+
+@pytest.mark.parametrize("complete,text,expected", [
+  ("complete_search", "", ["name", "category", "help", "author"]),
+  ("complete_search", "a", ["author"]),
+  ("complete_showfav", "", ["name", "ranking", "help"]),
+  ("complete_showfav", "r", ["ranking"]),
+])
+def test_completion_returns_lists(complete, text, expected):
+  assert getattr(console.Console(), complete)(text, "", 0, 0) == expected
