@@ -362,7 +362,8 @@ def setRunStatus(runId, status):
     conn.execute("UPDATE workflow_runs SET status=?, finished_at=? WHERE id=?",
       (status, None if status == "running" else __now(), runId))
 
-# Mark a run as running only if it still has the status that was read, so a second console cannot take it
+# Mark a run as running only if it still has the status that was read, so a second console cannot take
+# an interrupted or failed run. This does not protect a run that is already running
 def claimRun(runId, status):
   with closing(__workflowConnect()) as conn, conn:
     return conn.execute("UPDATE workflow_runs SET status='running', finished_at=NULL WHERE id=? AND status=?", (runId, status)).rowcount == 1
