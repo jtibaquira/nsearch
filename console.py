@@ -1,12 +1,12 @@
 ## console.py
 
 import cmd
+
+import i18n
+
 import helper
 import helpernmap
 import helperworkflow
-import i18n
-import os
-import sys
 
 try:
   import readline
@@ -109,7 +109,6 @@ class Console(cmd.Cmd):
 
   def emptyline(self):
     """Do nothing on empty input line"""
-    pass
 
   def do_clear(self, args):
     """ Clear the screen """

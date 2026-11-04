@@ -1,7 +1,7 @@
 import pytest
 
-import dbmodule
 import helper
+
 
 @pytest.mark.parametrize("args,expected", [
   ("", {}),

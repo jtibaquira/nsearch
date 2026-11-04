@@ -1,11 +1,13 @@
-import dbmodule
-import i18n
 import os
 import re
 import shlex
 import sys
 
+import i18n
+
+import dbmodule
 from dbmodule import sanitize
+
 
 def clearScreen():
   if sys.stdout.isatty():
@@ -102,7 +104,7 @@ class Helper:
   def __readLines(self, scriptFile):
     lines = scriptFile.read().splitlines()
     for line in lines:
-      if line.startswith("--@output") or line.startswith("-- @output"):
+      if line.startswith(("--@output", "-- @output")):
         break
       if not line.lstrip().startswith("local "):
         print('\033[1;96m' + sanitize(line) + '\033[0m')

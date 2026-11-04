@@ -5,6 +5,7 @@ import yaml
 
 import dbmodule
 
+
 def names(results):
   return sorted(value["name"] for value in results.values())
 
@@ -136,7 +137,7 @@ def test_later_stage_keeps_known_service_details(db):
   runId = workflowRun(db)
   db.saveStageResults(runId, "services", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 80,
     "state": "open", "service": "", "product": "nginx", "version": "1.2"}], [])
-  service = [item for item in db.getRun(runId)["services"] if item["port"] == 80][0]
+  service = next(item for item in db.getRun(runId)["services"] if item["port"] == 80)
   assert (service["service"], service["product"], service["version"]) == ("http", "nginx", "1.2")
 
 def test_status_updates_and_missing_run(db):

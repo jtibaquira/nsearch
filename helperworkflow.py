@@ -1,16 +1,16 @@
 import fnmatch
-import i18n
 import ipaddress
 import json
-import nmap
 import os
 import re
 import shlex
 import tempfile
+
+import i18n
+import nmap
 import yaml
 
 import dbmodule
-
 from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
 
@@ -190,7 +190,7 @@ def collectResults(nm, scope):
     for script in data.get("hostscript", []):
       findings.append({"address": address, "port": None, "script": script.get("id", ""), "output": script.get("output", "")})
     for proto in data.all_protocols():
-      for port in data[proto].keys():
+      for port in data[proto]:
         info = data[proto][port]
         services.append({"address": address, "protocol": proto, "port": int(port), "state": info.get("state", ""),
           "service": info.get("name", ""), "product": info.get("product", ""), "version": info.get("version", ""), "guess": info.get("conf") == NMAP_PORT_TABLE_CONF})

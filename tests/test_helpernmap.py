@@ -3,6 +3,7 @@ import pytest
 
 import helpernmap
 
+
 class FakeHost:
   def hostname(self):
     return "evil\x1b[31m"

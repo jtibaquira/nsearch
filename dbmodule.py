@@ -1,5 +1,4 @@
 import hashlib
-import i18n
 import json
 import os
 import re
@@ -7,10 +6,11 @@ import shutil
 import sqlite3 as lite
 import sys
 import tempfile
-import yaml
-
 from contextlib import closing
 from datetime import datetime, timezone
+
+import i18n
+import yaml
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 config_path = os.environ.get("NSEARCH_CONFIG", os.path.join(BASE_DIR, "config.yaml"))
@@ -92,8 +92,8 @@ def createBackUp():
   else:
     print(i18n.t("setup.create_backup_error"))
 
-AUTHOR_RE = re.compile(r'^author\s*=\s*(\{.*?\}|\[\[.*?\]\]|.*?$)', re.M | re.S)
-STRING_RE = re.compile(r'"([^"]*)"|\'([^\']*)\'|\[\[(.*?)\]\]', re.S)
+AUTHOR_RE = re.compile(r'^author\s*=\s*(\{.*?\}|\[\[.*?\]\]|.*?$)', re.MULTILINE | re.DOTALL)
+STRING_RE = re.compile(r'"([^"]*)"|\'([^\']*)\'|\[\[(.*?)\]\]', re.DOTALL)
 
 def parseAuthor(content):
   match = AUTHOR_RE.search(content)

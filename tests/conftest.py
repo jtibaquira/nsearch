@@ -18,8 +18,9 @@ with open(os.environ["NSEARCH_CONFIG"], "w", encoding="utf-8") as f:
     "filePath": os.path.join(bootstrap, "script.db"), "fileBackup": os.path.join(bootstrap, "backup.db"),
     "scriptsPath": bootstrap + "/", "checksum": ""}}, f)
 
-import dbmodule
 import i18n
+
+import dbmodule
 
 i18n.load_path.append(os.path.join(ROOT, "i18n"))
 i18n.set("fallback", "en")

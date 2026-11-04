@@ -1,11 +1,13 @@
-import i18n
-import nmap
 import os
 import re
+
+import i18n
+import nmap
 import yaml
 
 from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
+
 
 class HelperNmap:
 

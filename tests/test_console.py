@@ -1,5 +1,6 @@
 import console
 
+
 def test_unknown_input_is_not_executed(tmp_path, capsys):
   marker = tmp_path / "pwn"
   console.Console().onecmd("open(%r, 'w')" % str(marker))

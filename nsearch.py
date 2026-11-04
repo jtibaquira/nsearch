@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
-import console
-
-import dbmodule
-import helper
-import i18n
 import os
 import re
+
+import i18n
+
+import console
+import dbmodule
+import helper
 
 # Main action
 if __name__ == '__main__':

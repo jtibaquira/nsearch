@@ -1,12 +1,15 @@
-import nmap
-import pytest
+import json
+import os
 import re
 import shlex
+import stat
+
+import nmap
+import pytest
 import yaml
 
 import dbmodule
 import helperworkflow
-
 from helperworkflow import WorkflowError, validateArguments, validateWorkflow
 
 SCRIPTS = {"http-title": {"default", "safe"}, "http-headers": {"discovery", "safe"}, "http-sql": {"intrusive", "vuln"},
@@ -43,7 +46,7 @@ class FakeScanner:
     self.calls.append((hosts, ports, arguments))
     if self.error is not None and len(self.calls) >= self.error[0]:
       raise self.error[1]
-    self.current = self.results[len(self.calls) - 1] if len(self.calls) - 1 in self.results else {}
+    self.current = self.results.get(len(self.calls) - 1, {})
   def all_hosts(self):
     return list(self.current)
   def __getitem__(self, host):
@@ -668,10 +671,6 @@ def test_a_resumed_run_is_running_while_it_scans(db, scanner, workflows, answers
 
 # ---- Reports
 
-import json
-import os
-import stat
-
 HTTP_HOST = {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http", "product": "nginx", "version": "1.0", "script": {"http-title": "Welcome"}}})}
 
 @pytest.fixture
@@ -694,7 +693,7 @@ def test_report_explains_why_each_stage_ran_and_on_what(db, scanner, workflows, 
   fullRun(scanner, workflows, answers)
   report()
   text = (reports / "workflow-1.md").read_text(encoding="utf-8")
-  sections = re.split(r"^### ", text, flags=re.M)
+  sections = re.split(r"^### ", text, flags=re.MULTILINE)
   assert "First stage" in sections[1] and "` 10.0.0.0/24 `" in sections[1]
   assert "live hosts" in sections[2] and "` 10.0.0.1 `" in sections[2]
   assert "open ports" in sections[3] and "` 80 `" in sections[3]
@@ -1046,7 +1045,7 @@ def test_remote_data_never_reaches_the_nmap_arguments(db, scanner, catalog, answ
     "product": "--script=vuln", "version": "-oN /tmp/x"}], [{"address": "10.0.0.1", "port": 80, "script": "--script=vuln", "output": "-iL /tmp/x"}])
   answers += ["all", "y"]
   suggest(runId)
-  hosts, ports, arguments = scanner.calls[0]
+  arguments = scanner.calls[0][2]
   assert "vuln" not in arguments and "/tmp" not in arguments and "-oN" not in arguments and "-iL" not in arguments
 
 def test_suggestions_ignore_results_outside_the_scope(db, scanner, catalog, answers, capsys):
@@ -1145,7 +1144,9 @@ def test_stages_that_depend_on_services_use_version_detection():
 
 def test_shipped_script_stages_detect_services(db):
   for name in ("web", "ssh", "smb"):
-    loaded = helperworkflow.loadWorkflow(name, {script: {"safe"} for script in re.findall(r"[a-z0-9-]+", open(os.path.join(helperworkflow.WORKFLOWS_DIR, name + ".yaml"), encoding="utf-8").read())} | {"vuln": {"vuln"}})
+    with open(os.path.join(helperworkflow.WORKFLOWS_DIR, name + ".yaml"), encoding="utf-8") as stream:
+      scripts = {script: {"safe"} for script in re.findall(r"[a-z0-9-]+", stream.read())}
+    loaded = helperworkflow.loadWorkflow(name, {**scripts, "vuln": {"vuln"}})
     assert all("-sV" in shlex.split(stage["arguments"]) for stage in loaded if stage["source"] == "services")
 
 def test_a_guessed_service_does_not_replace_a_detected_one(db, scanner, workflows, answers, catalog):
