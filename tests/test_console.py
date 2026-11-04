@@ -20,3 +20,9 @@ def test_exit_stops_the_loop():
 def test_workflow_command_reports_bad_usage(capsys):
   console.Console().onecmd("workflow nope")
   assert "help workflow" in capsys.readouterr().out
+
+def test_workflow_resume_is_in_help_and_completion(capsys):
+  shell = console.Console()
+  assert shell.complete_workflow("re", "workflow re", 9, 11) == ["resume"]
+  shell.onecmd("help workflow")
+  assert "workflow resume id:1" in capsys.readouterr().out

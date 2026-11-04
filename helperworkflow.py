@@ -22,6 +22,8 @@ PORT_OPTIONS = {"-p", "--top-ports", "-F"}
 VALUE_RE = r"[A-Za-z0-9._,:=/-]+"
 # These never run: dos can take targets down, and broadcast reaches hosts outside the scope
 BLOCKED_SCRIPTS = {"dos", "broadcast"}
+RESUMABLE_RUNS = ("interrupted", "failed", "running")
+FINISHED_STAGES = ("completed", "skipped", "declined")
 
 class WorkflowError(Exception):
   pass
@@ -149,6 +151,9 @@ def validAddress(address):
   except ValueError:
     return None
 
+def validRunId(value):
+  return re.fullmatch(r"[0-9]{1,18}", value) is not None
+
 def askConfirmation(message):
   try:
     return input(message + " [y/N] ").strip().lower() in ("y", "yes", "s", "si", "sí")
@@ -224,15 +229,18 @@ class HelperWorkflow:
     except WorkflowError as e:
       print(i18n.t("help.workflow_invalid") + ": " + sanitize(e))
       return
-    print(i18n.t("help.workflow_plan") + ": " + sanitize(params["net"]))
-    for position, stage in enumerate(stages):
-      print("  %d. %s: %s%s" % (position + 1, stage["name"], stage["arguments"], " (confirm)" if stage["confirm"] else ""))
+    self.__printPlan(params["net"], list(enumerate(stages)))
     if not askConfirmation(i18n.t("help.workflow_authorized")):
       print(i18n.t("help.workflow_cancelled"))
       return
     self.__execute(params["name"], params["net"], stages)
 
-  def __execute(self, name, net, stages, runId=None, starting_position=0, scope=None):
+  def __printPlan(self, net, stages):
+    print(i18n.t("help.workflow_plan") + ": " + sanitize(net))
+    for position, stage in stages:
+      print("  %d. %s: %s%s" % (position + 1, stage["name"], stage["arguments"], " (confirm)" if stage["confirm"] else ""))
+
+  def __execute(self, name, net, stages, runId=None, finished=()):
     try:
       nm = nmap.PortScanner()
     except nmap.PortScannerError:
@@ -240,58 +248,52 @@ class HelperWorkflow:
       return
     if runId is None:
       runId = dbmodule.createRun(name, net, stages)
-      print(i18n.t("help.workflow_started") + ": " + str(runId))
+    else:
+      dbmodule.setRunStatus(runId, "running")
+    print(i18n.t("help.workflow_started") + ": " + str(runId))
+    scope = None
     for position, stage in enumerate(stages):
-      # Start from a specific position when resuming
-      if position < starting_position:
+      if position in finished:
         continue
+      # Later stages can only touch the hosts found by the first one
+      if position > 0 and scope is None:
+        scope = set(dbmodule.getLiveHosts(runId))
       label = "[%d/%d] %s" % (position + 1, len(stages), stage["name"])
       targets = stageTargets(runId, stage, net)
       if not targets:
         dbmodule.setStageStatus(runId, position, "skipped")
         print(label + ": " + i18n.t("help.workflow_no_targets"))
         continue
-      # Re-prompt on resume for stages with confirm: true
       if stage["confirm"] and not askConfirmation(label + ": " + i18n.t("help.workflow_confirm_stage") + " " + sanitize(", ".join(target for target, _ in targets))):
         dbmodule.setStageStatus(runId, position, "declined")
         print(label + ": " + i18n.t("help.workflow_declined"))
         continue
       print(label + ": " + i18n.t("help.running_scan"))
       dbmodule.setStageStatus(runId, position, "running")
-      completed_targets = []
       try:
         for target, ports in targets:
           arguments = ("-6 " if ":" in target else "") + stage["arguments"]
           nm.scan(hosts=target, ports=ports, arguments=arguments)
-          hosts, services, findings = collectResults(nm, scope)
-          dbmodule.saveStageResults(runId, stage["name"], hosts, services, findings)
-          completed_targets.append(target)
+          dbmodule.saveStageResults(runId, stage["name"], *collectResults(nm, scope))
       except (nmap.PortScannerError, OSError, dbmodule.lite.Error) as e:
-        # Save results from completed targets before failing
-        if targets and not all(targets[0][0] == t for t in completed_targets):
-          print(label + ": " + i18n.t("help.help_run_partial_results") + ": " + sanitize(", ".join(completed_targets)))
         dbmodule.setStageStatus(runId, position, "failed")
         dbmodule.setRunStatus(runId, "failed")
         print(label + ": " + i18n.t("help.help_run_scan_error") + ": " + sanitize(e))
+        print(i18n.t("help.workflow_resume_hint") + ": workflow resume id:" + str(runId))
         return
       except KeyboardInterrupt:
-        # Save results from completed targets before interrupting
-        if targets and not all(targets[0][0] == t for t in completed_targets):
-          print(label + ": " + i18n.t("help.help_run_partial_results") + ": " + sanitize(", ".join(completed_targets)))
         dbmodule.setStageStatus(runId, position, "interrupted")
         dbmodule.setRunStatus(runId, "interrupted")
         print(label + ": " + i18n.t("help.help_run_interrupted"))
+        print(i18n.t("help.workflow_resume_hint") + ": workflow resume id:" + str(runId))
         return
       dbmodule.setStageStatus(runId, position, "completed")
-      # Later stages can only touch the hosts found by the first one
-      if scope is None:
-        scope = set(dbmodule.getLiveHosts(runId))
     dbmodule.setRunStatus(runId, "completed")
     self.__printRun(dbmodule.getRun(runId))
 
   def __status(self):
     params = parseArgs(self.args, ("id",))
-    if params is None or ("id" in params and not params["id"].isdigit()):
+    if params is None or ("id" in params and not validRunId(params["id"])):
       print(i18n.t("help.workflow_error"))
       return
     if params:
@@ -306,7 +308,7 @@ class HelperWorkflow:
 
   def __resume(self):
     params = parseArgs(self.args, ("id",))
-    if params is None or not params["id"].isdigit():
+    if not params or not validRunId(params["id"]):
       print(i18n.t("help.workflow_error"))
       return
     runId = int(params["id"])
@@ -314,45 +316,35 @@ class HelperWorkflow:
     if details is None:
       print(i18n.t("help.workflow_not_found"))
       return
-    # Only allow resume for interrupted, failed, or running runs
-    status = details["run"]["status"]
-    if status == "completed":
-      print(i18n.t("help.workflow_resume_completed") % runId)
+    if details["run"]["status"] not in RESUMABLE_RUNS:
+      print(i18n.t("help.workflow_not_resumable") + ": " + sanitize(details["run"]["status"]))
       return
-    if status not in ("interrupted", "failed", "running"):
-      print(i18n.t("help.workflow_resume_invalid_state") % sanitize(status))
+    net = details["run"]["target"]
+    if not isValidTarget(net):
+      print(i18n.t("help.help_run_bad_target"))
       return
-    # Find the first incomplete stage
-    stages = details["stages"]
-    starting_position = 0
-    for position, stage in enumerate(stages):
-      if stage["status"] not in ("completed", "skipped", "declined"):
-        starting_position = position
-        break
-    else:
-      # All stages are completed/skipped/declined
-      print(i18n.t("help.workflow_resume_no_stages"))
+    name = details["run"]["workflow"]
+    try:
+      stages = loadWorkflow(name, dbmodule.scriptCategories())
+    except WorkflowError as e:
+      print(i18n.t("help.workflow_invalid") + ": " + sanitize(e))
       return
-    # Show target and missing stages before resume
-    target = details["run"]["target"]
-    print(i18n.t("help.workflow_resume_info") % (runId, sanitize(target)))
-    for position, stage in enumerate(stages):
-      if position >= starting_position:
-        status_symbol = "-"
-        print("  [ ] %s: %s" % (sanitize(stage["name"]), status_symbol))
-    if askConfirmation(i18n.t("help.workflow_resume_confirm")):
-      # Reload workflow with current validation rules
-      workflow_name = details["run"]["workflow"]
-      try:
-        stages_config = loadWorkflow(workflow_name, dbmodule.scriptCategories())
-      except WorkflowError as e:
-        print(i18n.t("help.workflow_resume_reload_error") + ": " + sanitize(e))
-        return
-      # Execute from starting position with preserved target
-      scope = set(dbmodule.getLiveHosts(runId)) if details["hosts"] else None
-      self.__execute(workflow_name, target, stages_config, runId=runId, starting_position=starting_position, scope=scope)
-    else:
-      print(i18n.t("help.workflow_resume_cancelled"))
+    # The confirmation given for this run only covers the stages it started with
+    if [(stage["name"], stage["arguments"]) for stage in stages] != [(stage["name"], stage["arguments"]) for stage in details["stages"]]:
+      print(i18n.t("help.workflow_changed"))
+      return
+    finished = {stage["position"] for stage in details["stages"] if stage["status"] in FINISHED_STAGES}
+    remaining = [(position, stage) for position, stage in enumerate(stages) if position not in finished]
+    if not remaining:
+      dbmodule.setRunStatus(runId, "completed")
+      print(i18n.t("help.workflow_resume_nothing"))
+      self.__printRun(dbmodule.getRun(runId))
+      return
+    self.__printPlan(net, remaining)
+    if not askConfirmation(i18n.t("help.workflow_authorized")):
+      print(i18n.t("help.workflow_cancelled"))
+      return
+    self.__execute(name, net, stages, runId, finished)
 
   def __printRun(self, details):
     run = details["run"]

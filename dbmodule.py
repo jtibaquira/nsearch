@@ -316,7 +316,7 @@ WORKFLOW_SCHEMA = """
     started_at TEXT NOT NULL, finished_at TEXT NULL);
   create table if not exists workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL,
-    arguments TEXT NULL, status TEXT NOT NULL, UNIQUE(run_id, position));
+    arguments TEXT NOT NULL, status TEXT NOT NULL, UNIQUE(run_id, position));
   create table if not exists workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL,
     hostname TEXT NULL, state TEXT NOT NULL, PRIMARY KEY(run_id, address));
   create table if not exists workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL,
@@ -342,7 +342,7 @@ def createRun(workflow, target, stages):
     runId = conn.execute("INSERT INTO workflow_runs (workflow, target, status, started_at) VALUES (?, ?, 'running', ?)",
       (workflow, target, __now())).lastrowid
     conn.executemany("INSERT INTO workflow_stages (run_id, position, name, arguments, status) VALUES (?, ?, ?, ?, 'pending')",
-      [(runId, position, stage["name"], stage.get("arguments")) for position, stage in enumerate(stages)])
+      [(runId, position, stage["name"], stage["arguments"]) for position, stage in enumerate(stages)])
     return runId
 
 def setStageStatus(runId, position, status):
@@ -351,7 +351,8 @@ def setStageStatus(runId, position, status):
 
 def setRunStatus(runId, status):
   with closing(__workflowConnect()) as conn, conn:
-    conn.execute("UPDATE workflow_runs SET status=?, finished_at=? WHERE id=?", (status, __now(), runId))
+    conn.execute("UPDATE workflow_runs SET status=?, finished_at=? WHERE id=?",
+      (status, None if status == "running" else __now(), runId))
 
 # Save everything found by one stage in a single transaction
 def saveStageResults(runId, stage, hosts, services, findings):
@@ -368,20 +369,16 @@ def saveStageResults(runId, stage, hosts, services, findings):
       version=COALESCE(NULLIF(excluded.version, ''), version)""",
       [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"])
         for item in services])
-    conn.executemany("INSERT INTO workflow_findings (run_id, stage, address, port, script, output) VALUES (?, ?, ?, ?, ?, ?)" +
-      " ON CONFLICT DO NOTHING", [(runId, stage, item["address"], item["port"], item["script"], item["output"]) for item in findings])
+    # A resumed stage scans its targets again, and the new findings replace the old ones
+    conn.executemany("DELETE FROM workflow_findings WHERE run_id=? AND stage=? AND address=?",
+      [(runId, stage, host["address"]) for host in hosts])
+    conn.executemany("INSERT INTO workflow_findings (run_id, stage, address, port, script, output) VALUES (?, ?, ?, ?, ?, ?)",
+      [(runId, stage, item["address"], item["port"], item["script"], item["output"]) for item in findings])
 
 def getLiveHosts(runId):
   with closing(__workflowConnect()) as conn:
     return [row["address"] for row in conn.execute(
       "SELECT address FROM workflow_hosts WHERE run_id=? AND state='up' ORDER BY address", (runId,))]
-
-def addRunHost(runId, host_info):
-  """Add a host to the workflow run. host_info is {'address': str, 'state': str}"""
-  with closing(__workflowConnect()) as conn:
-    conn.execute(
-      "INSERT INTO workflow_hosts (run_id, address, state) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
-      (runId, host_info["address"], host_info.get("state", "unknown")))
 
 # Open ports per host, optionally only for the given service names
 def getOpenPorts(runId, services=None):

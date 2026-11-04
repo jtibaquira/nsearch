@@ -183,6 +183,7 @@ A workflow is a chain of scans. Each stage only scans what earlier stages found,
 ```
 nsearch> workflow list
 [+] basic
+[+] smb
 [+] ssh
 [+] web
 
@@ -194,7 +195,12 @@ nsearch> workflow resume id:1
 
 `workflow run` shows the plan and asks for confirmation before it starts. Results are stored in the local database.
 
-If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue from where it stopped. It works on workflows with status `running`, `interrupted`, or `failed`. It skips stages that already completed and shows you what remains before continuing. Stages that require confirmation will be re-prompted.
+If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue from where it stopped. It works on runs with status `running`, `interrupted`, or `failed`:
+
+- It shows the target and the remaining stages, and asks for confirmation again. Stages with `confirm` ask again too.
+- Stages that were completed, skipped, or not confirmed do not run again. An unfinished stage runs again from its first target, and results already saved from it are kept.
+- It uses the original target and scope, and rejects the run if the target is no longer valid.
+- It rejects the run if the workflow file is no longer valid, or if the names, order, or arguments of its stages changed.
 
 The workflows are in the `workflows` directory:
 

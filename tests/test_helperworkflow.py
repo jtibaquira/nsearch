@@ -1,4 +1,3 @@
-import unittest.mock as mock
 import nmap
 import pytest
 import yaml
@@ -38,10 +37,6 @@ class FakeScanner:
     self.results = {}
     self.error = None
     self.current = {}
-  @property
-  def hosts(self):
-    "List of up hosts from current scan"
-    return list(self.current.keys()) if self.current else []
   def scan(self, hosts, ports=None, arguments=""):
     self.calls.append((hosts, ports, arguments))
     if self.error is not None and len(self.calls) >= self.error[0]:
@@ -339,55 +334,283 @@ def test_list_and_status(db, workflows, capsys):
   helperworkflow.HelperWorkflow("id:1", "status").process()
   assert "\x1b" not in capsys.readouterr().out
 
-def test_resume_validation(db, workflows):
-  # Cannot resume non-existent run
-  obj = helperworkflow.HelperWorkflow("id:999", "resume")
-  with pytest.raises(SystemExit):
-    obj.process()
-  details = db.getRun(999)
-  assert details is None
-  
-def test_resume_completed_workflow_must_fail(db, workflows):
-  workflows("resume_test", CHAIN)
-  run_id = db.createRun("resume test work", "10.0.0.1/32", [{"name": "test"}, {"name": "discover"}])
-  db.setStageStatus(run_id, 0, "completed")
-  db.setRunStatus(run_id, "completed")
-  obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
-  with mock.patch("helperworkflow.askConfirmation"):
-    obj.process()
-  assert db.getRun(run_id)["run"]["status"] == "completed"
+# ---- Resume
 
-def test_resume_interrupted_workflow(db, workflows, scanner):
-  workflows("resume_test", CHAIN)
-  run_id = db.createRun("resume interrupted work", "10.0.0.1/32", 
-    [{"name": "test", "arguments": ""}, {"name": "vuln_scan", "arguments": "", "from": "services"}])
-  db.setStageStatus(run_id, 0, "completed")
-  db.setStageStatus(run_id, 1, "interrupted")
-  if scanner.hosts:
-    db.addRunHost(run_id, {"address": scanner.hosts[0], "state": "up"})
-  obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
-  with mock.patch("helperworkflow.askConfirmation", return_value=True): pass
-  obj.process()
-  stages = [s for s in db.getRun(run_id)["stages"]]
-  assert len(stages) > 1
-  statuses = [s["status"] for s in stages]
-  assert "completed" in statuses or "skipped" in statuses
+def savedRun(db, statuses, net="10.0.0.0/24", runStatus="interrupted", stages=CHAIN, name="w", workflows=None):
+  workflows(name, stages)
+  loaded = helperworkflow.loadWorkflow(name, SCRIPTS)
+  runId = db.createRun(name, net, loaded)
+  for position, status in enumerate(statuses):
+    db.setStageStatus(runId, position, status)
+  db.setRunStatus(runId, runStatus)
+  return runId
 
-def test_resume_preserves_target(db, workflows):
-  workflows("resume_test", CHAIN)
-  target = "192.168.1.0/24"
-  run_id = db.createRun("preserve target work", target, [{"name": "discover"}])
-  db.setStageStatus(run_id, 0, "failed")
-  obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
-  with mock.patch("helperworkflow.askConfirmation", return_value=False): pass
-  obj.process()
-  run_details = db.getRun(run_id)
-  assert run_details["run"]["target"] == target
+def resume(runId=1):
+  helperworkflow.HelperWorkflow("id:" + str(runId), "resume").process()
 
-def test_resume_invalid_state(db, workflows):
-  workflows("resume_test", CHAIN)
-  run_id = db.createRun("invalid state work", "10.0.0.1/32", [])
-  db.setStageStatus(run_id, 0, "pending")
-  obj = helperworkflow.HelperWorkflow("id:%d" % run_id, "resume")
-  with mock.patch("helperworkflow.askConfirmation"): pass
-  obj.process()
+@pytest.fixture
+def catalog(db, monkeypatch):
+  monkeypatch.setattr(db, "scriptCategories", lambda: SCRIPTS)
+
+def foundFirstStage(db, runId, addresses=("10.0.0.1",)):
+  db.saveStageResults(runId, "discovery", [{"address": address, "hostname": "", "state": "up"} for address in addresses], [], [])
+
+@pytest.mark.parametrize("args,message", [("", "help workflow"), ("foo:1", "help workflow"), ("id:x", "help workflow"), ("id:-1", "help workflow"),
+  ("id:\u00b2", "help workflow"), ("id:" + "9" * 30, "help workflow"), ("id:99", "not found")])
+def test_resume_rejects_bad_ids(db, scanner, capsys, args, message):
+  helperworkflow.HelperWorkflow(args, "resume").process()
+  assert message in capsys.readouterr().out
+  assert scanner.calls == []
+
+def test_status_rejects_ids_it_cannot_look_up(db, capsys):
+  for value in ("\u00b2", "9" * 30):
+    helperworkflow.HelperWorkflow("id:" + value, "status").process()
+    assert "help workflow" in capsys.readouterr().out
+
+def test_completed_runs_cannot_be_resumed(db, scanner, workflows, catalog, capsys):
+  savedRun(db, ["completed"] * 4, runStatus="completed", workflows=workflows)
+  resume()
+  assert "cannot be resumed" in capsys.readouterr().out
+  assert scanner.calls == []
+
+@pytest.mark.parametrize("runStatus,stageStatus", [("interrupted", "interrupted"), ("failed", "failed"), ("running", "running")])
+def test_resume_continues_each_resumable_status(db, scanner, workflows, answers, catalog, runStatus, stageStatus):
+  runId = savedRun(db, ["completed", stageStatus], runStatus=runStatus, workflows=workflows)
+  foundFirstStage(db, runId)
+  scanner.results = {0: {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http"}})}, 1: {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http"}})}}
+  answers.append("y")
+  resume(runId)
+  assert [(hosts, ports) for hosts, ports, _ in scanner.calls] == [("10.0.0.1", None), ("10.0.0.1", "80"), ("10.0.0.1", "80")]
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed" and details["run"]["finished_at"]
+  assert [stage["status"] for stage in details["stages"]] == ["completed"] * 4
+
+@pytest.mark.parametrize("status,runs", [("completed", False), ("skipped", False), ("declined", False),
+  ("pending", True), ("running", True), ("interrupted", True), ("failed", True)])
+def test_only_unfinished_stages_run_again(db, scanner, workflows, answers, catalog, status, runs):
+  stages = [{"name": "discovery", "arguments": "-sn"}, {"name": "ports", "from": "live_hosts", "arguments": "-F"}]
+  runId = savedRun(db, ["completed", status], stages=stages, workflows=workflows)
+  foundFirstStage(db, runId)
+  answers.append("y")
+  resume(runId)
+  assert len(scanner.calls) == (1 if runs else 0)
+  assert db.getRun(runId)["run"]["status"] == "completed"
+  assert db.getRun(runId)["stages"][1]["status"] == ("completed" if runs else status)
+
+def test_nothing_left_completes_without_asking(db, scanner, workflows, catalog, capsys):
+  runId = savedRun(db, ["completed"] * 4, runStatus="running", workflows=workflows)
+  resume(runId)
+  assert "No stages left" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert db.getRun(runId)["run"]["status"] == "completed"
+
+def test_resume_shows_the_target_and_remaining_stages(db, scanner, workflows, catalog, monkeypatch, capsys):
+  runId = savedRun(db, ["completed", "completed"], workflows=workflows)
+  asked = []
+  monkeypatch.setattr("builtins.input", lambda message: asked.append(message) or "n")
+  resume(runId)
+  out = capsys.readouterr().out
+  assert "10.0.0.0/24" in out and "services" in out and "enum" in out
+  assert "discovery" not in out and "ports:" not in out
+  assert "authorized" in asked[0]
+
+@pytest.mark.parametrize("answer", ["n", "", EOFError, KeyboardInterrupt])
+def test_refusing_to_resume_changes_nothing(db, scanner, workflows, catalog, monkeypatch, capsys, answer):
+  runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
+  before = db.getRun(runId)
+  def respond(message):
+    if isinstance(answer, str):
+      return answer
+    raise answer
+  monkeypatch.setattr("builtins.input", respond)
+  resume(runId)
+  assert "cancelled" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert db.getRun(runId) == before
+
+CONFIRMED = CHAIN[:3] + [{"name": "vuln", "from": "services", "arguments": "--script http-sql", "confirm": True}]
+
+@pytest.mark.parametrize("answer,expected,scans", [("y", "completed", 1), ("n", "declined", 0)])
+def test_intrusive_stages_ask_again(db, scanner, workflows, answers, catalog, answer, expected, scans):
+  runId = savedRun(db, ["completed", "completed", "completed", "interrupted"], stages=CONFIRMED, workflows=workflows)
+  foundFirstStage(db, runId)
+  db.saveStageResults(runId, "ports", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 80, "state": "open", "service": "http", "product": "", "version": ""}], [])
+  answers += ["y", answer]
+  resume(runId)
+  assert answers == []
+  assert len(scanner.calls) == scans
+  assert db.getRun(runId)["stages"][3]["status"] == expected
+  assert db.getRun(runId)["run"]["status"] == "completed"
+
+def test_declined_stages_do_not_ask_again(db, scanner, workflows, answers, catalog):
+  runId = savedRun(db, ["completed", "completed", "completed", "declined"], stages=CONFIRMED, runStatus="running", workflows=workflows)
+  resume(runId)
+  assert scanner.calls == []
+  assert db.getRun(runId)["run"]["status"] == "completed"
+
+def test_unfinished_first_stage_uses_the_original_network(db, scanner, workflows, answers, catalog):
+  runId = savedRun(db, ["interrupted"], stages=CHAIN[:2], workflows=workflows)
+  scanner.results = {0: {"10.0.0.7": FakeHost({})}}
+  answers.append("y")
+  resume(runId)
+  assert [hosts for hosts, _, _ in scanner.calls] == ["10.0.0.0/24", "10.0.0.7"]
+
+def test_resume_keeps_the_scope_of_the_run(db, scanner, workflows, answers, catalog, capsys):
+  runId = savedRun(db, ["completed", "interrupted"], stages=CHAIN[:3], workflows=workflows)
+  foundFirstStage(db, runId)
+  scanner.results = {0: {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http"}}), "8.8.8.8": FakeHost({53: {"state": "open", "name": "domain"}})},
+    1: {"8.8.8.8": FakeHost({53: {"state": "open", "name": "domain"}})}}
+  answers.append("y")
+  resume(runId)
+  assert "Ignored result" in capsys.readouterr().out
+  assert [host["address"] for host in db.getRun(runId)["hosts"]] == ["10.0.0.1"]
+  assert [hosts for hosts, _, _ in scanner.calls] == ["10.0.0.1", "10.0.0.1"]
+
+def test_declining_a_repeated_first_stage_keeps_the_scope(db, scanner, workflows, answers, catalog):
+  stages = [{"name": "discovery", "arguments": "-sn", "confirm": True}, CHAIN[1]]
+  runId = savedRun(db, ["running"], stages=stages, workflows=workflows)
+  foundFirstStage(db, runId)
+  scanner.results = {0: {"8.8.8.8": FakeHost({})}}
+  answers += ["y", "n"]
+  resume(runId)
+  assert [hosts for hosts, _, _ in scanner.calls] == ["10.0.0.1"]
+  assert [host["address"] for host in db.getRun(runId)["hosts"]] == ["10.0.0.1"]
+
+@pytest.mark.parametrize("net", ["-oN/tmp/x", "--script=x", "a b", "10.0.0.1;id"])
+def test_saved_targets_are_validated_again(db, scanner, workflows, catalog, capsys, net):
+  runId = savedRun(db, ["interrupted"], net=net, workflows=workflows)
+  before = db.getRun(runId)
+  resume(runId)
+  assert "Invalid target" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert db.getRun(runId) == before
+
+@pytest.mark.parametrize("changed", [
+  [CHAIN[1], CHAIN[0]] + CHAIN[2:],
+  CHAIN[:3],
+  CHAIN + [{"name": "extra", "from": "services", "arguments": "--script http-headers"}],
+  [dict(CHAIN[0], name="renamed")] + CHAIN[1:],
+  CHAIN[:1] + [dict(CHAIN[1], arguments="--top-ports 10")] + CHAIN[2:],
+])
+def test_changed_workflows_are_rejected(db, scanner, workflows, catalog, capsys, changed):
+  runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
+  before = db.getRun(runId)
+  workflows("w", changed)
+  resume(runId)
+  out = capsys.readouterr().out
+  assert "changed" in out or "not valid" in out
+  assert scanner.calls == []
+  assert db.getRun(runId) == before
+
+def test_workflows_that_are_no_longer_valid_are_rejected(db, scanner, workflows, catalog, capsys, tmp_path):
+  runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
+  before = db.getRun(runId)
+  for content in ("w:\n  stages:\n    - name: discovery\n      arguments: '-oN /tmp/x'\n", "not: [valid", None):
+    if content is None:
+      (tmp_path / "w.yaml").unlink()
+    else:
+      (tmp_path / "w.yaml").write_text(content, encoding="utf-8")
+    resume(runId)
+    assert "not valid" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert db.getRun(runId) == before
+
+def test_saved_workflow_names_cannot_leave_the_directory(db, scanner, workflows, catalog, capsys):
+  db.createRun("../../x", "10.0.0.1", [])
+  db.setRunStatus(1, "failed")
+  resume()
+  assert "not valid" in capsys.readouterr().out
+  assert scanner.calls == []
+
+def test_repeating_a_stage_does_not_duplicate_findings(db, scanner, workflows, answers, catalog):
+  stages = [CHAIN[0], {"name": "enum", "from": "live_hosts", "arguments": "--script http-title"}]
+  runId = savedRun(db, ["completed", "interrupted"], stages=stages, workflows=workflows)
+  foundFirstStage(db, runId)
+  db.saveStageResults(runId, "enum", [{"address": "10.0.0.1", "hostname": "", "state": "up"}], [],
+    [{"address": "10.0.0.1", "port": None, "script": "old", "output": "old"}, {"address": "10.0.0.1", "port": 80, "script": "http-title", "output": "old"}])
+  scanner.results = {0: {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http", "script": {"http-title": "new"}}})}}
+  answers.append("y")
+  resume(runId)
+  assert [(item["script"], item["output"]) for item in db.getRun(runId)["findings"]] == [("http-title", "new")]
+
+def test_interrupt_keeps_finished_targets_and_can_resume(db, scanner, workflows, answers, catalog, capsys):
+  stages = [CHAIN[0], {"name": "enum", "from": "live_hosts", "arguments": "--script http-title"}]
+  workflows("w", stages)
+  host = lambda title: FakeHost({80: {"state": "open", "name": "http", "script": {"http-title": title}}})
+  scanner.results = {0: {"10.0.0.1": FakeHost({}), "10.0.0.2": FakeHost({})}, 1: {"10.0.0.1": host("one")}, 3: {"10.0.0.1": host("one")}, 4: {"10.0.0.2": host("two")}}
+  scanner.error = (3, KeyboardInterrupt())
+  answers.append("y")
+  helperworkflow.HelperWorkflow("name:w net:10.0.0.0/24", "run").process()
+  assert "workflow resume id:1" in capsys.readouterr().out
+  details = db.getRun(1)
+  assert details["run"]["status"] == "interrupted"
+  assert details["stages"][1]["status"] == "interrupted"
+  assert [item["address"] for item in details["findings"]] == ["10.0.0.1"]
+  scanner.error = None
+  answers.append("y")
+  resume()
+  details = db.getRun(1)
+  assert details["run"]["status"] == "completed"
+  assert sorted((item["address"], item["output"]) for item in details["findings"]) == [("10.0.0.1", "one"), ("10.0.0.2", "two")]
+  assert [hosts for hosts, _, _ in scanner.calls] == ["10.0.0.0/24", "10.0.0.1", "10.0.0.2", "10.0.0.1", "10.0.0.2"]
+
+@pytest.mark.parametrize("error,status", [(nmap.PortScannerError("bad"), "failed"), (KeyboardInterrupt(), "interrupted")])
+def test_a_resumed_run_can_stop_and_resume_again(db, scanner, workflows, answers, catalog, error, status):
+  runId = savedRun(db, ["completed", "failed"], stages=CHAIN[:2], runStatus="failed", workflows=workflows)
+  foundFirstStage(db, runId)
+  scanner.error = (1, error)
+  answers.append("y")
+  resume(runId)
+  details = db.getRun(runId)
+  assert details["run"]["status"] == status and details["stages"][1]["status"] == status
+  assert details["run"]["finished_at"]
+  scanner.error = None
+  answers.append("y")
+  resume(runId)
+  assert db.getRun(runId)["run"]["status"] == "completed"
+
+def test_resume_without_nmap_changes_nothing(db, workflows, answers, catalog, monkeypatch, capsys):
+  runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
+  before = db.getRun(runId)
+  def missing():
+    raise nmap.PortScannerError("not found")
+  monkeypatch.setattr(nmap, "PortScanner", missing)
+  answers.append("y")
+  resume(runId)
+  assert "nmap was not found" in capsys.readouterr().out
+  assert db.getRun(runId) == before
+
+def test_resume_does_not_print_control_characters(db, scanner, workflows, answers, catalog, capsys):
+  runId = savedRun(db, ["completed", "interrupted"], stages=CHAIN[:2], workflows=workflows)
+  foundFirstStage(db, runId)
+  scanner.results = {0: {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http\x1b[2J", "product": "\x1b]0;x"}}, hostname="evil\x1b[2J")}}
+  answers.append("y")
+  resume(runId)
+  assert "\x1b" not in capsys.readouterr().out
+
+def test_smb_only_uses_safe_scripts_for_smb_services():
+  with open(helperworkflow.os.path.join(helperworkflow.BASE_DIR, "workflows", "smb.yaml"), encoding="utf-8") as f:
+    content = yaml.safe_load(f)
+  stages = content["smb"]["stages"]
+  assert not any(stage.get("confirm") for stage in stages)
+  assert stages[-1]["when"] == {"service": ["microsoft-ds", "netbios-ssn"]}
+  categories = dict(SCRIPTS)
+  for script in stages[-1]["arguments"].split()[1].split(","):
+    categories[script] = {"safe"}
+  validateWorkflow("smb", content, categories)
+
+def test_resume_messages_exist_in_every_language():
+  for language in ("en", "es"):
+    with open(helperworkflow.os.path.join(helperworkflow.BASE_DIR, "i18n", "help." + language + ".yml"), encoding="utf-8") as f:
+      messages = yaml.safe_load(f)[language]
+    for key in ("workflow_not_resumable", "workflow_changed", "workflow_resume_nothing", "workflow_resume_hint"):
+      assert messages[key]
+
+def test_a_resumed_run_is_running_while_it_scans(db, scanner, workflows, answers, catalog, monkeypatch):
+  runId = savedRun(db, ["completed", "interrupted"], stages=CHAIN[:2], workflows=workflows)
+  foundFirstStage(db, runId)
+  seen = []
+  monkeypatch.setattr(scanner, "scan", lambda hosts, ports=None, arguments="": seen.append(db.getRun(runId)["run"]))
+  answers.append("y")
+  resume(runId)
+  assert seen[0]["status"] == "running" and seen[0]["finished_at"] is None
