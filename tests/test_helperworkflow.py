@@ -1049,7 +1049,7 @@ def test_remote_data_never_reaches_the_nmap_arguments(db, scanner, catalog, answ
   hosts, ports, arguments = scanner.calls[0]
   assert "vuln" not in arguments and "/tmp" not in arguments and "-oN" not in arguments and "-iL" not in arguments
 
-def test_results_outside_the_scope_are_ignored(db, scanner, catalog, answers, capsys):
+def test_suggestions_ignore_results_outside_the_scope(db, scanner, catalog, answers, capsys):
   runId = foundRun(db)
   answers += ["1", "y"]
   scanner.results = {0: {"8.8.8.8": FakeHost({80: {"state": "open", "name": "http"}})}}
