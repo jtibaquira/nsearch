@@ -62,6 +62,10 @@ en:
   compare_new_finding: New finding
   compare_gone_finding: Finding no longer present
   compare_changed_finding: Finding changed
+  workflow_suggest_not_completed: Suggestions need a completed run. Status
+  workflow_suggest_none: No script suggestions for the services found in this run
+  workflow_suggest_select: Scripts to run (numbers separated by commas, all, or empty for none)
+  workflow_suggest_bad_selection: Invalid selection, so nothing will run
   report_title: Workflow report, run
   report_workflow: Workflow
   report_target: Target
@@ -83,6 +87,7 @@ en:
   report_reason_open_ports: It scans the open ports found in this run
   report_reason_services: It scans the open ports found in this run with these services
   report_reason_all_services: It scans the services found in this run
+  report_reason_suggestion: Suggested by workflow suggest and approved by the operator, for this service
   report_reason_unknown: Not recorded by the version that ran this stage
   report_skipped: It did not run because there was nothing to scan
   report_declined: It did not run because it was not confirmed

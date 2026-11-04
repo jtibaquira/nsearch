@@ -62,6 +62,10 @@ es:
   compare_new_finding: Hallazgo nuevo
   compare_gone_finding: Hallazgo que ya no aparece
   compare_changed_finding: Hallazgo cambiado
+  workflow_suggest_not_completed: Las sugerencias necesitan una ejecución completada. Estado
+  workflow_suggest_none: No hay scripts que sugerir para los servicios encontrados en esta ejecución
+  workflow_suggest_select: Scripts que desea ejecutar (números separados por comas, all, o vacío para ninguno)
+  workflow_suggest_bad_selection: La selección no es válida, así que no se ejecutará nada
   report_title: Reporte del workflow, ejecución
   report_workflow: Workflow
   report_target: Objetivo
@@ -83,6 +87,7 @@ es:
   report_reason_open_ports: Escanea los puertos abiertos encontrados en esta ejecución
   report_reason_services: Escanea los puertos abiertos encontrados en esta ejecución con estos servicios
   report_reason_all_services: Escanea los servicios encontrados en esta ejecución
+  report_reason_suggestion: Sugerida por workflow suggest y aprobada por el operador, para este servicio
   report_reason_unknown: No lo registró la versión que ejecutó esta etapa
   report_skipped: No se ejecutó porque no había nada que escanear
   report_declined: No se ejecutó porque no se confirmó

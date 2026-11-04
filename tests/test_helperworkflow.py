@@ -913,3 +913,217 @@ def test_compare_treats_a_host_that_went_down_as_gone(db, scanner, workflows, an
   capsys.readouterr()
   compare()
   assert "[-] Host no longer found: 10.0.0.1" in capsys.readouterr().out
+
+# ---- Suggestions
+
+def suggest(runId=1):
+  helperworkflow.HelperWorkflow("id:" + str(runId), "suggest").process()
+
+def foundRun(db, status="completed", ports=((80, "http"),), address="10.0.0.1"):
+  runId = db.createRun("w", "10.0.0.0/24", [{"name": "discovery", "source": None, "services": None, "confirm": False, "arguments": "-sn"}])
+  db.setStageStatus(runId, 0, "completed")
+  db.saveStageResults(runId, "discovery", [{"address": address, "hostname": "", "state": "up"}],
+    [{"address": address, "protocol": "tcp", "port": port, "state": "open", "service": service, "product": "", "version": ""} for port, service in ports], [])
+  db.setRunStatus(runId, status)
+  return runId
+
+def test_suggestions_are_listed_and_nothing_runs_without_approval(db, scanner, catalog, answers, capsys):
+  runId = foundRun(db)
+  before = db.getRun(runId)
+  answers.append("")
+  suggest(runId)
+  out = capsys.readouterr().out
+  assert "1. http-headers" in out and "2. http-title" in out and "10.0.0.1:80" in out
+  assert answers == [] and scanner.calls == []
+  assert db.getRun(runId) == before
+
+@pytest.mark.parametrize("answer", ["", "   ", "0", "3", "x", "1,", "1;2", "-1", "²", "1 2", "http-title", "99999", EOFError, KeyboardInterrupt])
+def test_anything_but_a_valid_selection_runs_nothing(db, scanner, catalog, monkeypatch, answer):
+  runId = foundRun(db)
+  before = db.getRun(runId)
+  # A later "y" must not rescue a selection that should have stopped everything
+  given = [answer]
+  def respond(message):
+    value = given.pop(0) if given else "y"
+    if isinstance(value, str):
+      return value
+    raise value
+  monkeypatch.setattr("builtins.input", respond)
+  suggest(runId)
+  assert scanner.calls == []
+  assert db.getRun(runId) == before
+
+@pytest.mark.parametrize("answer", ["n", "", EOFError, KeyboardInterrupt])
+def test_refusing_the_authorization_runs_nothing(db, scanner, catalog, monkeypatch, capsys, answer):
+  runId = foundRun(db)
+  before = db.getRun(runId)
+  given = ["1", answer]
+  def respond(message):
+    value = given.pop(0)
+    if isinstance(value, str):
+      return value
+    raise value
+  monkeypatch.setattr("builtins.input", respond)
+  suggest(runId)
+  assert given == [] and scanner.calls == []
+  assert db.getRun(runId) == before
+
+@pytest.mark.parametrize("selection,expected", [("2", "http-title"), ("all", "http-headers or http-title"), ("2,1,2", "http-headers or http-title")])
+def test_approved_scripts_run_only_on_the_ports_of_that_service(db, scanner, catalog, answers, selection, expected):
+  runId = foundRun(db, ports=((80, "http"), (22, "ssh")))
+  answers += [selection, "y", "", ]
+  scanner.results = {0: {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http", "script": {"http-title": "Hi"}}})}}
+  suggest(runId)
+  assert answers == []
+  assert len(scanner.calls) == 1
+  hosts, ports, arguments = scanner.calls[0]
+  assert (hosts, ports) == ("10.0.0.1", "80")
+  assert "(" + expected + ") and not (broadcast or dos)" in arguments and "--host-timeout" in arguments
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed"
+  assert details["stages"][1]["name"] == "suggested-2" and details["stages"][1]["status"] == "completed"
+  assert details["findings"][0]["stage"] == "suggested-2" and details["findings"][0]["script"] == "http-title"
+
+def test_only_safe_scripts_are_suggested(db, scanner, catalog, answers, capsys):
+  runId = foundRun(db)
+  answers.append("")
+  suggest(runId)
+  out = capsys.readouterr().out
+  assert "http-sql" not in out and "http-slowloris" not in out and "bc" not in out
+
+def test_broadcast_and_dos_scripts_are_never_suggested_even_if_safe(monkeypatch):
+  monkeypatch.setitem(helperworkflow.SUGGESTIONS, "fake", ("x",))
+  scripts = {"x-one": {"safe"}, "x-two": {"safe", "broadcast"}, "x-three": {"safe", "dos"}, "x-four": {"vuln"}, "xother": {"safe"}}
+  assert helperworkflow.suggestedScripts("fake", scripts, set()) == ["x-one"]
+
+def test_scripts_already_used_are_not_suggested_again(db, scanner, catalog, answers, capsys):
+  runId = foundRun(db)
+  answers += ["1", "y"]
+  suggest(runId)
+  capsys.readouterr()
+  answers.append("")
+  suggest(runId)
+  out = capsys.readouterr().out
+  assert "http-headers" not in out and "1. http-title" in out
+
+def test_scripts_with_saved_results_are_not_suggested(db, scanner, catalog, answers, capsys):
+  runId = foundRun(db)
+  db.saveStageResults(runId, "discovery", [], [], [{"address": "10.0.0.1", "port": 80, "script": "http-title", "output": "Hi"}])
+  answers.append("")
+  suggest(runId)
+  out = capsys.readouterr().out
+  assert "http-title" not in out and "1. http-headers" in out
+
+def test_nothing_left_to_suggest(db, scanner, catalog, answers, capsys):
+  runId = foundRun(db)
+  answers += ["all", "y"]
+  suggest(runId)
+  capsys.readouterr()
+  calls = len(scanner.calls)
+  suggest(runId)
+  assert "No script suggestions" in capsys.readouterr().out
+  assert len(scanner.calls) == calls and answers == []
+
+@pytest.mark.parametrize("service", ["unknown", "http;rm -rf /", "--script=vuln", "http --script vuln", "HTTP", "http\x1b[31m", ""])
+def test_services_outside_the_table_never_produce_suggestions(db, scanner, catalog, capsys, service):
+  runId = foundRun(db, ports=((80, service),))
+  suggest(runId)
+  out = capsys.readouterr().out
+  assert "No script suggestions" in out and "\x1b" not in out
+  assert scanner.calls == []
+
+def test_remote_data_never_reaches_the_nmap_arguments(db, scanner, catalog, answers):
+  runId = foundRun(db)
+  db.saveStageResults(runId, "discovery", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 80, "state": "open", "service": "http",
+    "product": "--script=vuln", "version": "-oN /tmp/x"}], [{"address": "10.0.0.1", "port": 80, "script": "--script=vuln", "output": "-iL /tmp/x"}])
+  answers += ["all", "y"]
+  suggest(runId)
+  hosts, ports, arguments = scanner.calls[0]
+  assert "vuln" not in arguments and "/tmp" not in arguments and "-oN" not in arguments and "-iL" not in arguments
+
+def test_results_outside_the_scope_are_ignored(db, scanner, catalog, answers, capsys):
+  runId = foundRun(db)
+  answers += ["1", "y"]
+  scanner.results = {0: {"8.8.8.8": FakeHost({80: {"state": "open", "name": "http"}})}}
+  suggest(runId)
+  assert "Ignored result" in capsys.readouterr().out
+  assert [host["address"] for host in db.getRun(runId)["hosts"]] == ["10.0.0.1"]
+
+@pytest.mark.parametrize("status", ["interrupted", "failed", "running"])
+def test_suggestions_need_a_completed_run(db, scanner, catalog, capsys, status):
+  runId = foundRun(db, status=status)
+  before = db.getRun(runId)
+  suggest(runId)
+  assert "need a completed run" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert db.getRun(runId) == before
+
+@pytest.mark.parametrize("args,message", [("", "help workflow"), ("foo:1", "help workflow"), ("id:x", "help workflow"), ("id:²", "help workflow"),
+  ("id:1 net:10.0.0.1", "help workflow"), ("id:99", "not found")])
+def test_suggest_rejects_bad_arguments(db, scanner, capsys, args, message):
+  helperworkflow.HelperWorkflow(args, "suggest").process()
+  assert message in capsys.readouterr().out
+  assert scanner.calls == []
+
+@pytest.mark.parametrize("error,status", [(nmap.PortScannerError("boom"), "failed"), (KeyboardInterrupt(), "interrupted")])
+def test_a_suggested_stage_that_stops_leaves_the_run_completed(db, scanner, catalog, answers, error, status):
+  runId = foundRun(db)
+  answers += ["1", "y"]
+  scanner.error = (1, error)
+  suggest(runId)
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed"
+  assert details["stages"][1]["status"] == status
+
+def test_an_unfinished_suggestion_is_offered_again(db, scanner, catalog, answers, capsys):
+  runId = foundRun(db)
+  answers += ["1", "y"]
+  scanner.error = (1, KeyboardInterrupt())
+  suggest(runId)
+  capsys.readouterr()
+  scanner.error = None
+  answers.append("")
+  suggest(runId)
+  assert "1. http-headers" in capsys.readouterr().out
+
+def test_suggest_without_nmap_changes_nothing(db, catalog, answers, monkeypatch, capsys):
+  def missing():
+    raise nmap.PortScannerError("missing")
+  monkeypatch.setattr(nmap, "PortScanner", missing)
+  runId = foundRun(db)
+  before = db.getRun(runId)
+  answers += ["1", "y"]
+  suggest(runId)
+  assert "nmap" in capsys.readouterr().out.lower()
+  assert db.getRun(runId) == before
+
+def test_each_service_is_asked_separately(db, scanner, catalog, answers):
+  runId = foundRun(db, ports=((80, "http"), (22, "ssh")))
+  answers += ["", "1", "y"]
+  suggest(runId)
+  assert answers == []
+  assert [(hosts, ports) for hosts, ports, _ in scanner.calls] == [("10.0.0.1", "22")]
+  assert "ssh-hostkey" in scanner.calls[0][2]
+
+def test_report_explains_a_suggested_stage(db, scanner, catalog, answers, reports):
+  runId = foundRun(db)
+  answers += ["1", "y"]
+  suggest(runId)
+  report(runId, "json")
+  stage = json.loads((reports / ("workflow-%d.json" % runId)).read_text(encoding="utf-8"))["stages"][1]
+  assert "approved by the operator" in stage["reason"] and "http" in stage["reason"]
+  assert stage["targets"] == [{"target": "10.0.0.1", "ports": "80"}]
+
+def test_every_service_in_the_table_has_real_safe_scripts():
+  dbFile = "/opt/homebrew/share/nmap/scripts/script.db"
+  if not os.path.isfile(dbFile):
+    pytest.skip("nmap is not installed here")
+  scripts = {}
+  with open(dbFile, encoding="utf-8") as f:
+    for name, found in re.findall(r'filename = "([^"]+)\.nse", categories = \{([^}]*)\}', f.read()):
+      scripts[name] = set(re.findall(r'"([a-z]+)"', found))
+  for service in helperworkflow.SUGGESTIONS:
+    names = helperworkflow.suggestedScripts(service, scripts, set())
+    assert names, service
+    assert all("safe" in scripts[name] and not scripts[name] & {"dos", "broadcast"} for name in names)
+    validateArguments("--script " + ",".join(names), "services", False, "15m", scripts)

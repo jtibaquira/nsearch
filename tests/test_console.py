@@ -30,7 +30,8 @@ def test_workflow_resume_is_in_help_and_completion(capsys):
 def test_workflow_report_and_compare_are_in_help_and_completion(capsys):
   shell = console.Console()
   assert shell.complete_workflow("rep", "workflow rep", 9, 12) == ["report"]
+  assert shell.complete_workflow("su", "workflow su", 9, 11) == ["suggest"]
   assert shell.complete_workflow("co", "workflow co", 9, 11) == ["compare"]
   shell.onecmd("help workflow")
   out = capsys.readouterr().out
-  assert "workflow report id:1 format:json" in out and "workflow compare id:1 with:2" in out
+  assert "workflow report id:1 format:json" in out and "workflow compare id:1 with:2" in out and "workflow suggest id:1" in out

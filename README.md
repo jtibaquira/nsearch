@@ -193,6 +193,7 @@ nsearch> workflow status id:1
 nsearch> workflow resume id:1
 nsearch> workflow report id:1 format:md
 nsearch> workflow compare id:1 with:2
+nsearch> workflow suggest id:1
 ```
 
 `workflow run` shows the plan and asks for confirmation before it starts. Results are stored in the local database.
@@ -208,6 +209,13 @@ If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue
 `workflow report id:<id>` writes a report of any run to `reports/workflow-<id>.md`, or to `reports/workflow-<id>.json` with `format:json`. For each stage, it says why it ran, or why it did not, and what it scanned. Reports can contain sensitive results, so only your user can read them. Writing a report again replaces the previous one. Runs from earlier versions do not have the targets or the reasons of their stages, so their reports say they were not recorded.
 
 `workflow compare id:<id> with:<id>` shows what changed from the first run to the second: hosts, open ports, services, and script results. It warns you if the runs used a different workflow or target, or did not finish every stage, because in those cases a missing result may just not have been scanned.
+
+`workflow suggest id:<id>` lists scripts for the services found by a completed run, and runs only the ones you pick:
+
+- It only suggests scripts in the `safe` category that have not already run in that run. Suggestions are based on the script name, so nmap may decide that a script does not apply to a service.
+- For each service, it shows where the scripts would run and asks which ones you want. The default is none. It then shows the plan and asks for authorization before it scans.
+- It only scans the hosts and ports of that service in that run. Each approved set is added to the run as a new stage, and appears in its status and report.
+- If a suggested stage is interrupted or fails, the run stays `completed`, what was saved is kept, and `workflow suggest` offers the scripts again.
 
 The workflows are in the `workflows` directory:
 

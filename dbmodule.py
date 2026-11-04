@@ -355,6 +355,15 @@ def createRun(workflow, target, stages):
       [(runId, position, stage["name"], stage["arguments"], stageDefinition(stage)) for position, stage in enumerate(stages)])
     return runId
 
+# Add a stage at the end of a run. Returns its position and the name it was given
+def addStage(runId, name, stage):
+  with closing(__workflowConnect()) as conn, conn:
+    position = conn.execute("SELECT COALESCE(MAX(position) + 1, 0) FROM workflow_stages WHERE run_id=?", (runId,)).fetchone()[0]
+    stage = dict(stage, name=name + "-" + str(position + 1))
+    conn.execute("INSERT INTO workflow_stages (run_id, position, name, arguments, status, definition) VALUES (?, ?, ?, ?, 'pending', ?)",
+      (runId, position, stage["name"], stage["arguments"], stageDefinition(stage)))
+    return position, stage
+
 def setStageStatus(runId, position, status):
   with closing(__workflowConnect()) as conn, conn:
     conn.execute("UPDATE workflow_stages SET status=? WHERE run_id=? AND position=?", (status, runId, position))

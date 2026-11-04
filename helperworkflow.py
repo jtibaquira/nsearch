@@ -27,6 +27,15 @@ VALUE_RE = r"[A-Za-z0-9._,:=/-]+"
 BLOCKED_SCRIPTS = {"dos", "broadcast"}
 RESUMABLE_RUNS = ("interrupted", "failed", "running")
 FINISHED_STAGES = ("completed", "skipped", "declined")
+# Script name prefixes per service. A service name comes from the scanned host, so it is only ever
+# looked up here, and what reaches nmap comes from this table and the script database
+SUGGESTIONS = {
+  "http": ("http",), "http-alt": ("http",), "http-proxy": ("http",), "https": ("http", "ssl"),
+  "ssh": ("ssh", "ssh2"), "ftp": ("ftp",), "smtp": ("smtp",), "domain": ("dns",),
+  "microsoft-ds": ("smb", "smb2"), "netbios-ssn": ("smb", "smb2", "nbstat"),
+  "mysql": ("mysql",), "ms-sql-s": ("ms-sql",), "ms-wbt-server": ("rdp",), "imap": ("imap",), "pop3": ("pop3",),
+  "ldap": ("ldap",), "telnet": ("telnet",), "vnc": ("vnc",), "redis": ("redis",), "mongodb": ("mongodb",),
+}
 
 class WorkflowError(Exception):
   pass
@@ -217,6 +226,8 @@ def stageReason(stage):
     reason = i18n.t("help.report_reason_services") + ": " + ", ".join(str(service) for service in services)
   elif source == "services":
     reason = i18n.t("help.report_reason_all_services")
+  elif source == "suggestion" and isinstance(services, list):
+    reason = i18n.t("help.report_reason_suggestion") + ": " + ", ".join(str(service) for service in services)
   else:
     return i18n.t("help.report_reason_unknown")
   if stage["status"] == "skipped":
@@ -330,6 +341,36 @@ def compareRuns(base, other):
     compare(kind, read(base), read(other))
   return changes
 
+# Scripts already run or tried in this run are not suggested again
+def usedScripts(details):
+  used = {item["script"] for item in details["findings"]}
+  for stage in details["stages"]:
+    if stage["status"] == "completed":
+      used.update(re.findall(r"[A-Za-z0-9_.-]+", stage["arguments"]))
+  return used
+
+# Only scripts that a stage can run without confirm: safe ones, and never the blocked categories
+def suggestedScripts(service, scripts, used):
+  prefixes = SUGGESTIONS[service]
+  return sorted(script for script, found in scripts.items() if "safe" in found and not found & BLOCKED_SCRIPTS and script not in used
+    and any(script == prefix or script.startswith(prefix + "-") for prefix in prefixes))
+
+# Anything but a valid list selects nothing
+def askSelection(message, names):
+  try:
+    answer = input(message + ": ").strip().lower()
+  except (EOFError, KeyboardInterrupt):
+    return []
+  if not answer:
+    return []
+  if answer == "all":
+    return names
+  chosen = [item.strip() for item in answer.split(",")]
+  if not all(re.fullmatch(r"[0-9]{1,4}", item) and 1 <= int(item) <= len(names) for item in chosen):
+    print(i18n.t("help.workflow_suggest_bad_selection"))
+    return []
+  return [names[index] for index in sorted({int(item) - 1 for item in chosen})]
+
 class HelperWorkflow:
 
   def __init__(self, args="", command=""):
@@ -349,6 +390,8 @@ class HelperWorkflow:
       self.__report()
     elif self.command == "compare":
       self.__compare()
+    elif self.command == "suggest":
+      self.__suggest()
     else:
       print(i18n.t("help.workflow_error"))
 
@@ -413,28 +456,33 @@ class HelperWorkflow:
         dbmodule.setStageStatus(runId, position, "declined")
         print(label + ": " + i18n.t("help.workflow_declined"))
         continue
-      print(label + ": " + i18n.t("help.running_scan"))
-      dbmodule.setStageStatus(runId, position, "running")
-      try:
-        for target, ports in targets:
-          arguments = ("-6 " if ":" in target else "") + stage["arguments"]
-          nm.scan(hosts=target, ports=ports, arguments=arguments)
-          dbmodule.saveStageResults(runId, stage["name"], *collectResults(nm, scope))
-      except (nmap.PortScannerError, OSError, dbmodule.lite.Error) as e:
-        dbmodule.setStageStatus(runId, position, "failed")
-        dbmodule.setRunStatus(runId, "failed")
-        print(label + ": " + i18n.t("help.help_run_scan_error") + ": " + sanitize(e))
+      problem = self.__scanStage(nm, runId, position, stage, targets, scope, label)
+      if problem:
+        dbmodule.setRunStatus(runId, problem)
         print(i18n.t("help.workflow_resume_hint") + ": workflow resume id:" + str(runId))
         return
-      except KeyboardInterrupt:
-        dbmodule.setStageStatus(runId, position, "interrupted")
-        dbmodule.setRunStatus(runId, "interrupted")
-        print(label + ": " + i18n.t("help.help_run_interrupted"))
-        print(i18n.t("help.workflow_resume_hint") + ": workflow resume id:" + str(runId))
-        return
-      dbmodule.setStageStatus(runId, position, "completed")
     dbmodule.setRunStatus(runId, "completed")
     self.__printRun(dbmodule.getRun(runId))
+
+  # Returns the status of the stage if it could not finish
+  def __scanStage(self, nm, runId, position, stage, targets, scope, label):
+    print(label + ": " + i18n.t("help.running_scan"))
+    dbmodule.setStageStatus(runId, position, "running")
+    try:
+      for target, ports in targets:
+        arguments = ("-6 " if ":" in target else "") + stage["arguments"]
+        nm.scan(hosts=target, ports=ports, arguments=arguments)
+        dbmodule.saveStageResults(runId, stage["name"], *collectResults(nm, scope))
+    except (nmap.PortScannerError, OSError, dbmodule.lite.Error) as e:
+      dbmodule.setStageStatus(runId, position, "failed")
+      print(label + ": " + i18n.t("help.help_run_scan_error") + ": " + sanitize(e))
+      return "failed"
+    except KeyboardInterrupt:
+      dbmodule.setStageStatus(runId, position, "interrupted")
+      print(label + ": " + i18n.t("help.help_run_interrupted"))
+      return "interrupted"
+    dbmodule.setStageStatus(runId, position, "completed")
+    return None
 
   def __status(self):
     params = parseArgs(self.args, ("id",))
@@ -534,6 +582,63 @@ class HelperWorkflow:
       print(i18n.t("help.workflow_compare_same"))
     for sign, label, key, values in changes:
       print("[%s] %s: %s%s" % (sign, i18n.t("help.compare_" + label), sanitize(" ".join(key)), " (" + sanitize(values[0]) + " => " + sanitize(values[1]) + ")" if values else ""))
+
+  def __suggest(self):
+    params = parseArgs(self.args, ("id",))
+    if not params or not validRunId(params["id"]):
+      print(i18n.t("help.workflow_error"))
+      return
+    runId = int(params["id"])
+    details = dbmodule.getRun(runId)
+    if details is None:
+      print(i18n.t("help.workflow_not_found"))
+      return
+    # Stages added to an unfinished run would stop it from being resumed
+    if details["run"]["status"] != "completed":
+      print(i18n.t("help.workflow_suggest_not_completed") + ": " + sanitize(details["run"]["status"]))
+      return
+    scripts = dbmodule.scriptCategories()
+    used = usedScripts(details)
+    groups = [(service, suggestedScripts(service, scripts, used)) for service in sorted({item["service"] for item in details["services"]} & set(SUGGESTIONS))]
+    groups = [(service, names) for service, names in groups if names]
+    if not groups:
+      print(i18n.t("help.workflow_suggest_none"))
+      return
+    scope = set(dbmodule.getLiveHosts(runId))
+    scanned = False
+    for service, names in groups:
+      targets = stageTargets(runId, {"source": "services", "services": [service]}, None)
+      if not targets:
+        continue
+      places = sanitize(", ".join(target + ":" + ports for target, ports in targets))
+      print("[+] " + service + ": " + places)
+      for number, name in enumerate(names, 1):
+        print("  %d. %s" % (number, sanitize(name)))
+      selected = askSelection(i18n.t("help.workflow_suggest_select"), names)
+      if not selected:
+        continue
+      try:
+        arguments = validateArguments("--script " + ",".join(selected), "services", False, HOST_TIMEOUT, scripts)
+      except WorkflowError as e:
+        print(i18n.t("help.workflow_invalid") + ": " + sanitize(e))
+        continue
+      print(i18n.t("help.workflow_plan") + ": " + places)
+      print("  " + sanitize(arguments))
+      if not askConfirmation(i18n.t("help.workflow_authorized")):
+        print(i18n.t("help.workflow_cancelled"))
+        continue
+      try:
+        nm = nmap.PortScanner()
+      except nmap.PortScannerError:
+        print(i18n.t("help.help_run_nmap_missing"))
+        return
+      position, stage = dbmodule.addStage(runId, "suggested", {"source": "suggestion", "services": [service], "confirm": False, "arguments": arguments})
+      dbmodule.setStageTargets(runId, position, targets)
+      if self.__scanStage(nm, runId, position, stage, targets, scope, "[" + stage["name"] + "]"):
+        return
+      scanned = True
+    if scanned:
+      self.__printRun(dbmodule.getRun(runId))
 
   def __printRun(self, details):
     run = details["run"]
