@@ -49,3 +49,41 @@ en:
   workflow_resume_hint: To continue this run, use
   workflow_resume_running: This run is marked as running. Continue only if no other console is working on it
   workflow_already_resumed: Another console has already resumed this run
+  workflow_report_saved: Report saved to
+  workflow_report_error: Could not write the report
+  workflow_compare_different: These runs used a different workflow or target, so missing results may just not have been scanned
+  workflow_compare_incomplete: At least one of these runs did not finish every stage, so missing results may just not have been scanned
+  workflow_compare_same: No differences between these runs
+  compare_new_host: New host
+  compare_gone_host: Host no longer found
+  compare_new_service: New open port
+  compare_gone_service: Port no longer open
+  compare_changed_service: Service changed
+  compare_new_finding: New finding
+  compare_gone_finding: Finding no longer present
+  compare_changed_finding: Finding changed
+  report_title: Workflow report, run
+  report_workflow: Workflow
+  report_target: Target
+  report_status: Status
+  report_started: Started
+  report_finished: Finished
+  report_stages: Stages
+  report_reason: Reason
+  report_arguments: nmap arguments
+  report_targets: Targets
+  report_ports: ports
+  report_not_recorded: not recorded
+  report_none: None
+  report_hosts: Hosts
+  report_services: Open ports
+  report_findings: Script results
+  report_reason_first: First stage, so it scans the target given when the run started
+  report_reason_live_hosts: It scans the live hosts found in this run
+  report_reason_open_ports: It scans the open ports found in this run
+  report_reason_services: It scans the open ports found in this run with these services
+  report_reason_all_services: It scans the services found in this run
+  report_reason_unknown: Not recorded by the version that ran this stage
+  report_skipped: It did not run because there was nothing to scan
+  report_declined: It did not run because it was not confirmed
+  report_confirmed: It can be intrusive, so it asked first and it was confirmed

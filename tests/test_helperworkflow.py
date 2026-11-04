@@ -664,3 +664,252 @@ def test_a_resumed_run_is_running_while_it_scans(db, scanner, workflows, answers
   answers.append("y")
   resume(runId)
   assert seen[0]["status"] == "running" and seen[0]["finished_at"] is None
+
+# ---- Reports
+
+import json
+import os
+import stat
+
+HTTP_HOST = {"10.0.0.1": FakeHost({80: {"state": "open", "name": "http", "product": "nginx", "version": "1.0", "script": {"http-title": "Welcome"}}})}
+
+@pytest.fixture
+def reports(tmp_path, monkeypatch):
+  folder = tmp_path / "reports"
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(folder))
+  return folder
+
+def report(runId=1, extension="md"):
+  helperworkflow.HelperWorkflow("id:%d format:%s" % (runId, extension), "report").process()
+
+def fullRun(scanner, workflows, answers, stages=CHAIN, results=None, name="w", net="10.0.0.0/24"):
+  workflows(name, stages)
+  scanner.calls = []
+  scanner.results = results if results is not None else {0: {"10.0.0.1": FakeHost({})}, 1: HTTP_HOST, 2: HTTP_HOST, 3: HTTP_HOST}
+  answers.append("y")
+  helperworkflow.HelperWorkflow("name:%s net:%s" % (name, net), "run").process()
+
+def test_report_explains_why_each_stage_ran_and_on_what(db, scanner, workflows, answers, catalog, reports):
+  fullRun(scanner, workflows, answers)
+  report()
+  text = (reports / "workflow-1.md").read_text(encoding="utf-8")
+  sections = re.split(r"^### ", text, flags=re.M)
+  assert "First stage" in sections[1] and "` 10.0.0.0/24 `" in sections[1]
+  assert "live hosts" in sections[2] and "` 10.0.0.1 `" in sections[2]
+  assert "open ports" in sections[3] and "` 80 `" in sections[3]
+  assert "with these services: http" in sections[4] and "` 80 `" in sections[4] and "http-title" in sections[4]
+  assert "Welcome" in text and "nginx" in text
+
+def test_report_says_why_a_stage_did_not_run(db, scanner, workflows, answers, catalog, reports):
+  stages = CHAIN[:3] + [{"name": "vuln", "from": "services", "arguments": "--script http-sql", "confirm": True},
+    {"name": "ssh", "from": "services", "when": {"service": ["ssh"]}, "arguments": "--script ssh-hostkey"}]
+  answers.append("y")
+  answers.append("n")
+  workflows("w", stages)
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: HTTP_HOST, 2: HTTP_HOST}
+  helperworkflow.HelperWorkflow("name:w net:10.0.0.0/24", "run").process()
+  report(extension="json")
+  found = json.loads((reports / "workflow-1.json").read_text(encoding="utf-8"))["stages"]
+  assert "not confirmed" in found[3]["reason"] and found[3]["targets"] == [{"target": "10.0.0.1", "ports": "80"}]
+  assert "nothing to scan" in found[4]["reason"] and found[4]["targets"] == []
+
+def test_report_says_a_stage_was_confirmed(db, scanner, workflows, answers, catalog, reports):
+  stages = CHAIN[:3] + [{"name": "vuln", "from": "services", "arguments": "--script http-sql", "confirm": True}]
+  answers.append("y")
+  fullRun(scanner, workflows, answers, stages=stages)
+  report(extension="json")
+  assert "it was confirmed" in json.loads((reports / "workflow-1.json").read_text(encoding="utf-8"))["stages"][3]["reason"]
+
+@pytest.mark.parametrize("extension", ["md", "json"])
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
+def test_reports_are_only_readable_by_their_owner(db, scanner, workflows, answers, catalog, reports, extension):
+  fullRun(scanner, workflows, answers)
+  report(extension=extension)
+  report(extension=extension)
+  assert stat.S_IMODE(os.stat(reports / ("workflow-1." + extension)).st_mode) == 0o600
+  assert stat.S_IMODE(os.stat(reports).st_mode) == 0o700
+  assert os.listdir(reports) == ["workflow-1." + extension]
+
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
+def test_report_replaces_a_symlink_instead_of_following_it(db, scanner, workflows, answers, catalog, reports, tmp_path):
+  fullRun(scanner, workflows, answers)
+  reports.mkdir()
+  victim = tmp_path / "victim"
+  victim.write_text("original", encoding="utf-8")
+  (reports / "workflow-1.md").symlink_to(victim)
+  report()
+  assert victim.read_text(encoding="utf-8") == "original"
+  assert not (reports / "workflow-1.md").is_symlink()
+
+@pytest.mark.parametrize("args", ["", "format:md", "id:x", "id:1 format:html", "id:1 format:../../x", "id:1 path:/tmp/x", "id:" + "9" * 30])
+def test_report_rejects_bad_arguments(db, reports, capsys, args):
+  helperworkflow.HelperWorkflow(args, "report").process()
+  assert "help workflow" in capsys.readouterr().out
+  assert not reports.exists()
+
+def test_report_of_a_missing_run(db, reports, capsys):
+  report(99)
+  assert "not found" in capsys.readouterr().out
+  assert not reports.exists()
+
+def test_report_write_errors_are_reported(db, scanner, workflows, answers, catalog, reports, capsys):
+  fullRun(scanner, workflows, answers)
+  reports.write_text("a file, not a folder", encoding="utf-8")
+  report()
+  assert "Could not write" in capsys.readouterr().out
+
+HOSTILE = "evil\x1b[31m\n# Fake heading\n[click](http://evil.test) <img src=x onerror=alert(1)> ``` | `tick`"
+
+def hostileRun(scanner, workflows, answers):
+  host = FakeHost({80: {"state": "open", "name": "http", "product": HOSTILE, "version": HOSTILE, "script": {"http-title": HOSTILE}}}, hostname=HOSTILE)
+  fullRun(scanner, workflows, answers, results={0: {"10.0.0.1": host}, 1: {"10.0.0.1": host}, 2: {"10.0.0.1": host}, 3: {"10.0.0.1": host}})
+
+def test_markdown_report_keeps_hostile_data_inside_code(db, scanner, workflows, answers, catalog, reports):
+  hostileRun(scanner, workflows, answers)
+  report()
+  text = (reports / "workflow-1.md").read_text(encoding="utf-8")
+  assert "\x1b" not in text
+  fenced = False
+  fence = ""
+  for line in text.splitlines():
+    if fenced:
+      fenced = line != fence
+      continue
+    if re.fullmatch(r"`{3,}", line):
+      fenced, fence = True, line
+      continue
+    # Outside the output blocks, everything hostile is on one line, inside a code span
+    assert not line.startswith("# Fake")
+    assert not re.sub(r"(`+) .*? \1", "", line).count("evil")
+  assert not fenced
+
+def test_json_report_escapes_hostile_data_and_keeps_it(db, scanner, workflows, answers, catalog, reports):
+  hostileRun(scanner, workflows, answers)
+  report(extension="json")
+  raw = (reports / "workflow-1.json").read_text(encoding="utf-8")
+  assert "\x1b" not in raw
+  assert json.loads(raw)["findings"][0]["output"] == HOSTILE
+
+def test_report_of_a_run_from_an_earlier_version(db, scanner, workflows, answers, catalog, reports):
+  fullRun(scanner, workflows, answers)
+  connection = db.lite.connect(db.dbname)
+  connection.execute("UPDATE workflow_stages SET definition=NULL, targets=NULL")
+  connection.commit()
+  connection.close()
+  report()
+  text = (reports / "workflow-1.md").read_text(encoding="utf-8")
+  assert "Not recorded by the version" in text and "not recorded" in text
+
+@pytest.mark.parametrize("value", ["not json", "[1, 2]", '{"source": "other"}', "3"])
+def test_report_survives_damaged_stage_data(db, scanner, workflows, answers, catalog, reports, value):
+  fullRun(scanner, workflows, answers)
+  connection = db.lite.connect(db.dbname)
+  connection.execute("UPDATE workflow_stages SET definition=?, targets=?", (value, value))
+  connection.commit()
+  connection.close()
+  report()
+  assert "Not recorded by the version" in (reports / "workflow-1.md").read_text(encoding="utf-8")
+
+def test_targets_are_recorded_again_when_a_stage_resumes(db, scanner, workflows, answers, catalog):
+  runId = savedRun(db, ["completed", "interrupted"], stages=CHAIN[:2], workflows=workflows)
+  foundFirstStage(db, runId, ("10.0.0.1", "10.0.0.2"))
+  answers.append("y")
+  resume(runId)
+  assert json.loads(db.getRun(runId)["stages"][1]["targets"]) == [{"target": "10.0.0.1", "ports": None}, {"target": "10.0.0.2", "ports": None}]
+
+def test_older_databases_get_the_targets_column(db, scanner, workflows, answers, catalog):
+  connection = db.lite.connect(db.dbname)
+  db.getRuns()
+  connection.executescript("""ALTER TABLE workflow_stages DROP COLUMN targets;
+    INSERT INTO workflow_runs (workflow, target, status, started_at) VALUES ('w', '10.0.0.1', 'completed', 'x');
+    INSERT INTO workflow_stages (run_id, position, name, arguments, status) VALUES (1, 0, 'a', '-sn', 'completed');""")
+  connection.close()
+  assert db.getRun(1)["stages"][0]["targets"] is None
+
+# ---- Comparing runs
+
+def compare(base=1, other=2):
+  helperworkflow.HelperWorkflow("id:%d with:%d" % (base, other), "compare").process()
+
+def twoRuns(scanner, workflows, answers, later, stages=CHAIN, secondName="w", secondNet="10.0.0.0/24"):
+  fullRun(scanner, workflows, answers, stages=stages)
+  fullRun(scanner, workflows, answers, stages=stages, results=later, name=secondName, net=secondNet)
+
+def later(host, address="10.0.0.1"):
+  return {0: {address: FakeHost({})}, 1: {address: host}, 2: {address: host}, 3: {address: host}}
+
+def test_compare_finds_no_differences(db, scanner, workflows, answers, catalog, capsys):
+  twoRuns(scanner, workflows, answers, later(HTTP_HOST["10.0.0.1"]))
+  capsys.readouterr()
+  compare()
+  assert capsys.readouterr().out.strip() == "No differences between these runs"
+
+def test_compare_shows_what_changed(db, scanner, workflows, answers, catalog, capsys):
+  host = FakeHost({80: {"state": "open", "name": "http", "product": "nginx", "version": "2.0", "script": {"http-title": "Changed"}},
+    443: {"state": "open", "name": "https", "script": {}}})
+  twoRuns(scanner, workflows, answers, later(host))
+  capsys.readouterr()
+  compare()
+  out = capsys.readouterr().out
+  assert "[+] New open port: 10.0.0.1 443/tcp" in out
+  assert "[~] Service changed: 10.0.0.1 80/tcp (http nginx 1.0 => http nginx 2.0)" in out
+  assert "[~] Finding changed: 10.0.0.1 80 http-title (Welcome => Changed)" in out
+
+def test_compare_shows_what_is_gone(db, scanner, workflows, answers, catalog, capsys):
+  twoRuns(scanner, workflows, answers, later(FakeHost({22: {"state": "open", "name": "ssh"}}), "10.0.0.2"))
+  capsys.readouterr()
+  compare()
+  out = capsys.readouterr().out
+  assert "[-] Host no longer found: 10.0.0.1" in out and "[+] New host: 10.0.0.2" in out
+  assert "[-] Port no longer open: 10.0.0.1 80/tcp" in out and "[-] Finding no longer present: 10.0.0.1 80 http-title" in out
+
+def test_compare_warns_about_different_targets_and_workflows(db, scanner, workflows, answers, catalog, capsys):
+  twoRuns(scanner, workflows, answers, later(HTTP_HOST["10.0.0.1"]), secondNet="10.0.0.1")
+  capsys.readouterr()
+  compare()
+  assert "different workflow or target" in capsys.readouterr().out
+
+@pytest.mark.parametrize("status,stageStatus", [("interrupted", "interrupted"), ("completed", "declined"), ("completed", "skipped")])
+def test_compare_warns_about_unfinished_runs(db, scanner, workflows, answers, catalog, capsys, status, stageStatus):
+  twoRuns(scanner, workflows, answers, later(HTTP_HOST["10.0.0.1"]))
+  db.setStageStatus(2, 3, stageStatus)
+  db.setRunStatus(2, status)
+  capsys.readouterr()
+  compare()
+  assert "did not finish every stage" in capsys.readouterr().out
+
+def test_compare_sanitizes_remote_data(db, scanner, workflows, answers, catalog, capsys):
+  host = FakeHost({80: {"state": "open", "name": "http", "product": "evil\x1b[31m", "script": {"bad\x1b[0m": "out\x1b[2J"}}})
+  twoRuns(scanner, workflows, answers, later(host))
+  capsys.readouterr()
+  compare()
+  assert "\x1b" not in capsys.readouterr().out
+
+@pytest.mark.parametrize("args,message", [("", "help workflow"), ("id:1", "help workflow"), ("with:1", "help workflow"), ("id:x with:1", "help workflow"),
+  ("id:1 with:²", "help workflow"), ("id:1 with:2 net:x", "help workflow"), ("id:1 with:2", "not found")])
+def test_compare_rejects_bad_arguments(db, scanner, capsys, args, message):
+  helperworkflow.HelperWorkflow(args, "compare").process()
+  assert message in capsys.readouterr().out
+
+def test_report_and_compare_never_scan(db, scanner, workflows, answers, catalog, reports):
+  fullRun(scanner, workflows, answers)
+  count = len(scanner.calls)
+  report()
+  compare(1, 1)
+  assert len(scanner.calls) == count
+
+@pytest.mark.parametrize("value,expected", [("a`b", "`` a`b ``"), ("a``b", "``` a``b ```"), ("`", "`` ` ``"), ("a\nb", "` a b `"), ("", "-"), (None, "-"), (80, "` 80 `")])
+def test_code_spans_cannot_be_closed_by_their_content(value, expected):
+  assert helperworkflow.mdCode(value) == expected
+
+@pytest.mark.parametrize("output,fence", [("plain", "```"), ("x\n```\n# Fake", "````"), ("````", "`````")])
+def test_output_blocks_cannot_be_closed_by_their_content(output, fence):
+  assert helperworkflow.mdBlock(output) == fence + "\n" + output + "\n" + fence
+
+def test_compare_treats_a_host_that_went_down_as_gone(db, scanner, workflows, answers, catalog, capsys):
+  stages = CHAIN[:1]
+  fullRun(scanner, workflows, answers, stages=stages, results={0: {"10.0.0.1": FakeHost({})}})
+  fullRun(scanner, workflows, answers, stages=stages, results={0: {"10.0.0.1": FakeHost({}, state="down")}})
+  capsys.readouterr()
+  compare()
+  assert "[-] Host no longer found: 10.0.0.1" in capsys.readouterr().out

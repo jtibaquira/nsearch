@@ -1,10 +1,12 @@
 import fnmatch
 import i18n
 import ipaddress
+import json
 import nmap
 import os
 import re
 import shlex
+import tempfile
 import yaml
 
 import dbmodule
@@ -13,6 +15,7 @@ from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
 
 WORKFLOWS_DIR = os.path.join(BASE_DIR, "workflows")
+REPORTS_DIR = os.path.join(BASE_DIR, "reports")
 HOST_TIMEOUT = "15m"
 STAGE_KEYS = {"name", "from", "when", "confirm", "arguments", "host_timeout"}
 SOURCES = {"live_hosts", "open_ports", "services"}
@@ -191,6 +194,142 @@ def stageTargets(runId, stage, net):
   ports = dbmodule.getOpenPorts(runId, stage["services"])
   return [(address, ",".join(str(int(port)) for port in found)) for address, found in ports.items() if validAddress(address)]
 
+def loadStored(value):
+  try:
+    return json.loads(value)
+  except (TypeError, ValueError):
+    return None
+
+# Explain why a stage ran, from what the run saved when it started
+def stageReason(stage):
+  definition = loadStored(stage["definition"])
+  if not isinstance(definition, dict) or "source" not in definition:
+    return i18n.t("help.report_reason_unknown")
+  source = definition["source"]
+  services = definition.get("services")
+  if source is None:
+    reason = i18n.t("help.report_reason_first")
+  elif source == "live_hosts":
+    reason = i18n.t("help.report_reason_live_hosts")
+  elif source == "open_ports":
+    reason = i18n.t("help.report_reason_open_ports")
+  elif source == "services" and isinstance(services, list) and services:
+    reason = i18n.t("help.report_reason_services") + ": " + ", ".join(str(service) for service in services)
+  elif source == "services":
+    reason = i18n.t("help.report_reason_all_services")
+  else:
+    return i18n.t("help.report_reason_unknown")
+  if stage["status"] == "skipped":
+    return reason + ". " + i18n.t("help.report_skipped")
+  if stage["status"] == "declined":
+    return reason + ". " + i18n.t("help.report_declined")
+  if definition.get("confirm") is True and stage["status"] in ("completed", "failed", "interrupted"):
+    return reason + ". " + i18n.t("help.report_confirmed")
+  return reason
+
+def stageReportTargets(stage):
+  targets = loadStored(stage["targets"])
+  if not isinstance(targets, list) or not all(isinstance(target, dict) for target in targets):
+    return None
+  return [{"target": target.get("target"), "ports": target.get("ports")} for target in targets]
+
+def buildReport(details):
+  run = details["run"]
+  return {
+    "run": {key: run[key] for key in ("id", "workflow", "target", "status", "started_at", "finished_at")},
+    "stages": [{"position": stage["position"] + 1, "name": stage["name"], "status": stage["status"], "arguments": stage["arguments"],
+      "reason": stageReason(stage), "targets": stageReportTargets(stage)} for stage in details["stages"]],
+    "hosts": [{key: host[key] for key in ("address", "hostname", "state")} for host in details["hosts"]],
+    "services": [{key: item[key] for key in ("address", "protocol", "port", "service", "product", "version")} for item in details["services"]],
+    "findings": [{key: item[key] for key in ("stage", "address", "port", "script", "output")} for item in details["findings"]],
+  }
+
+def longestBackticks(text):
+  return max((len(run) for run in re.findall(r"`+", text)), default=0)
+
+# Data from scanned hosts only reaches a report inside code, so it cannot add links, HTML or headings
+def mdCode(value):
+  text = " ".join(sanitize("" if value is None else value).split())
+  if not text:
+    return "-"
+  fence = "`" * (longestBackticks(text) + 1)
+  return fence + " " + text + " " + fence
+
+def mdBlock(value):
+  text = sanitize(value)
+  fence = "`" * max(3, longestBackticks(text) + 1)
+  return fence + "\n" + text + "\n" + fence
+
+def mdText(value):
+  return re.sub(r"([\\`*_{}\[\]()<>#!|~&])", r"\\\1", " ".join(sanitize(value).split()))
+
+def reportMarkdown(report):
+  run = report["run"]
+  lines = ["# " + i18n.t("help.report_title") + " " + str(run["id"]), ""]
+  for label, key in (("report_workflow", "workflow"), ("report_target", "target"), ("report_status", "status"), ("report_started", "started_at"), ("report_finished", "finished_at")):
+    lines.append("- " + i18n.t("help." + label) + ": " + mdCode(run[key]))
+  lines += ["", "## " + i18n.t("help.report_stages"), ""]
+  for stage in report["stages"]:
+    lines += ["### " + str(stage["position"]) + ". " + mdCode(stage["name"]) + " " + mdCode(stage["status"]), "",
+      "- " + i18n.t("help.report_reason") + ": " + mdText(stage["reason"]),
+      "- " + i18n.t("help.report_arguments") + ": " + mdCode(stage["arguments"])]
+    if stage["targets"] is None:
+      lines.append("- " + i18n.t("help.report_targets") + ": " + i18n.t("help.report_not_recorded"))
+    elif not stage["targets"]:
+      lines.append("- " + i18n.t("help.report_targets") + ": " + i18n.t("help.report_none"))
+    else:
+      lines.append("- " + i18n.t("help.report_targets") + ":")
+      for target in stage["targets"]:
+        ports = " " + i18n.t("help.report_ports") + " " + mdCode(target["ports"]) if target["ports"] else ""
+        lines.append("  - " + mdCode(target["target"]) + ports)
+    lines.append("")
+  lines += ["## " + i18n.t("help.report_hosts"), ""]
+  lines += ["- " + mdCode(host["address"]) + " " + mdCode(host["hostname"]) + " " + mdCode(host["state"]) for host in report["hosts"]] or [i18n.t("help.report_none")]
+  lines += ["", "## " + i18n.t("help.report_services"), ""]
+  lines += ["- " + mdCode(item["address"]) + " " + mdCode(str(item["port"]) + "/" + str(item["protocol"])) + " " + mdCode(item["service"]) + " " + mdCode(item["product"]) + " " + mdCode(item["version"])
+    for item in report["services"]] or [i18n.t("help.report_none")]
+  lines += ["", "## " + i18n.t("help.report_findings"), ""]
+  if not report["findings"]:
+    lines.append(i18n.t("help.report_none"))
+  for item in report["findings"]:
+    lines += ["### " + mdCode(item["stage"]) + " " + mdCode(item["address"]) + " " + mdCode(item["port"]) + " " + mdCode(item["script"]), "", mdBlock(item["output"]), ""]
+  return "\n".join(lines).rstrip() + "\n"
+
+# The name is built from the run id, and only this user can read the file. A temporary file
+# means a symlink left at the final path is replaced, not followed
+def writeReport(runId, extension, content):
+  os.makedirs(REPORTS_DIR, mode=0o700, exist_ok=True)
+  path = os.path.join(REPORTS_DIR, "workflow-" + str(runId) + "." + extension)
+  fd, tmppath = tempfile.mkstemp(dir=REPORTS_DIR)
+  try:
+    with os.fdopen(fd, 'w', encoding="utf-8") as f:
+      f.write(content)
+    os.replace(tmppath, path)
+  except Exception:
+    os.remove(tmppath)
+    raise
+  return path
+
+def compareRuns(base, other):
+  changes = []
+  def compare(kind, before, after):
+    for key in sorted(set(after) - set(before), key=str):
+      changes.append(("+", "new_" + kind, key, None))
+    for key in sorted(set(before) - set(after), key=str):
+      changes.append(("-", "gone_" + kind, key, None))
+    for key in sorted(set(before) & set(after), key=str):
+      if before[key] != after[key]:
+        changes.append(("~", "changed_" + kind, key, (before[key], after[key])))
+  def hosts(details):
+    return {(host["address"],): "" for host in details["hosts"] if host["state"] == "up"}
+  def services(details):
+    return {(item["address"], str(item["port"]) + "/" + item["protocol"]): " ".join(str(item[field] or "") for field in ("service", "product", "version")).strip() for item in details["services"]}
+  def findings(details):
+    return {(item["address"], str(item["port"] or "-"), item["script"]): item["output"] for item in details["findings"]}
+  for kind, read in (("host", hosts), ("service", services), ("finding", findings)):
+    compare(kind, read(base), read(other))
+  return changes
+
 class HelperWorkflow:
 
   def __init__(self, args="", command=""):
@@ -206,6 +345,10 @@ class HelperWorkflow:
       self.__status()
     elif self.command == "resume":
       self.__resume()
+    elif self.command == "report":
+      self.__report()
+    elif self.command == "compare":
+      self.__compare()
     else:
       print(i18n.t("help.workflow_error"))
 
@@ -261,6 +404,7 @@ class HelperWorkflow:
         scope = set(dbmodule.getLiveHosts(runId))
       label = "[%d/%d] %s" % (position + 1, len(stages), stage["name"])
       targets = stageTargets(runId, stage, net)
+      dbmodule.setStageTargets(runId, position, targets)
       if not targets:
         dbmodule.setStageStatus(runId, position, "skipped")
         print(label + ": " + i18n.t("help.workflow_no_targets"))
@@ -349,6 +493,47 @@ class HelperWorkflow:
       print(i18n.t("help.workflow_cancelled"))
       return
     self.__execute(name, net, stages, runId, finished, status)
+
+  def __report(self):
+    params = parseArgs(self.args, ("id", "format"))
+    if not params or "id" not in params or not validRunId(params["id"]) or params.get("format", "md") not in ("md", "json"):
+      print(i18n.t("help.workflow_error"))
+      return
+    details = dbmodule.getRun(int(params["id"]))
+    if details is None:
+      print(i18n.t("help.workflow_not_found"))
+      return
+    report = buildReport(details)
+    extension = params.get("format", "md")
+    # JSON keeps the output as it was received, with anything unusual escaped
+    content = reportMarkdown(report) if extension == "md" else json.dumps(report, indent=2) + "\n"
+    try:
+      path = writeReport(details["run"]["id"], extension, content)
+    except OSError as e:
+      print(i18n.t("help.workflow_report_error") + ": " + sanitize(e))
+      return
+    print(i18n.t("help.workflow_report_saved") + ": " + sanitize(path))
+
+  def __compare(self):
+    params = parseArgs(self.args, ("id", "with"))
+    if not params or set(params) != {"id", "with"} or not validRunId(params["id"]) or not validRunId(params["with"]):
+      print(i18n.t("help.workflow_error"))
+      return
+    base = dbmodule.getRun(int(params["id"]))
+    other = dbmodule.getRun(int(params["with"]))
+    if base is None or other is None:
+      print(i18n.t("help.workflow_not_found"))
+      return
+    # A missing host or port means nothing if that run did not scan the same thing
+    if base["run"]["workflow"] != other["run"]["workflow"] or base["run"]["target"] != other["run"]["target"]:
+      print(i18n.t("help.workflow_compare_different"))
+    if any(details["run"]["status"] != "completed" or any(stage["status"] != "completed" for stage in details["stages"]) for details in (base, other)):
+      print(i18n.t("help.workflow_compare_incomplete"))
+    changes = compareRuns(base, other)
+    if not changes:
+      print(i18n.t("help.workflow_compare_same"))
+    for sign, label, key, values in changes:
+      print("[%s] %s: %s%s" % (sign, i18n.t("help.compare_" + label), sanitize(" ".join(key)), " (" + sanitize(values[0]) + " => " + sanitize(values[1]) + ")" if values else ""))
 
   def __printRun(self, details):
     run = details["run"]

@@ -65,3 +65,6 @@ target/
 config.yaml
 *.yaml_*
 *.orig
+
+# Workflow reports
+reports/

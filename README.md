@@ -191,6 +191,8 @@ nsearch> workflow run name:basic net:127.0.0.1
 nsearch> workflow status
 nsearch> workflow status id:1
 nsearch> workflow resume id:1
+nsearch> workflow report id:1 format:md
+nsearch> workflow compare id:1 with:2
 ```
 
 `workflow run` shows the plan and asks for confirmation before it starts. Results are stored in the local database.
@@ -202,6 +204,10 @@ If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue
 - It uses the original target and scope, and rejects the run if the target is no longer valid.
 - It rejects the run if the workflow file is no longer valid, or if anything in its stages changed: names, order, arguments, `from`, `when`, `confirm`, or `host_timeout`.
 - A run with status `running` may belong to a console that is still working, so check that before you confirm.
+
+`workflow report id:<id>` writes a report of any run to `reports/workflow-<id>.md`, or to `reports/workflow-<id>.json` with `format:json`. For each stage, it says why it ran, or why it did not, and what it scanned. Reports can contain sensitive results, so only your user can read them. Writing a report again replaces the previous one. Runs from earlier versions do not have the targets or the reasons of their stages, so their reports say they were not recorded.
+
+`workflow compare id:<id> with:<id>` shows what changed from the first run to the second: hosts, open ports, services, and script results. It warns you if the runs used a different workflow or target, or did not finish every stage, because in those cases a missing result may just not have been scanned.
 
 The workflows are in the `workflows` directory:
 

@@ -23,6 +23,14 @@ def test_workflow_command_reports_bad_usage(capsys):
 
 def test_workflow_resume_is_in_help_and_completion(capsys):
   shell = console.Console()
-  assert shell.complete_workflow("re", "workflow re", 9, 11) == ["resume"]
+  assert shell.complete_workflow("res", "workflow res", 9, 12) == ["resume"]
   shell.onecmd("help workflow")
   assert "workflow resume id:1" in capsys.readouterr().out
+
+def test_workflow_report_and_compare_are_in_help_and_completion(capsys):
+  shell = console.Console()
+  assert shell.complete_workflow("rep", "workflow rep", 9, 12) == ["report"]
+  assert shell.complete_workflow("co", "workflow co", 9, 11) == ["compare"]
+  shell.onecmd("help workflow")
+  out = capsys.readouterr().out
+  assert "workflow report id:1 format:json" in out and "workflow compare id:1 with:2" in out

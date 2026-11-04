@@ -317,7 +317,7 @@ WORKFLOW_SCHEMA = """
     started_at TEXT NOT NULL, finished_at TEXT NULL);
   create table if not exists workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL,
-    arguments TEXT NOT NULL, status TEXT NOT NULL, definition TEXT NULL, UNIQUE(run_id, position));
+    arguments TEXT NOT NULL, status TEXT NOT NULL, definition TEXT NULL, targets TEXT NULL, UNIQUE(run_id, position));
   create table if not exists workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL,
     hostname TEXT NULL, state TEXT NOT NULL, PRIMARY KEY(run_id, address));
   create table if not exists workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL,
@@ -332,9 +332,11 @@ def __workflowConnect():
   conn = lite.connect(dbname)
   conn.row_factory = lite.Row
   conn.executescript(WORKFLOW_SCHEMA)
-  # Stages saved by earlier versions keep an empty definition, so their runs cannot be resumed
-  if "definition" not in [row["name"] for row in conn.execute("PRAGMA table_info(workflow_stages)")]:
-    conn.execute("ALTER TABLE workflow_stages ADD COLUMN definition TEXT NULL")
+  # Stages saved by earlier versions keep these empty: their runs cannot be resumed, and their reports say it was not recorded
+  columns = [row["name"] for row in conn.execute("PRAGMA table_info(workflow_stages)")]
+  for column in ("definition", "targets"):
+    if column not in columns:
+      conn.execute("ALTER TABLE workflow_stages ADD COLUMN " + column + " TEXT NULL")
   return conn
 
 def __now():
@@ -356,6 +358,12 @@ def createRun(workflow, target, stages):
 def setStageStatus(runId, position, status):
   with closing(__workflowConnect()) as conn, conn:
     conn.execute("UPDATE workflow_stages SET status=? WHERE run_id=? AND position=?", (status, runId, position))
+
+# What a stage was going to scan, kept for the report
+def setStageTargets(runId, position, targets):
+  with closing(__workflowConnect()) as conn, conn:
+    conn.execute("UPDATE workflow_stages SET targets=? WHERE run_id=? AND position=?",
+      (json.dumps([{"target": target, "ports": ports} for target, ports in targets]), runId, position))
 
 def setRunStatus(runId, status):
   with closing(__workflowConnect()) as conn, conn:

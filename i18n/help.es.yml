@@ -49,3 +49,41 @@ es:
   workflow_resume_hint: Para continuar esta ejecución, use
   workflow_resume_running: Esta ejecución figura en curso. Continúe solo si ninguna otra consola está trabajando en ella
   workflow_already_resumed: Otra consola ya reanudó esta ejecución
+  workflow_report_saved: Reporte guardado en
+  workflow_report_error: No se pudo escribir el reporte
+  workflow_compare_different: Estas ejecuciones usaron otro workflow u otro objetivo, así que lo que falta puede no haberse escaneado
+  workflow_compare_incomplete: Al menos una de estas ejecuciones no terminó todas sus etapas, así que lo que falta puede no haberse escaneado
+  workflow_compare_same: No hay diferencias entre estas ejecuciones
+  compare_new_host: Host nuevo
+  compare_gone_host: Host que ya no se encuentra
+  compare_new_service: Puerto abierto nuevo
+  compare_gone_service: Puerto que ya no está abierto
+  compare_changed_service: Servicio cambiado
+  compare_new_finding: Hallazgo nuevo
+  compare_gone_finding: Hallazgo que ya no aparece
+  compare_changed_finding: Hallazgo cambiado
+  report_title: Reporte del workflow, ejecución
+  report_workflow: Workflow
+  report_target: Objetivo
+  report_status: Estado
+  report_started: Inicio
+  report_finished: Fin
+  report_stages: Etapas
+  report_reason: Motivo
+  report_arguments: Argumentos de nmap
+  report_targets: Objetivos
+  report_ports: puertos
+  report_not_recorded: no registrado
+  report_none: Ninguno
+  report_hosts: Hosts
+  report_services: Puertos abiertos
+  report_findings: Resultados de scripts
+  report_reason_first: Es la primera etapa, así que escanea el objetivo indicado al iniciar la ejecución
+  report_reason_live_hosts: Escanea los hosts activos encontrados en esta ejecución
+  report_reason_open_ports: Escanea los puertos abiertos encontrados en esta ejecución
+  report_reason_services: Escanea los puertos abiertos encontrados en esta ejecución con estos servicios
+  report_reason_all_services: Escanea los servicios encontrados en esta ejecución
+  report_reason_unknown: No lo registró la versión que ejecutó esta etapa
+  report_skipped: No se ejecutó porque no había nada que escanear
+  report_declined: No se ejecutó porque no se confirmó
+  report_confirmed: Puede ser intrusiva, así que preguntó antes y se confirmó
