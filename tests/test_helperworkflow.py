@@ -681,14 +681,14 @@ def reports(tmp_path, monkeypatch):
   return folder
 
 def report(runId=1, extension="md"):
-  helperworkflow.HelperWorkflow("id:%d format:%s" % (runId, extension), "report").process()
+  helperworkflow.HelperWorkflow(f"id:{runId} format:{extension}", "report").process()
 
 def fullRun(scanner, workflows, answers, stages=CHAIN, results=None, name="w", net="10.0.0.0/24"):
   workflows(name, stages)
   scanner.calls = []
   scanner.results = results if results is not None else {0: {"10.0.0.1": FakeHost({})}, 1: HTTP_HOST, 2: HTTP_HOST, 3: HTTP_HOST}
   answers.append("y")
-  helperworkflow.HelperWorkflow("name:%s net:%s" % (name, net), "run").process()
+  helperworkflow.HelperWorkflow(f"name:{name} net:{net}", "run").process()
 
 def test_report_explains_why_each_stage_ran_and_on_what(db, scanner, workflows, answers, catalog, reports):
   fullRun(scanner, workflows, answers)
@@ -830,7 +830,7 @@ def test_older_databases_get_the_targets_column(db, scanner, workflows, answers,
 # ---- Comparing runs
 
 def compare(base=1, other=2):
-  helperworkflow.HelperWorkflow("id:%d with:%d" % (base, other), "compare").process()
+  helperworkflow.HelperWorkflow(f"id:{base} with:{other}", "compare").process()
 
 def twoRuns(scanner, workflows, answers, later, stages=CHAIN, secondName="w", secondNet="10.0.0.0/24"):
   fullRun(scanner, workflows, answers, stages=stages)
@@ -1118,7 +1118,7 @@ def test_report_explains_a_suggested_stage(db, scanner, catalog, answers, report
   answers += ["1", "y"]
   suggest(runId)
   report(runId, "json")
-  stage = json.loads((reports / ("workflow-%d.json" % runId)).read_text(encoding="utf-8"))["stages"][1]
+  stage = json.loads((reports / f"workflow-{runId}.json").read_text(encoding="utf-8"))["stages"][1]
   assert "approved by the operator" in stage["reason"] and "http" in stage["reason"]
   assert stage["targets"] == [{"target": "10.0.0.1", "ports": "80"}]
 
