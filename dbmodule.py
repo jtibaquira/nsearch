@@ -156,8 +156,8 @@ def searchAll():
     cursor = conn.cursor()
     cursor.execute("select id, name, author from scripts ORDER BY name")
     return __fetchScript(cursor.fetchall())
-  except Exception as e:
-    print(f"Error {e.args[0]}:")
+  except lite.Error as e:
+    print(f"Error {e}:")
   finally:
     conn.close()
 

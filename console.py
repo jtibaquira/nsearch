@@ -70,7 +70,7 @@ class Console(cmd.Cmd):
     """Report unexpected errors without closing the console."""
     try:
       return cmd.Cmd.onecmd(self, line)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - nothing typed at the prompt may close the console
       print("Error: " + helper.sanitize(e))
       return False
 
