@@ -1,6 +1,7 @@
 import nmap
 import pytest
 import re
+import shlex
 import yaml
 
 import dbmodule
@@ -869,7 +870,14 @@ def test_compare_warns_about_different_targets_and_workflows(db, scanner, workfl
   compare()
   assert "different workflow or target" in capsys.readouterr().out
 
-@pytest.mark.parametrize("status,stageStatus", [("interrupted", "interrupted"), ("completed", "declined"), ("completed", "skipped")])
+def test_compare_does_not_warn_about_stages_with_nothing_to_scan(db, scanner, workflows, answers, catalog, capsys):
+  twoRuns(scanner, workflows, answers, later(HTTP_HOST["10.0.0.1"]))
+  db.setStageStatus(2, 3, "skipped")
+  capsys.readouterr()
+  compare()
+  assert "did not finish" not in capsys.readouterr().out
+
+@pytest.mark.parametrize("status,stageStatus", [("interrupted", "interrupted"), ("completed", "declined"), ("completed", "failed")])
 def test_compare_warns_about_unfinished_runs(db, scanner, workflows, answers, catalog, capsys, status, stageStatus):
   twoRuns(scanner, workflows, answers, later(HTTP_HOST["10.0.0.1"]))
   db.setStageStatus(2, 3, stageStatus)
@@ -1127,3 +1135,44 @@ def test_every_service_in_the_table_has_real_safe_scripts():
     assert names, service
     assert all("safe" in scripts[name] and not scripts[name] & {"dos", "broadcast"} for name in names)
     validateArguments("--script " + ",".join(names), "services", False, "15m", scripts)
+
+# ---- Service names
+
+def test_stages_that_depend_on_services_use_version_detection():
+  assert "-sV" in shlex.split(args("--script http-title", "services"))
+  assert shlex.split(args("-sV --script http-title", "services")).count("-sV") == 1
+  assert "-sV" not in shlex.split(args("--top-ports 10", "live_hosts"))
+
+def test_shipped_script_stages_detect_services(db):
+  for name in ("web", "ssh", "smb"):
+    loaded = helperworkflow.loadWorkflow(name, {script: {"safe"} for script in re.findall(r"[a-z0-9-]+", open(os.path.join(helperworkflow.WORKFLOWS_DIR, name + ".yaml"), encoding="utf-8").read())} | {"vuln": {"vuln"}})
+    assert all("-sV" in shlex.split(stage["arguments"]) for stage in loaded if stage["source"] == "services")
+
+def test_a_guessed_service_does_not_replace_a_detected_one(db, scanner, workflows, answers, catalog):
+  detected = FakeHost({8080: {"state": "open", "name": "http", "product": "nginx", "conf": "10"}})
+  guessed = FakeHost({8080: {"state": "open", "name": "http-proxy", "conf": "3"}})
+  stages = CHAIN[:3] + [{"name": "first", "from": "open_ports", "arguments": "--version-intensity 0"}, {"name": "enum", "from": "services", "when": {"service": ["http"]}, "arguments": "--script http-title"}]
+  answers.append("y")
+  workflows("w", stages)
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": guessed}, 2: {"10.0.0.1": detected}, 3: {"10.0.0.1": guessed}, 4: {"10.0.0.1": detected}}
+  helperworkflow.HelperWorkflow("name:w net:10.0.0.0/24", "run").process()
+  details = db.getRun(1)
+  assert details["services"][0]["service"] == "http" and details["services"][0]["product"] == "nginx"
+  assert details["stages"][4]["status"] == "completed"
+  assert scanner.calls[4][:2] == ("10.0.0.1", "8080")
+
+def test_a_guess_is_kept_until_something_better_is_found(db):
+  runId = foundRun(db, ports=())
+  def save(name, guess):
+    db.saveStageResults(runId, "x", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 8081, "state": "open", "service": name, "product": "", "version": "", "guess": guess}], [])
+    return db.getRun(runId)["services"][0]["service"]
+  assert save("blackice-icecap", True) == "blackice-icecap"
+  assert save("other-guess", True) == "blackice-icecap"
+  assert save("http", False) == "http"
+  assert save("http-proxy", True) == "http"
+  assert save("https", False) == "https"
+
+def test_a_guess_fills_in_an_empty_service(db):
+  runId = foundRun(db, ports=((8081, ""),))
+  db.saveStageResults(runId, "x", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 8081, "state": "open", "service": "http-proxy", "product": "", "version": "", "guess": True}], [])
+  assert db.getRun(runId)["services"][0]["service"] == "http-proxy"

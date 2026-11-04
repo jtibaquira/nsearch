@@ -385,7 +385,8 @@ def claimRun(runId, status):
   with closing(__workflowConnect()) as conn, conn:
     return conn.execute("UPDATE workflow_runs SET status='running', finished_at=NULL WHERE id=? AND status=?", (runId, status)).rowcount == 1
 
-# Save everything found by one stage in a single transaction
+# Save everything found by one stage in a single transaction. A service name that nmap only
+# guessed from the port number does not replace one that was already found
 def saveStageResults(runId, stage, hosts, services, findings):
   with closing(__workflowConnect()) as conn, conn:
     conn.executemany("""INSERT INTO workflow_hosts (run_id, address, hostname, state) VALUES (?, ?, ?, ?)
@@ -395,10 +396,10 @@ def saveStageResults(runId, stage, hosts, services, findings):
     conn.executemany("""INSERT INTO workflow_services (run_id, address, protocol, port, state, service, product, version)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(run_id, address, protocol, port) DO UPDATE SET state=excluded.state,
-      service=COALESCE(NULLIF(excluded.service, ''), service),
+      service=CASE WHEN ? THEN COALESCE(NULLIF(service, ''), excluded.service) ELSE COALESCE(NULLIF(excluded.service, ''), service) END,
       product=COALESCE(NULLIF(excluded.product, ''), product),
       version=COALESCE(NULLIF(excluded.version, ''), version)""",
-      [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"])
+      [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"], item.get("guess", False))
         for item in services])
     # A resumed stage scans its targets again, and the new findings replace the old ones
     conn.executemany("DELETE FROM workflow_findings WHERE run_id=? AND stage=? AND address=?",

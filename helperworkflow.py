@@ -25,6 +25,8 @@ PORT_OPTIONS = {"-p", "--top-ports", "-F"}
 VALUE_RE = r"[A-Za-z0-9._,:=/-]+"
 # These never run: dos can take targets down, and broadcast reaches hosts outside the scope
 BLOCKED_SCRIPTS = {"dos", "broadcast"}
+# nmap's confidence in a service name that only comes from the port number
+NMAP_PORT_TABLE_CONF = "3"
 RESUMABLE_RUNS = ("interrupted", "failed", "running")
 FINISHED_STAGES = ("completed", "skipped", "declined")
 # Script name prefixes per service. A service name comes from the scanned host, so it is only ever
@@ -116,6 +118,9 @@ def validateArguments(arguments, source, confirm, hostTimeout, scripts):
     values[option] = value
   if source in ("open_ports", "services") and PORT_OPTIONS & set(values):
     raise WorkflowError("this stage only scans the ports found earlier: " + arguments)
+  # Without version detection nmap guesses the service from the port number, and scripts skip services on other ports
+  if source == "services" and "-sV" not in values:
+    result.append("-sV")
   if "--host-timeout" not in values:
     result += ["--host-timeout", hostTimeout]
   return shlex.join(result)
@@ -188,7 +193,7 @@ def collectResults(nm, scope):
       for port in data[proto].keys():
         info = data[proto][port]
         services.append({"address": address, "protocol": proto, "port": int(port), "state": info.get("state", ""),
-          "service": info.get("name", ""), "product": info.get("product", ""), "version": info.get("version", "")})
+          "service": info.get("name", ""), "product": info.get("product", ""), "version": info.get("version", ""), "guess": info.get("conf") == NMAP_PORT_TABLE_CONF})
         for script, output in info.get("script", {}).items():
           findings.append({"address": address, "port": int(port), "script": script, "output": output})
   return hosts, services, findings
@@ -575,7 +580,7 @@ class HelperWorkflow:
     # A missing host or port means nothing if that run did not scan the same thing
     if base["run"]["workflow"] != other["run"]["workflow"] or base["run"]["target"] != other["run"]["target"]:
       print(i18n.t("help.workflow_compare_different"))
-    if any(details["run"]["status"] != "completed" or any(stage["status"] != "completed" for stage in details["stages"]) for details in (base, other)):
+    if any(details["run"]["status"] != "completed" or any(stage["status"] not in ("completed", "skipped") for stage in details["stages"]) for details in (base, other)):
       print(i18n.t("help.workflow_compare_incomplete"))
     changes = compareRuns(base, other)
     if not changes:
