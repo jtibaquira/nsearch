@@ -255,3 +255,12 @@ def test_a_database_from_an_earlier_version_keeps_its_results(db):
   assert db.getLiveHosts(1) == ["10.0.0.1"]
   # A port that is filtered now may have been open before this was recorded, and nothing claims it was
   assert db.getSeenPorts(1) == {("10.0.0.1", "tcp", 22)}
+
+def test_a_port_first_seen_filtered_and_then_open_counts_as_seen(db):
+  runId = db.createRun("w", "10.0.0.1", [{"name": "ports", "arguments": "-F"}])
+  service = {"address": "10.0.0.1", "protocol": "tcp", "port": 22, "state": "filtered", "service": "ssh", "product": "", "version": ""}
+  db.saveStageResults(runId, "ports", [], [service], [])
+  assert db.getSeenPorts(runId) == set()
+  db.saveStageResults(runId, "services", [], [dict(service, state="open")], [])
+  db.saveStageResults(runId, "scripts", [], [service], [])
+  assert db.getSeenPorts(runId) == {("10.0.0.1", "tcp", 22)}

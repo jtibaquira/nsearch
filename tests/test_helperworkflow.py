@@ -1605,3 +1605,9 @@ def test_the_warning_messages_exist_in_every_language():
       assert key in messages
     for kind in helperworkflow.WARNING_TYPES:
       assert "workflow_warning_" + kind in messages
+
+def test_a_previous_run_that_did_not_look_for_ports_is_not_compared(db, scanner, workflows, answers, monkeypatch):
+  first = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
+  last = runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
+  assert warningsOf(db.getRun(last)) == [{"type": "port_not_seen", "address": "10.0.0.1", "protocol": "tcp", "port": 80, "run": first}]
