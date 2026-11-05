@@ -1,0 +1,14 @@
+mail:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: mail_enum
+      from: services
+      when: {service: [smtp, submission, smtps, imap, imaps, pop3, pop3s]}
+      arguments: "--script smtp-commands,smtp-ntlm-info,imap-capabilities,imap-ntlm-info,pop3-capabilities,pop3-ntlm-info"
