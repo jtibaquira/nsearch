@@ -1,0 +1,14 @@
+database:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: db_enum
+      from: services
+      when: {service: [mysql, ms-sql-s, mongodb, redis]}
+      arguments: "--script mysql-info,ms-sql-info,ms-sql-ntlm-info,mongodb-info,redis-info"

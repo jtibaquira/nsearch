@@ -658,6 +658,75 @@ def test_smb_only_uses_safe_scripts_for_smb_services():
     assert "safe" in installed[script]
   validateWorkflow("smb", content, installed)
 
+# ---- Workflows that come with NSEarch
+
+SHIPPED = sorted(name[:-5] for name in os.listdir(helperworkflow.WORKFLOWS_DIR) if name.endswith(".yaml"))
+
+def shipped(name):
+  with open(os.path.join(helperworkflow.WORKFLOWS_DIR, name + ".yaml"), encoding="utf-8") as f:
+    return yaml.safe_load(f)
+
+def runShipped(name, monkeypatch, *given):
+  monkeypatch.setattr(dbmodule, "scriptCategories", installedScripts)
+  replies = list(given)
+  monkeypatch.setattr("builtins.input", lambda message: replies.pop(0))
+  helperworkflow.HelperWorkflow("name:" + name + " net:10.0.0.1", "run").process()
+
+def test_the_expected_workflows_are_shipped():
+  assert SHIPPED == ["allports", "basic", "database", "defaults", "ftp", "hosts", "mail", "remote", "smb", "ssh", "tls", "vuln", "web"]
+
+@pytest.mark.parametrize("name", SHIPPED)
+def test_every_shipped_workflow_is_valid_with_the_scripts_of_nmap(name):
+  assert validateWorkflow(name, shipped(name), installedScripts())
+
+@pytest.mark.parametrize("name,excluded", [("defaults", "external"), ("vuln", "exploit or external")])
+def test_broad_selections_need_confirmation_and_keep_their_exclusions(name, excluded):
+  scripts = installedScripts()
+  stage = shipped(name)[name]["stages"][-1]
+  assert stage["confirm"] is True
+  assert excluded in stage["arguments"]
+  with pytest.raises(WorkflowError):
+    validateArguments(stage["arguments"], "services", False, "15m", scripts)
+
+@pytest.mark.parametrize("name,service,port", [("ftp", "ftp", 21), ("mail", "smtp", 25), ("mail", "imap", 143), ("mail", "pop3", 110),
+  ("database", "mysql", 3306), ("database", "ms-sql-s", 1433), ("database", "mongodb", 27017), ("database", "redis", 6379),
+  ("remote", "ms-wbt-server", 3389), ("remote", "vnc", 5900), ("remote", "telnet", 23)])
+def test_service_workflows_only_scan_their_services(db, scanner, monkeypatch, name, service, port):
+  found = {port: {"state": "open", "name": service, "conf": "10"}, 22: {"state": "open", "name": "ssh", "conf": "10"}}
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": FakeHost(found)}, 2: {"10.0.0.1": FakeHost(found)}}
+  runShipped(name, monkeypatch, "y")
+  assert db.getRun(1)["run"]["status"] == "completed"
+  assert scanner.calls[3][:2] == ("10.0.0.1", str(port))
+
+@pytest.mark.parametrize("name", ["ftp", "mail", "database", "remote"])
+def test_service_workflows_skip_hosts_without_their_services(db, scanner, monkeypatch, name):
+  found = {22: {"state": "open", "name": "ssh", "conf": "10"}}
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": FakeHost(found)}, 2: {"10.0.0.1": FakeHost(found)}}
+  runShipped(name, monkeypatch, "y")
+  assert len(scanner.calls) == 3
+  assert db.getRun(1)["stages"][3]["status"] == "skipped"
+
+def test_hosts_only_looks_for_hosts(db, scanner, monkeypatch):
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}}
+  runShipped("hosts", monkeypatch, "y")
+  assert [call[2] for call in scanner.calls] == ["-sn --host-timeout 15m"]
+  assert db.getRun(1)["run"]["status"] == "completed"
+
+def test_allports_scans_every_port_with_a_longer_timeout(db, scanner, monkeypatch):
+  found = {1514: {"state": "open", "name": "fmtp", "conf": "10"}}
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": FakeHost(found)}, 2: {"10.0.0.1": FakeHost(found)}}
+  runShipped("allports", monkeypatch, "y")
+  assert "-p 1-65535" in scanner.calls[1][2] and "--host-timeout 60m" in scanner.calls[1][2]
+  assert scanner.calls[2][1] == "1514" and "--host-timeout 60m" in scanner.calls[2][2]
+
+@pytest.mark.parametrize("name,confirmStage", [("tls", 4), ("vuln", 3), ("defaults", 3)])
+def test_stages_that_ask_do_not_run_when_declined(db, scanner, monkeypatch, name, confirmStage):
+  found = {443: {"state": "open", "name": "https", "conf": "10"}}
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": FakeHost(found)}, 2: {"10.0.0.1": FakeHost(found)}}
+  runShipped(name, monkeypatch, "y", "n")
+  assert len(scanner.calls) == confirmStage
+  assert db.getRun(1)["stages"][confirmStage]["status"] == "declined"
+
 def test_resume_messages_exist_in_every_language():
   for language in ("en", "es"):
     with open(helperworkflow.os.path.join(helperworkflow.BASE_DIR, "i18n", "help." + language + ".yml"), encoding="utf-8") as f:

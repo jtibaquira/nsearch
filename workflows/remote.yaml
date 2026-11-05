@@ -1,0 +1,14 @@
+remote:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: remote_enum
+      from: services
+      when: {service: [ms-wbt-server, vnc, telnet]}
+      arguments: "--script rdp-enum-encryption,rdp-ntlm-info,vnc-info,telnet-encryption,telnet-ntlm-info"

@@ -1,0 +1,17 @@
+tls:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: tls_info
+      from: services
+      arguments: "--script ssl-cert,ssl-date,ssl-heartbleed,ssl-poodle,ssl-ccs-injection,ssl-dh-params,sslv2,tls-alpn"
+    - name: tls_ciphers
+      from: services
+      arguments: "--script ssl-enum-ciphers"
+      confirm: true

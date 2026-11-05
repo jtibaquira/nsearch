@@ -192,9 +192,18 @@ A workflow is a chain of scans. Each stage only scans what earlier stages found,
 
 ```
 nsearch> workflow list
+[+] allports
 [+] basic
+[+] database
+[+] defaults
+[+] ftp
+[+] hosts
+[+] mail
+[+] remote
 [+] smb
 [+] ssh
+[+] tls
+[+] vuln
 [+] web
 
 nsearch> workflow run name:basic net:127.0.0.1
@@ -236,6 +245,26 @@ A run that stops seeing something it found ends with status `completed_with_warn
 - A previous run is only comparable if it finished and looked for ports in the same way. A port that really closed is only reported by the first run after it.
 - A single run where a host answers and shows no open ports gives no warning, because that is also what a host with nothing exposed looks like.
 
+These workflows are included:
+
+| Workflow | Use it to | Stages after finding services |
+|---|---|---|
+| `hosts` | See which hosts are up. It does not scan ports | None, it only runs discovery |
+| `basic` | List the services on the 1000 most common ports | None |
+| `allports` | Find services on any TCP port. It is slower, and allows 60 minutes per host in each stage | None, but it looks at ports 1-65535 |
+| `defaults` | Run nmap's `default` scripts, like `nmap -sC`, without the ones that query third parties | `default_scripts` (`confirm`) |
+| `tls` | Check certificates and known TLS problems | `tls_info`, then `tls_ciphers` with `ssl-enum-ciphers` (`confirm`), because it opens many connections |
+| `web` | Examine HTTP and HTTPS services | `http_enum`, then `http_vuln` (`confirm`) |
+| `ssh` | Read SSH host keys and algorithms | `ssh_enum` |
+| `smb` | Read information from SMB services | `smb_enum` |
+| `ftp` | Check FTP anonymous access and server information | `ftp_enum` |
+| `mail` | Read the capabilities of SMTP, IMAP, and POP3 services | `mail_enum` |
+| `database` | Read information from MySQL, SQL Server, MongoDB, and Redis | `db_enum` |
+| `remote` | Read information from RDP, VNC, and Telnet | `remote_enum` |
+| `vuln` | Check every service found for known vulnerabilities, without scripts that exploit them or query third parties | `vuln_scripts` (`confirm`) |
+
+A stage skips hosts that do not have its services. Workflows use nmap's scripts, so a result shows what the script reported, and not a verified vulnerability.
+
 The workflows are in the `workflows` directory:
 
 ```yaml
@@ -264,7 +293,7 @@ web:
 |---|---|
 | `from` | What the stage scans: `live_hosts`, `open_ports`, or `services`. Only the first stage has no `from`, and it scans the target you gave. |
 | `when` | With `from: services`, limits the stage to these service names. These stages always use version detection (`-sV`), so scripts also work on services on other ports. |
-| `confirm` | Asks before running the stage. Required for any script that is not in the `safe` category. |
+| `confirm` | Asks before running the stage. Required for any script that is not in the `safe` category, and for any script expression that uses `not`. |
 | `host_timeout` | Maximum time per host. The default is 15 minutes. |
 
 Safety rules:
@@ -274,7 +303,7 @@ Safety rules:
 - Data from scanned hosts is never used to build nmap arguments.
 - `dos` and `broadcast` scripts never run. They are excluded from every script expression, even in confirmed stages.
 
-Workflows use TCP only. The included workflows look at nmap's 1000 most common ports, so services on other ports are not found. Without root privileges, nmap uses a connect scan, and OS detection (`-O`) is not available.
+Workflows use TCP only. Except for `allports`, the included workflows look at nmap's 1000 most common ports, so services on other ports are not found. Without root privileges, nmap uses a connect scan, and OS detection (`-O`) is not available.
 
 ## Tests
 
