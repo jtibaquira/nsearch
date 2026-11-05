@@ -7,327 +7,116 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
+   Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira
+   Email: jacobotibaquira@gmail.com
   ================================================
 ```
+
 ### Nmap Scripting Engine Search
 
-### Description
-#### Nsearch, is a tool that helps you to find scripts that are used by nmap ( nse ) , you can search the scripts using differents keyword as the name, category and author, even using all the keyword in a single query,it is also possible to see the documentation of the scripts founded.
+NSEarch helps you find the scripts used by nmap (NSE). You can search by name, category, and author, or combine all three in a single query. You can also read a script's documentation, keep a list of favorites, run nmap with predefined templates, and run workflows: chains of scans where each stage only scans what earlier stages found, with reports you can save and compare.
 
-### Version
-0.4b
-### Requeriments
+This page is a summary. The [README](https://github.com/jtibaquira/nsearch#readme) has the full documentation.
 
-```
-$ pip install pyyaml python-i18n
-```
+### Requirements
 
-#### Debian(Ubuntu)
-
-```
-# apt-get install unzip libreadline-gplv2-dev build-essential checkinstall unzip sqlite3 libsqlite3-dev -y
-```
-
-#### REDHAT(CentOS)
-
-```
-# yum -y install bzip2 groupinstall "Development Tools"
-```
+- Python 3.12 or later
+- nmap
 
 ### Installation
-#### To install the application is necessary run as root user the installation script (install.sh), for the time, the script is only for OS based on debian and based on Red Hat (CentOS). MacOSX or other UNIX  it's better do the installation for each dependency manually.
 
-#### Automatic Installation
-
-```
-# sh install.sh
-```
-
-##### File Configuration
-###### Find the script.db's path, use the command below
-```
-$ find /usr -type f -name "script.db" 2>/dev/null | awk 'gsub("script.db","")'
-```
-###### Then create a config.yaml file, on the main path of the script
-```
-config:
-  scriptsPath: '/usr/local/share/nmap/scripts/'
-  filePath: '/usr/local/share/nmap/scripts/script.db'
-  fileBackup: 'scriptbk.db'
-  scriptdb: 'nmap_scripts.sqlite3'
-  categories: {"auth","broadcast","brute","default","discovery","dos","exploit","external","fuzzer","intrusive","malware","safe","version","vuln"}
+The install script supports Debian, Ubuntu, Red Hat, Fedora, CentOS, and macOS. It places the Python dependencies in a local virtual environment. On Linux, it uses `sudo` to install system packages.
 
 ```
-
-### USAGE:
-
-```
-  $ python nsearch.py
-```
-
-#### Main Menu
-#### Initial Setup
-
-```
- ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
-
-  Creating Database :nmap_scripts.sqlite3
-  Creating Table For Script ....
-  Creating Table for Categories ....
-  Creating Table for Scripts per Category ....
-  Upload Categories to Categories Table ...
+$ git clone https://github.com/jtibaquira/nsearch.git
+$ cd nsearch
+$ bash install.sh
+$ .venv/bin/python nsearch.py
 ```
 
-#### Main Console
+The first run creates the local database. Later runs rebuild it only when nmap's `script.db` changes, and your favorites are kept.
+
+The [README](https://github.com/jtibaquira/nsearch#manual-installation) explains how to install it manually.
+
+### Searching for scripts
 
 ```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
+nsearch> search name:http author:calderon category:vuln
+*** Name                                     Author
+[+] http-adobe-coldfusion-apsa1301.nse       Paulino Calderon <calderon@websec.mx>
+[+] http-avaya-ipoffice-users.nse            Paulino Calderon <calderon@websec.mx>
+[+] http-awstatstotals-exec.nse              Paulino Calderon <calderon@websec.mx>
+...
 
-  Cheking DB ... nmap_scripts.sqlite3
-  The DB is updated nmap_scripts.sqlite3
-
-  nsearch>
+nsearch> doc sshv1.nse
+description = [[
+Checks if an SSH server supports the obsolete and less secure SSH Protocol Version 1.
+]]
+author = "Brandon Enright"
 ```
 
-#### Basic Commands
+### Favorites
 
 ```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
+nsearch> addfav name:http-vuln-cve2012-1823.nse ranking:great
+[+] http-vuln-cve2012-1823.nse The script was added successfully
 
-  nsearch> help
-
-  Nsearch Commands
-  ================
-  addfav  clear  delfav  doc  exit  help  history  last  modfav  search showfav
-
-  nsearch>
+nsearch> showfav
+*** Name                                     Ranking
+[+] http-vuln-cve2012-1823.nse               great
 ```
 
-```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
+Use `modfav` to change a ranking and `delfav` to remove a script.
 
-  nsearch> help search
+### Scanning
 
-    name     : Search by script's name
-    category : Search by category
-    author   : Search by author
-    Usage:
-      search name:http
-      search category:exploit
-      search author:fyodor
-      search name:http category:exploit author:fyodor
+**Only scan systems that you own or are explicitly authorized to test.**
 
-  nsearch>
-```
+`run` scans a target with one of the templates: `ping`, `default`, `http`, or `ssh`. It starts without asking for confirmation, and the `http` template includes intrusive and brute-force scripts.
 
 ```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
-
-  nsearch> search name:http author:calderon category:vuln
-  *** Name                                     Author
-  [+] http-vuln-cve2012-1823.nse               Paulino Calderon, Paul AMAR
-  [+] http-phpself-xss.nse                     Paulino Calderon
-  [+] http-wordpress-enum.nse                  Paulino Calderon
-  [+] http-adobe-coldfusion-apsa1301.nse       Paulino Calderon
-  [+] http-vuln-cve2013-0156.nse               Paulino Calderon
-  [+] http-awstatstotals-exec.nse              Paulino Calderon
-  [+] http-axis2-dir-traversal.nse             Paulino Calderon
-  [+] http-huawei-hg5xx-vuln.nse               Paulino Calderon
-  [+] http-tplink-dir-traversal.nse            Paulino Calderon
-  [+] http-trace.nse                           Paulino Calderon
-  [+] http-litespeed-sourcecode-download.nse   Paulino Calderon
-  [+] http-majordomo2-dir-traversal.nse        Paulino Calderon
-  [+] http-method-tamper.nse                   Paulino Calderon
+nsearch> run template:ping net:127.0.0.1
 ```
 
-```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
+### Workflows
 
-  nsearch> doc ssh <TAB>
-  ssh-hostkey.nse      ssh2-enum-algos.nse  sshv1.nse
-  nsearch> doc sshv1.nse
-  local nmap = require "nmap"
-  local shortport = require "shortport"
-  local string = require "string"
-
-  description = [[
-    Checks if an SSH server supports the obsolete and less secure SSH Protocol Version 1.
-  ]]
-  author = "Brandon Enright"
-  nsearch>
-```
-
-#### Favorites Feature
+A workflow is a chain of scans. Each stage only scans what earlier stages found. NSEarch includes `basic`, `ssh`, `smb`, and `web`, and you can add your own in the `workflows` directory.
 
 ```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
-
-  nsearch> addfav name:http-vuln-cve2012-1823.nse ranking:great
-  [+] http-vuln-cve2012-1823.nse The Script was added successfully
-  nsearch>
+nsearch> workflow list
+nsearch> workflow run name:basic net:127.0.0.1
+nsearch> workflow status id:1
+nsearch> workflow resume id:1
+nsearch> workflow report id:1 format:md
+nsearch> workflow compare id:1 with:2
+nsearch> workflow suggest id:1
 ```
 
-```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
+| Command | What it does |
+|---|---|
+| `run` | Shows the plan and asks for confirmation before it starts |
+| `status` | Lists the runs, or shows the results of one |
+| `resume` | Continues a run that was interrupted or failed |
+| `report` | Saves a Markdown or JSON report that only your user can read |
+| `compare` | Shows what changed between two runs |
+| `suggest` | Lists `safe` scripts for the services found, and runs only the ones you pick |
 
-  nsearch> showfav
-  *** Name                                     Ranking
-  [+] sslv2.nse                                normal
-  [+] http-vuln-cve2012-1823.nse               great
-  nsearch>
-```
-
-```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
-
-  nsearch> showfav
-  *** Name                                     Ranking
-  [+] sslv2.nse                                normal
-  [+] http-vuln-cve2012-1823.nse               great
-
-  nsearch> modfav name:sslv2.nse newranking:great
-  [+] sslv2.nse The Script was updated successfully
-
-  nsearch> showfav
-  *** Name                                     Ranking
-  [+] sslv2.nse                                great
-  [+] http-vuln-cve2012-1823.nse               great
-  nsearch>
-```
-
-```
-  ================================================
-    _   _  _____  _____                     _
-   | \ | |/  ___||  ___|                   | |
-   |  \| |\ `--. | |__    __ _  _ __   ___ | |__
-   | . ` | `--. \|  __|  / _` || '__| / __|| '_  |
-   | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
-   \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
-  ================================================
-   Version 0.4b http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
-  ================================================
-
-  nsearch> showfav
-  *** Name                                     Ranking
-  [+] sslv2.nse                                great
-  [+] http-vuln-cve2012-1823.nse               great
-
-  nsearch> delfav name:sslv2.nse
-  [+] sslv2.nse The Script was removed successfully
-
-  nsearch> showfav
-  *** Name                                     Ranking
-  [+] http-vuln-cve2012-1823.nse               great
-
-  nsearch>
-```
+- **Confirmation:** stages that can be intrusive ask first, and show the hosts and ports they will scan.
+- **Scope:** only an allowed set of nmap options is accepted, and stages after the first only scan hosts found by the first stage. Data from scanned hosts is never used to build nmap arguments.
+- **Blocked scripts:** `dos` and `broadcast` scripts never run in a workflow.
+- **Warnings:** a run that stops seeing a host or port ends as `completed_with_warnings`. NSEarch cannot tell a scan being blocked from a real change, so it does not say which one it was, and it never retries or slows down on its own.
+- **Limits:** workflows use TCP only, and the included ones look at nmap's 1000 most common ports.
 
 ### TODO
+
 * GUI
 * Fast-Track
-* Create sequences for the execution of scripts
-* Create a file output
-* Version for Windows
+* Create file output for `run`
+* Windows version
 
-### FeedBack
-#### Feel free to fork the project, submit any kind of comment, issue or contribution.
+### Feedback
+
+Feel free to fork the project and to submit comments, issues, or contributions.
 
 * Twitter: [@jjtibaquira](https://twitter.com/jjtibaquira)
-* Email: jko@dragonjar.org
-* Blog: https://www.dragonjar.org
-* Foro: http://comunidad.dragonjar.org
-* YouTube: https://www.dragonjar.tv
-* Academic: https://www.dragonjar.education
+* Email: jacobotibaquira@gmail.com

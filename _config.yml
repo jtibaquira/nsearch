@@ -1,8 +1,7 @@
 title: NSEarch
-description: minimal script to help find script into de nse database
-google_analytics: 
+description: Find nmap NSE scripts and run stage-based scan workflows
 show_downloads: true
 theme: jekyll-theme-architect
 
-gems:
+plugins:
   - jekyll-mentions
