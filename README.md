@@ -7,8 +7,8 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4b  https://github.com/jtibaquira/nsearch  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
+   Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira
+   Email: jacobotibaquira@gmail.com
   ================================================
 ```
 
@@ -16,11 +16,11 @@
 
 ## Description
 
-NSEarch helps you find the scripts used by nmap (NSE). You can search by name, category, and author, or combine all three in a single query. You can also read a script's documentation, keep a list of favorites, and run nmap with predefined templates.
+NSEarch helps you find the scripts used by nmap (NSE). You can search by name, category, and author, or combine all three in a single query. You can also read a script's documentation, keep a list of favorites, run nmap with predefined templates, and run workflows: chains of scans where each stage only scans what earlier stages found, with reports you can save and compare.
 
 ## Version
 
-0.4b
+0.5b
 
 ## Requirements
 
@@ -30,6 +30,13 @@ NSEarch helps you find the scripts used by nmap (NSE). You can search by name, c
 The Python dependencies are listed in `requirements.txt`. The install script places them in a local virtual environment.
 
 ## Installation
+
+Get the code first:
+
+```
+$ git clone https://github.com/jtibaquira/nsearch.git
+$ cd nsearch
+```
 
 ### Automatic installation
 
@@ -84,13 +91,13 @@ nsearch> help
 Nsearch Commands
 ================
 EOF     clear   doc   help     last    run     showfav
-addfav  delfav  exit  history  modfav  search
+addfav  delfav  exit  history  modfav  search  workflow
 ```
 
 ```
 nsearch> help search
 
-    name     : Search by script's name
+    name     : Name of the script
     category : Search by category
     author   : Search by author
     Usage:
@@ -110,6 +117,7 @@ nsearch> search name:http author:calderon category:vuln
 [+] http-adobe-coldfusion-apsa1301.nse       Paulino Calderon <calderon@websec.mx>
 [+] http-avaya-ipoffice-users.nse            Paulino Calderon <calderon@websec.mx>
 [+] http-awstatstotals-exec.nse              Paulino Calderon <calderon@websec.mx>
+...
 ```
 
 Use `last` to display the most recent results again.
@@ -174,6 +182,8 @@ The templates are in the `templates` directory:
 | `http` | Runs the `http-*` scripts, except `http-slowloris` and `http-brute` |
 | `ssh` | Lists the algorithms supported by SSH servers |
 
+`run` starts the scan without asking for confirmation. The `http` template includes intrusive and brute-force scripts, so only use it where those are allowed. Workflows ask before intrusive stages.
+
 ### Workflows
 
 **Only scan systems that you own or are explicitly authorized to test.**
@@ -213,6 +223,7 @@ If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue
 `workflow suggest id:<id>` lists scripts for the services found by a completed run, and runs only the ones you pick:
 
 - It only suggests scripts in the `safe` category that have not already run in that run. Suggestions are based on the script name, so nmap may decide that a script does not apply to a service.
+- `safe` is nmap's own label, and it includes scripts that query third-party services, such as `http-virustotal`. Use `doc` to read a script before you pick it.
 - For each service, it shows where the scripts would run and asks which ones you want. The default is none. It then shows the plan and asks for authorization before it scans.
 - It only scans the hosts and ports of that service in that run. Each approved set is added to the run as a new stage, and appears in its status and report.
 - If a suggested stage is interrupted or fails, the run stays `completed`, what was saved is kept, and `workflow suggest` offers the scripts again.
@@ -263,21 +274,22 @@ Safety rules:
 - Data from scanned hosts is never used to build nmap arguments.
 - `dos` and `broadcast` scripts never run. They are excluded from every script expression, even in confirmed stages.
 
-Workflows use TCP only. Without root privileges, nmap uses a connect scan, and OS detection (`-O`) is not available.
+Workflows use TCP only. The included workflows look at nmap's 1000 most common ports, so services on other ports are not found. Without root privileges, nmap uses a connect scan, and OS detection (`-O`) is not available.
 
 ## Tests
 
 ```
 $ .venv/bin/pip install -r requirements-dev.txt
 $ .venv/bin/python -m pytest
+$ .venv/bin/ruff check .
+$ .venv/bin/mypy .
 ```
 
 ## TODO
 
 * GUI
 * Fast-Track
-* Create sequences for running scripts
-* Create file output
+* Create file output for `run`
 * Windows version
 
 ## Feedback
@@ -285,8 +297,4 @@ $ .venv/bin/python -m pytest
 Feel free to fork the project and to submit comments, issues, or contributions.
 
 * Twitter: [@jjtibaquira](https://twitter.com/jjtibaquira)
-* Email: jko@dragonjar.org
-* Blog: https://www.dragonjar.org
-* Forum: http://comunidad.dragonjar.org
-* YouTube: https://www.dragonjar.tv
-* Academic: https://www.dragonjar.education
+* Email: jacobotibaquira@gmail.com
