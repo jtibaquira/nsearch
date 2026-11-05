@@ -17,8 +17,8 @@ echo "| . \` | \`--. \|  __|  / _\` || '__| / __|| '_ \ ";
 echo "| |\  |/\__/ /| |___ | (_| || |   | (__ | | | |";
 echo "\_| \_/\____/ \____/  \__,_||_|    \___||_| |_|";
 echo "=================================================";
-echo " Version 0.4b  https://github.com/jtibaquira/nsearch  @jjtibaquira";
-echo " Email: jko@dragonjar.org  |   www.dragonjar.org";
+echo " Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira";
+echo " Email: jacobotibaquira@gmail.com";
 echo "=================================================";
 printf "\n"
 
@@ -57,6 +57,17 @@ function installMacPackages(){
 function requireTools(){
   if ! command -v nmap >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
     echo "[-] No automatic install available for $os ($arch). Install nmap and python3, then run this script again." >&2
+    exit 1
+  fi
+}
+
+function requirePython(){
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "[-] NSEarch requires Python 3.12 or later, and python3 is not installed. Install it, then run this script again." >&2
+    exit 1
+  fi
+  if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 12))'; then
+    echo "[-] NSEarch requires Python 3.12 or later, and python3 is $(python3 --version). Install a newer Python, then run this script again." >&2
     exit 1
   fi
 }
@@ -109,6 +120,7 @@ case "$(uname -s)" in
   *) requireTools ;;
 esac
 
+requirePython
 installRequirements
 createConfigFile
 

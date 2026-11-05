@@ -29,3 +29,80 @@ es:
   help_run_nmap_missing: No se encontró nmap. Instálelo e inténtelo de nuevo
   help_run_scan_error: El escaneo falló
   help_run_interrupted: Escaneo interrumpido
+  help_workflow: Ejecuta una cadena de escaneos, donde cada etapa usa lo que encontró la anterior
+  help_workflow_name: Nombre del workflow
+  help_workflow_id: Número de una ejecución anterior
+  workflow_error: "El comando no es válido. Escriba 'help workflow' para ver el uso"
+  workflow_invalid: El workflow no es válido
+  workflow_plan: Plan del workflow para el objetivo
+  workflow_authorized: ¿Tiene autorización para escanear este objetivo y desea iniciar?
+  workflow_cancelled: Workflow cancelado
+  workflow_started: Ejecución del workflow
+  workflow_no_targets: omitida, no hay nada que escanear
+  workflow_confirm_stage: esta etapa puede ser intrusiva. Ejecutarla contra
+  workflow_declined: omitida, sin confirmación
+  workflow_out_of_scope: Resultado ignorado por estar fuera del alcance
+  workflow_not_found: Ejecución del workflow no encontrada
+  workflow_not_resumable: Esta ejecución no se puede reanudar. Estado
+  workflow_changed: El workflow cambió después de iniciar esta ejecución, así que no se puede reanudar
+  workflow_resume_nothing: No quedan etapas por ejecutar. La ejecución queda completada
+  workflow_resume_hint: Para continuar esta ejecución, use
+  workflow_resume_running: Esta ejecución figura en curso. Continúe solo si ninguna otra consola está trabajando en ella
+  workflow_already_resumed: Otra consola ya reanudó esta ejecución
+  workflow_report_saved: Reporte guardado en
+  workflow_report_error: No se pudo escribir el reporte
+  workflow_report_symlink: la carpeta de reportes es un enlace simbólico
+  workflow_compare_different: Estas ejecuciones usaron otro workflow u otro objetivo, así que lo que falta puede no haberse escaneado
+  workflow_compare_stages: Estas ejecuciones usaron etapas distintas, así que lo que falta puede no haberse escaneado
+  workflow_compare_incomplete: Al menos una de estas ejecuciones no terminó todas sus etapas, así que lo que falta puede no haberse escaneado
+  workflow_compare_warning: Al menos una de estas ejecuciones tiene advertencias, así que lo que falta puede ser una observación incompleta o un cambio real
+  workflow_run_warning: Algunas observaciones del escaneo fueron inconsistentes o faltaron. Que un resultado no aparezca no demuestra que el puerto esté cerrado. Vuelve a ejecutar el workflow más tarde si hace falta
+  workflow_no_targets_warning: omitida, no queda nada que escanear tras las advertencias de esta ejecución
+  workflow_resume_warning: Esta ejecución tiene advertencias y no se puede reanudar. Inicia otra más tarde si hace falta
+  workflow_warning_host_missing: el host no respondió a esta etapa
+  workflow_warning_port_changed: abierto antes en esta ejecución, ahora se ve distinto
+  workflow_warning_port_missing: abierto antes en esta ejecución, esta etapa no lo informó
+  workflow_warning_port_not_seen: visto abierto por una ejecución anterior, esta no lo vio
+  workflow_warning_unknown: advertencia desconocida
+  workflow_warning_run: ejecución
+  report_warnings: Advertencias
+  workflow_compare_same: No hay diferencias entre estas ejecuciones
+  compare_new_host: Host nuevo
+  compare_gone_host: Host que ya no se encuentra
+  compare_new_service: Puerto abierto nuevo
+  compare_gone_service: Puerto que ya no está abierto
+  compare_changed_service: Servicio cambiado
+  compare_new_finding: Hallazgo nuevo
+  compare_gone_finding: Hallazgo que ya no aparece
+  compare_changed_finding: Hallazgo cambiado
+  workflow_suggest_not_completed: Las sugerencias necesitan una ejecución completada. Estado
+  workflow_suggest_none: No hay scripts que sugerir para los servicios encontrados en esta ejecución
+  workflow_suggest_select: Scripts que desea ejecutar (números separados por comas, all, o vacío para ninguno)
+  workflow_suggest_bad_selection: La selección no es válida, así que no se ejecutará nada
+  report_title: Reporte del workflow, ejecución
+  report_workflow: Workflow
+  report_target: Objetivo
+  report_status: Estado
+  report_started: Inicio
+  report_finished: Fin
+  report_stages: Etapas
+  report_reason: Motivo
+  report_arguments: Argumentos de nmap
+  report_targets: Objetivos
+  report_ports: puertos
+  report_not_recorded: no registrado
+  report_none: Ninguno
+  report_hosts: Hosts
+  report_services: Puertos abiertos
+  report_findings: Resultados de scripts
+  report_reason_first: Es la primera etapa, así que escanea el objetivo indicado al iniciar la ejecución
+  report_reason_live_hosts: Escanea los hosts activos encontrados en esta ejecución
+  report_reason_open_ports: Escanea los puertos abiertos encontrados en esta ejecución
+  report_reason_services: Escanea los puertos abiertos encontrados en esta ejecución con estos servicios
+  report_reason_all_services: Escanea los servicios encontrados en esta ejecución
+  report_reason_suggestion: Sugerida por workflow suggest y aprobada por el operador, para este servicio
+  report_reason_unknown: No lo registró la versión que ejecutó esta etapa
+  report_skipped: No se ejecutó porque no había nada que escanear
+  report_declined: No se ejecutó porque no se confirmó
+  report_unfinished: No terminó, así que puede no haber escaneado todos estos objetivos
+  report_confirmed: Puede ser intrusiva, así que preguntó antes y se confirmó

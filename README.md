@@ -7,8 +7,8 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4b  https://github.com/jtibaquira/nsearch  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
+   Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira
+   Email: jacobotibaquira@gmail.com
   ================================================
 ```
 
@@ -16,20 +16,27 @@
 
 ## Description
 
-NSEarch helps you find the scripts used by nmap (NSE). You can search by name, category, and author, or combine all three in a single query. You can also read a script's documentation, keep a list of favorites, and run nmap with predefined templates.
+NSEarch helps you find the scripts used by nmap (NSE). You can search by name, category, and author, or combine all three in a single query. You can also read a script's documentation, keep a list of favorites, run nmap with predefined templates, and run workflows: chains of scans where each stage only scans what earlier stages found, with reports you can save and compare.
 
 ## Version
 
-0.4b
+0.5b
 
 ## Requirements
 
-- Python 3.9 or later
+- Python 3.12 or later. It is the oldest version with at least one more year of security support, until October 2028
 - nmap
 
 The Python dependencies are listed in `requirements.txt`. The install script places them in a local virtual environment.
 
 ## Installation
+
+Get the code first:
+
+```
+$ git clone https://github.com/jtibaquira/nsearch.git
+$ cd nsearch
+```
 
 ### Automatic installation
 
@@ -43,7 +50,7 @@ Use `bash`, not `sh`: under `sh`, the script stops and asks you to run it with `
 
 ### Manual installation
 
-Install nmap and Python 3, then create the virtual environment:
+Install nmap and Python 3.12 or later, then create the virtual environment:
 
 ```
 $ python3 -m venv .venv
@@ -84,13 +91,13 @@ nsearch> help
 Nsearch Commands
 ================
 EOF     clear   doc   help     last    run     showfav
-addfav  delfav  exit  history  modfav  search
+addfav  delfav  exit  history  modfav  search  workflow
 ```
 
 ```
 nsearch> help search
 
-    name     : Search by script's name
+    name     : Name of the script
     category : Search by category
     author   : Search by author
     Usage:
@@ -110,6 +117,7 @@ nsearch> search name:http author:calderon category:vuln
 [+] http-adobe-coldfusion-apsa1301.nse       Paulino Calderon <calderon@websec.mx>
 [+] http-avaya-ipoffice-users.nse            Paulino Calderon <calderon@websec.mx>
 [+] http-awstatstotals-exec.nse              Paulino Calderon <calderon@websec.mx>
+...
 ```
 
 Use `last` to display the most recent results again.
@@ -174,19 +182,114 @@ The templates are in the `templates` directory:
 | `http` | Runs the `http-*` scripts, except `http-slowloris` and `http-brute` |
 | `ssh` | Lists the algorithms supported by SSH servers |
 
+`run` starts the scan without asking for confirmation. The `http` template includes intrusive and brute-force scripts, so only use it where those are allowed. Workflows ask before intrusive stages.
+
+### Workflows
+
+**Only scan systems that you own or are explicitly authorized to test.**
+
+A workflow is a chain of scans. Each stage only scans what earlier stages found, so a network is scanned once and then only the discovered hosts and ports are examined further.
+
+```
+nsearch> workflow list
+[+] basic
+[+] smb
+[+] ssh
+[+] web
+
+nsearch> workflow run name:basic net:127.0.0.1
+nsearch> workflow status
+nsearch> workflow status id:1
+nsearch> workflow resume id:1
+nsearch> workflow report id:1 format:md
+nsearch> workflow compare id:1 with:2
+nsearch> workflow suggest id:1
+```
+
+`workflow run` shows the plan and asks for confirmation before it starts. Results are stored in the local database.
+
+If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue from where it stopped. It works on runs with status `running`, `interrupted`, or `failed`:
+
+- It shows the target and the remaining stages, and asks for confirmation again. Stages with `confirm` ask again too.
+- Stages that were completed, skipped, or not confirmed do not run again. An unfinished stage runs again from its first target, and results already saved from it are kept.
+- It uses the original target and scope, and rejects the run if the target is no longer valid.
+- It rejects the run if the workflow file is no longer valid, or if anything in its stages changed: names, order, arguments, `from`, `when`, `confirm`, or `host_timeout`.
+- A run with status `running` may belong to a console that is still working, so check that before you confirm.
+
+`workflow report id:<id>` writes a report of any run to `reports/workflow-<id>.md`, or to `reports/workflow-<id>.json` with `format:json`. For each stage, it says why it ran, or why it did not, and what it scanned. Reports can contain sensitive results, so only your user can read them, and a `reports` folder that is a symbolic link is rejected. Writing a report again replaces the previous one. Runs from earlier versions do not have the targets or the reasons of their stages, so their reports say they were not recorded.
+
+`workflow compare id:<id> with:<id>` shows what changed from the first run to the second: hosts, open ports, services, and script results. It warns you if the runs used a different workflow or target, or did not finish every stage, because in those cases a missing result may just not have been scanned. Runs with suggested stages count as having different stages.
+
+`workflow suggest id:<id>` lists scripts for the services found by a completed run, and runs only the ones you pick:
+
+- It only suggests scripts in the `safe` category that have not already run in that run. Suggestions are based on the script name, so nmap may decide that a script does not apply to a service.
+- `safe` is nmap's own label, and it includes scripts that query third-party services, such as `http-virustotal`. Use `doc` to read a script before you pick it.
+- For each service, it shows where the scripts would run and asks which ones you want. The default is none. It then shows the plan and asks for authorization before it scans.
+- It only scans the hosts and ports of that service in that run. Each approved set is added to the run as a new stage, and appears in its status and report.
+- If a suggested stage is interrupted or fails, the run stays `completed`, what was saved is kept, and `workflow suggest` offers the scripts again.
+
+A run that stops seeing something it found ends with status `completed_with_warnings`, and its status and reports say what happened. This covers a port that was open and a later stage sees as filtered or closed, or does not report, a host that stops answering, and a port that the previous comparable run of the same target saw and this one did not. NSEarch cannot tell a scan being blocked from a real change, so a warning does not say which one it was:
+
+- Hosts and ports that were not seen again are not scanned by later stages, and the stages left without targets are skipped.
+- NSEarch never retries or slows down a scan on its own. If you want to check again, start a new run later.
+- These runs cannot be resumed, and `workflow suggest` does not work on them, because they may not have seen everything. `workflow compare` works, and warns you.
+- A previous run is only comparable if it finished and looked for ports in the same way. A port that really closed is only reported by the first run after it.
+- A single run where a host answers and shows no open ports gives no warning, because that is also what a host with nothing exposed looks like.
+
+The workflows are in the `workflows` directory:
+
+```yaml
+web:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: http_enum
+      from: services
+      when: {service: [http, https]}
+      arguments: "--script http-headers,http-title"
+    - name: http_vuln
+      from: services
+      when: {service: [http, https]}
+      arguments: "--script vuln"
+      confirm: true
+```
+
+| Key | Meaning |
+|---|---|
+| `from` | What the stage scans: `live_hosts`, `open_ports`, or `services`. Only the first stage has no `from`, and it scans the target you gave. |
+| `when` | With `from: services`, limits the stage to these service names. These stages always use version detection (`-sV`), so scripts also work on services on other ports. |
+| `confirm` | Asks before running the stage. Required for any script that is not in the `safe` category. |
+| `host_timeout` | Maximum time per host. The default is 15 minutes. |
+
+Safety rules:
+
+- Only an allowed set of nmap options is accepted, so a workflow cannot add targets or read and write files.
+- Stages after the first only scan hosts found by the first stage. Results outside that scope are ignored.
+- Data from scanned hosts is never used to build nmap arguments.
+- `dos` and `broadcast` scripts never run. They are excluded from every script expression, even in confirmed stages.
+
+Workflows use TCP only. The included workflows look at nmap's 1000 most common ports, so services on other ports are not found. Without root privileges, nmap uses a connect scan, and OS detection (`-O`) is not available.
+
 ## Tests
 
 ```
 $ .venv/bin/pip install -r requirements-dev.txt
 $ .venv/bin/python -m pytest
+$ .venv/bin/ruff check .
+$ .venv/bin/mypy .
 ```
 
 ## TODO
 
 * GUI
 * Fast-Track
-* Create sequences for running scripts
-* Create file output
+* Create file output for `run`
 * Windows version
 
 ## Feedback
@@ -194,8 +297,4 @@ $ .venv/bin/python -m pytest
 Feel free to fork the project and to submit comments, issues, or contributions.
 
 * Twitter: [@jjtibaquira](https://twitter.com/jjtibaquira)
-* Email: jko@dragonjar.org
-* Blog: https://www.dragonjar.org
-* Forum: http://comunidad.dragonjar.org
-* YouTube: https://www.dragonjar.tv
-* Academic: https://www.dragonjar.education
+* Email: jacobotibaquira@gmail.com

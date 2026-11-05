@@ -18,12 +18,13 @@ with open(os.environ["NSEARCH_CONFIG"], "w", encoding="utf-8") as f:
     "filePath": os.path.join(bootstrap, "script.db"), "fileBackup": os.path.join(bootstrap, "backup.db"),
     "scriptsPath": bootstrap + "/", "checksum": ""}}, f)
 
-import dbmodule
 import i18n
 
-i18n.load_path.append(os.path.join(ROOT, "i18n"))
-i18n.set("fallback", "en")
-i18n.set("locale", "en")
+import dbmodule
+
+i18n.load_path.append(os.path.join(ROOT, "i18n"))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+i18n.set("fallback", "en")  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+i18n.set("locale", "en")  # type: ignore[attr-defined]  # python-i18n sets these at runtime
 
 SCRIPTS = {
   "http-title.nse": 'description = [[\nChecks localhost titles.\n]]\nlocal shortport = require "shortport"\nauthor = "Diman Todorov"\n',

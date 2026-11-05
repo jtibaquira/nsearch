@@ -1,16 +1,21 @@
-import dbmodule
-import i18n
 import os
 import re
 import shlex
 import sys
 
+import i18n
+
+import dbmodule
 from dbmodule import sanitize
+
 
 def clearScreen():
   if sys.stdout.isatty():
     sys.stdout.write("\033[2J\033[H")
     sys.stdout.flush()
+
+def isValidTarget(net):
+  return re.fullmatch(r"[A-Za-z0-9:][A-Za-z0-9.:/,*-]*", net) is not None
 
 def parseArgs(args, allowed):
   """Parse 'key:value' tokens. Returns a dict, or None if the input is invalid."""
@@ -74,9 +79,9 @@ class Helper:
   # Display the last results
   def printlastResult(self):
     column = "ranking" if dbmodule.lastresultsFav else "author"
-    print("\033[1;32m*** {0:40} {1:40}\033[0m".format("Name", column.capitalize()))
+    print("\033[1;32m*** {:40} {:40}\033[0m".format("Name", column.capitalize()))
     for value in dbmodule.lastresults.values():
-      print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(sanitize(value["name"]), sanitize(value[column] or "")))
+      print("\033[1;32m[+] {:40} {:35}\033[0m".format(sanitize(value["name"]), sanitize(value[column] or "")))
 
   # Display the documentation per script
   def displayDoc(self):
@@ -99,7 +104,7 @@ class Helper:
   def __readLines(self, scriptFile):
     lines = scriptFile.read().splitlines()
     for line in lines:
-      if line.startswith("--@output") or line.startswith("-- @output"):
+      if line.startswith(("--@output", "-- @output")):
         break
       if not line.lstrip().startswith("local "):
         print('\033[1;96m' + sanitize(line) + '\033[0m')

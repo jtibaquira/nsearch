@@ -1,11 +1,12 @@
 ## console.py
 
 import cmd
+
+import i18n
+
 import helper
 import helpernmap
-import i18n
-import os
-import sys
+import helperworkflow
 
 try:
   import readline
@@ -22,8 +23,8 @@ banner = '\033[0;36m' + r'''
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-    Version 0.4b  https://github.com/jtibaquira/nsearch  @jjtibaquira
-    Email: jko@dragonjar.org  |   www.dragonjar.org
+    Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira
+    Email: jacobotibaquira@gmail.com
   ================================================
 ''' + '\033[0m'
 
@@ -39,8 +40,8 @@ class Console(cmd.Cmd):
     self.ruler = '='
 
   ## Autocomplete definition list
-  searchCommands = [ 'name', 'category', 'help', 'author']
-  showfavOptions = ['name', 'ranking', 'help']
+  searchCommands = ('name', 'category', 'help', 'author')
+  showfavOptions = ('name', 'ranking', 'help')
 
   ## Command definitions ##
   def do_history(self, args):
@@ -69,7 +70,7 @@ class Console(cmd.Cmd):
     """Report unexpected errors without closing the console."""
     try:
       return cmd.Cmd.onecmd(self, line)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - nothing typed at the prompt may close the console
       print("Error: " + helper.sanitize(e))
       return False
 
@@ -108,7 +109,6 @@ class Console(cmd.Cmd):
 
   def emptyline(self):
     """Do nothing on empty input line"""
-    pass
 
   def do_clear(self, args):
     """ Clear the screen """
@@ -122,7 +122,7 @@ class Console(cmd.Cmd):
 
   def complete_search(self, text, line, begidx, endidx):
     if not text:
-      commands = self.searchCommands[:]
+      commands = list(self.searchCommands)
     else:
       commands = [ f
                       for f in self.searchCommands
@@ -230,7 +230,7 @@ class Console(cmd.Cmd):
 
   def complete_showfav(self, text, line, begidx, endidx):
     if not text:
-      commands = self.showfavOptions[:]
+      commands = list(self.showfavOptions)
     else:
       commands = [ f
                       for f in self.showfavOptions
@@ -251,6 +251,31 @@ class Console(cmd.Cmd):
       '\t' + i18n.t("help.help_usage") + ':',
       '\t\trun template:http net:target']))
 
+
+  def do_workflow(self, args):
+    """ Run a chain of scans, where each stage uses what the previous one found """
+    command, _, rest = args.partition(" ")
+    helperworkflow.HelperWorkflow(rest.strip(), command).process()
+
+  def help_workflow(self):
+    print('\n'.join([
+      "\t" + i18n.t("help.help_workflow") + "",
+      "\tname : " + i18n.t("help.help_workflow_name") + "",
+      "\tnet  : " + i18n.t("help.help_run_net") + "",
+      "\tid   : " + i18n.t("help.help_workflow_id") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
+      '\t\tworkflow list',
+      '\t\tworkflow run name:basic net:target',
+      '\t\tworkflow status',
+      '\t\tworkflow status id:1',
+      '\t\tworkflow resume id:1',
+      '\t\tworkflow report id:1 format:md',
+      '\t\tworkflow report id:1 format:json',
+      '\t\tworkflow compare id:1 with:2',
+      '\t\tworkflow suggest id:1']))
+
+  def complete_workflow(self, text, line, begidx, endidx):
+    return [f for f in ['list', 'run', 'status', 'resume', 'report', 'compare', 'suggest'] if f.startswith(text)]
 
   def default(self, line):
     """Called when the command is not recognized."""

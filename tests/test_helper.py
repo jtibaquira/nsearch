@@ -1,7 +1,7 @@
 import pytest
 
-import dbmodule
 import helper
+
 
 @pytest.mark.parametrize("args,expected", [
   ("", {}),
@@ -72,3 +72,11 @@ def test_doc_shows_script(db, capsys, name):
   out = capsys.readouterr().out
   assert "localhost" in out
   assert "shortport" not in out
+
+def test_results_table_is_exact(db, capsys):
+  db.lastresults = {1: {"name": "http-title", "author": "someone"}}
+  db.lastresultsFav = False
+  helper.Helper().printlastResult()
+  assert capsys.readouterr().out == (
+    "\033[1;32m*** " + "Name".ljust(40) + " " + "Author".ljust(40) + "\033[0m\n"
+    "\033[1;32m[+] " + "http-title".ljust(40) + " " + "someone".ljust(35) + "\033[0m\n")
