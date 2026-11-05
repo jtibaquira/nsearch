@@ -1,0 +1,12 @@
+allports:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "-p 1-65535"
+      host_timeout: "60m"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+      host_timeout: "60m"

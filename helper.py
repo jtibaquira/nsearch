@@ -1,125 +1,110 @@
-import dbmodule
+import os
+import re
+import shlex
+import sys
 
-from dbmodule import *
+import i18n
+
+import dbmodule
+from dbmodule import sanitize
+
+
+def clearScreen():
+  if sys.stdout.isatty():
+    sys.stdout.write("\033[2J\033[H")
+    sys.stdout.flush()
+
+def isValidTarget(net):
+  return re.fullmatch(r"[A-Za-z0-9:][A-Za-z0-9.:/,*-]*", net) is not None
+
+def parseArgs(args, allowed):
+  """Parse 'key:value' tokens. Returns a dict, or None if the input is invalid."""
+  try:
+    tokens = shlex.split(args)
+  except ValueError:
+    return None
+  params = {}
+  for token in tokens:
+    key, sep, value = token.partition(":")
+    if not sep or not value or key not in allowed or key in params:
+      return None
+    params[key] = value
+  return params
 
 class Helper:
 
-  def __init__(self,args="",commnad=""):
+  def __init__(self, args="", command=""):
     self.args = args
-    self.commnad = commnad
+    self.command = command
 
-  #process the commnads
+  # Process the commands
   def process(self):
-    if self.commnad == "search":
-      if not self.args:
-        dbmodule.lastresults = dbmodule.searchAll()
-        self.printlastResult()
-      elif not self.__searchparams():
-        print i18n.t("help.help_search_error")
-      else:
-        dbmodule.lastresults = dbmodule.searchByCriterial(**self.__searchparams())
-        self.printlastResult()
-    elif self.commnad == "addfav" and self.args:
-      dbmodule.createFavorite(**self.__addfavparams())
-    elif self.commnad == "modfav" and self.args:
-      dbmodule.updateFavorite(**self.__modfavparams())
-    elif self.commnad == "delfav" and self.args:
-      dbmodule.deleteFavorite(**self.__delfavparams())
-    elif self.commnad == "showfav":
-      if not self.args:
-        dbmodule.lastresults = dbmodule.getFavorites()
-        self.printlastResult(True)
-      else:
-        dbmodule.lastresults = dbmodule.getFavorites(**self.__showfavparams())
-        self.printlastResult(True)
+    if self.command == "search":
+      params = parseArgs(self.args, ("name", "category", "author"))
+      if params is None:
+        print(i18n.t("help.help_search_error"))
+        return
+      dbmodule.lastresults = (dbmodule.searchByCriterial(**params) if params else dbmodule.searchAll()) or {}
+      dbmodule.lastresultsFav = False
+      self.printlastResult()
+    elif self.command == "addfav":
+      params = parseArgs(self.args, ("name", "ranking"))
+      if params is None or "name" not in params:
+        print(i18n.t("setup.bad_params"))
+        return
+      dbmodule.createFavorite(**params)
+    elif self.command == "modfav":
+      params = parseArgs(self.args, ("name", "newname", "newranking"))
+      if params is None or "name" not in params or len(params) < 2:
+        print(i18n.t("setup.bad_params"))
+        return
+      dbmodule.updateFavorite(**params)
+    elif self.command == "delfav":
+      params = parseArgs(self.args, ("name",))
+      if not params:
+        print(i18n.t("setup.bad_params"))
+        return
+      dbmodule.deleteFavorite(**params)
+    elif self.command == "showfav":
+      params = parseArgs(self.args, ("name", "ranking"))
+      if params is None:
+        print(i18n.t("setup.bad_params"))
+        return
+      dbmodule.lastresults = dbmodule.getFavorites(**params)
+      dbmodule.lastresultsFav = True
+      self.printlastResult()
     else:
-      print i18n.t("help.help_command_error")
+      print(i18n.t("help.help_command_error"))
 
   # Display the last results
-  def printlastResult(self,fav=False):
-    if fav == True:
-      print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Ranking"]))
-      for key,value in dbmodule.lastresults.items():
-        print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["ranking"]]))
-    else:
-      print("\033[1;32m*** {0:40} {1:40}\033[0m".format(*["Name","Author"]))
-      for key,value in dbmodule.lastresults.items():
-        print("\033[1;32m[+] {0:40} {1:35}\033[0m".format(*[value["name"],value["author"]]))
-
+  def printlastResult(self):
+    column = "ranking" if dbmodule.lastresultsFav else "author"
+    print("\033[1;32m*** {:40} {:40}\033[0m".format("Name", column.capitalize()))
+    for value in dbmodule.lastresults.values():
+      print("\033[1;32m[+] {:40} {:35}\033[0m".format(sanitize(value["name"]), sanitize(value[column] or "")))
 
   # Display the documentation per script
   def displayDoc(self):
-    try:
-      scriptFile = open(dbmodule.scriptsPath+self.args,'r')
-      lines = scriptFile.read().splitlines()
-      for line in lines:
-        if line.startswith("license"):
-          break
-        print('\033[1;96m'+line+'\033[0m')
-      scriptFile.close()
-    except Exception, e:
-      try:
-        scriptFile = open(dbmodule.scriptsPath+self.args+".nse",'r')
-        lines = scriptFile.read().splitlines()
-        for line in lines:
-          if line.startswith("license"):
-            break
-          print('\033[1;96m'+line+'\033[0m')
-        scriptFile.close()
-      except Exception, e:
-        print i18n.t("setup.del_fav_error")
-    finally:
-      pass
+    if not re.fullmatch(r"[\w+-][\w.+-]*", self.args):
+      print(i18n.t("help.help_doc_not_found"))
+      return
+    for name in (self.args, self.args + ".nse"):
+      path = os.path.join(dbmodule.scriptsPath, name)
+      if os.path.isfile(path):
+        with open(path, 'r', encoding="utf-8", errors="replace") as scriptFile:
+          self.__readLines(scriptFile)
+        return
+    print(i18n.t("help.help_doc_not_found"))
 
-  # used for the autocomplete
+  # Used for autocompletion
   def resultitems(self):
-    i = 0
-    items = []
-    for k,v in dbmodule.lastresults.items():
-      items.insert(i,v["name"])
-      i = i + 1
-    return items
+    return [value["name"] for value in dbmodule.lastresults.values()]
 
-  # private function to set params for search command
-  def __searchparams(self):
-    if self.args.find('name:') != -1 or self.args.find('category:') != -1 or self.args.find('author:') != -1:
-      return self.__setParams()
-    else:
-      return False
-  #private funtion to set params for addfav command
-  def __addfavparams(self):
-    if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
-      return self.__setParams()
-
-  #private funtion to set params for delfav command
-  def __delfavparams(self):
-    if self.args.find('name:') != -1:
-      return self.__setParams()
-
-  #private function to set params for modfav command
-  def __modfavparams(self):
-    if self.args.find('name:') != -1 or self.args.find('newname:') != -1 or self.args.find('newranking:') != -1:
-      return self.__setParams()
-
-  #private function to set paramas for showfav command
-  def __showfavparams(self):
-    if self.args.find('name:') != -1 or self.args.find('ranking:') != -1:
-      return self.__setParams()
-
-  # Set Params validations
-  def __setParams(self):
-    argsdic = {}
-    if len(self.args.split(":")) >= 4:
-      argsdic.update({
-        self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-        self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0],
-        self.args.split(":")[2].split(" ")[1]:self.args.split(":")[3].split(" ")[0]})
-    elif len(self.args.split(":")) == 3:
-      argsdic.update({
-        self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0],
-        self.args.split(":")[1].split(" ")[1]:self.args.split(":")[2].split(" ")[0]})
-    elif len(self.args.split(":")) == 2:
-      argsdic.update({self.args.split(":")[0]:self.args.split(":")[1].split(" ")[0]})
-    else:
-      print i18n.t("setup.bad_params")
-    return argsdic
+  # Private function to read the script lines
+  def __readLines(self, scriptFile):
+    lines = scriptFile.read().splitlines()
+    for line in lines:
+      if line.startswith(("--@output", "-- @output")):
+        break
+      if not line.lstrip().startswith("local "):
+        print('\033[1;96m' + sanitize(line) + '\033[0m')

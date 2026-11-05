@@ -1,0 +1,14 @@
+vuln:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: vuln_scripts
+      from: services
+      arguments: "--script 'vuln and not (exploit or external)'"
+      confirm: true

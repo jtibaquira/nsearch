@@ -1,24 +1,108 @@
 en:
   doc_header: Nsearch Commands
   misc_header: Nsearch Plugins
-  undoc_header: Others Commands
+  undoc_header: Other Commands
   help_usage: Usage
-  help_search_name: Search by script's name
+  help_search_name: Search by script name
   help_search_category: Search by category
   help_search_author: Search by author
-  help_search_error: Type <<help search>> to see the help menu
-  help_last: Display the last query's result
-  help_doc: Displays the documentation of a selected script
-  help_doc_exmp: doc <script's name including .nse>
-  help_fav_name: Name of the Script
-  help_fav_ranking: Set the ranking
-  help_showfav: Display the favorites scripts
-  help_addfav: Set  favorite script
-  help_delfav: Unset favorite script
-  help_modfav: Update favorite script
-  help_run: Run nmap with the templates
+  help_search_error: "Type 'help search' to see the help menu"
+  help_last: Display the results of the last query
+  help_doc: Display the documentation of a script
+  help_doc_exmp: doc <script name>
+  help_fav_name: Name of the script
+  help_fav_ranking: Ranking of the script
+  help_showfav: Display favorite scripts
+  help_addfav: Add a script to favorites
+  help_delfav: Remove a script from favorites
+  help_modfav: Update a favorite script
+  help_run: Run nmap with a template
   help_run_template: Name of the template
   help_run_net: Target
-  help_run_error: The command is not valid please type help run
-  help_command_error: Type 'help command' to see the help menu
-  running_scan: Running Scan
+  help_run_error: "Invalid command. Type 'help run' for usage"
+  help_command_error: "Type 'help <command>' to see the help menu"
+  running_scan: Running scan
+  help_unknown_command: "Unknown command. Type 'help' to see the available commands"
+  help_doc_not_found: Script not found
+  help_run_bad_target: Invalid target
+  help_run_bad_template: Invalid or missing template
+  help_run_nmap_missing: nmap was not found. Install it and try again
+  help_run_scan_error: The scan failed
+  help_run_interrupted: Scan interrupted
+  help_workflow: Run a chain of scans, where each stage uses what the previous one found
+  help_workflow_name: Name of the workflow
+  help_workflow_id: Number of a previous run
+  workflow_error: "Invalid command. Type 'help workflow' for usage"
+  workflow_invalid: The workflow is not valid
+  workflow_plan: Workflow plan for target
+  workflow_authorized: Are you authorized to scan this target, and do you want to start?
+  workflow_cancelled: Workflow cancelled
+  workflow_started: Workflow run
+  workflow_no_targets: skipped, nothing to scan
+  workflow_confirm_stage: this stage can be intrusive. Run it against
+  workflow_declined: skipped, not confirmed
+  workflow_out_of_scope: Ignored result outside the scope
+  workflow_not_found: Workflow run not found
+  workflow_not_resumable: This run cannot be resumed. Status
+  workflow_changed: The workflow changed after this run started, so the run cannot be resumed
+  workflow_resume_nothing: No stages left to run. The run is now completed
+  workflow_resume_hint: To continue this run, use
+  workflow_resume_running: This run is marked as running. Continue only if no other console is working on it
+  workflow_already_resumed: Another console has already resumed this run
+  workflow_report_saved: Report saved to
+  workflow_report_error: Could not write the report
+  workflow_report_symlink: the reports folder is a symbolic link
+  workflow_compare_different: These runs used a different workflow or target, so missing results may just not have been scanned
+  workflow_compare_stages: These runs used different stages, so missing results may just not have been scanned
+  workflow_compare_incomplete: At least one of these runs did not finish every stage, so missing results may just not have been scanned
+  workflow_compare_warning: At least one of these runs has warnings, so a missing result may be an incomplete observation or a real change
+  workflow_run_warning: Some scan observations were inconsistent or missing. A missing result does not prove that a port is closed. Run a new workflow later if needed
+  workflow_no_targets_warning: skipped, nothing left to scan after the warnings of this run
+  workflow_resume_warning: This run has warnings and cannot be resumed. Start a new run later if needed
+  workflow_warning_host_missing: the host did not answer this stage
+  workflow_warning_port_changed: open earlier in this run, now seen differently
+  workflow_warning_port_missing: open earlier in this run, not reported by this stage
+  workflow_warning_port_not_seen: seen open by an earlier run, not seen by this one
+  workflow_warning_unknown: unknown warning
+  workflow_warning_run: run
+  report_warnings: Warnings
+  workflow_compare_same: No differences between these runs
+  compare_new_host: New host
+  compare_gone_host: Host no longer found
+  compare_new_service: New open port
+  compare_gone_service: Port no longer open
+  compare_changed_service: Service changed
+  compare_new_finding: New finding
+  compare_gone_finding: Finding no longer present
+  compare_changed_finding: Finding changed
+  workflow_suggest_not_completed: Suggestions need a completed run. Status
+  workflow_suggest_none: No script suggestions for the services found in this run
+  workflow_suggest_select: Scripts to run (numbers separated by commas, all, or empty for none)
+  workflow_suggest_bad_selection: Invalid selection, so nothing will run
+  report_title: Workflow report, run
+  report_workflow: Workflow
+  report_target: Target
+  report_status: Status
+  report_started: Started
+  report_finished: Finished
+  report_stages: Stages
+  report_reason: Reason
+  report_arguments: nmap arguments
+  report_targets: Targets
+  report_ports: ports
+  report_not_recorded: not recorded
+  report_none: None
+  report_hosts: Hosts
+  report_services: Open ports
+  report_findings: Script results
+  report_reason_first: First stage, so it scans the target given when the run started
+  report_reason_live_hosts: It scans the live hosts found in this run
+  report_reason_open_ports: It scans the open ports found in this run
+  report_reason_services: It scans the open ports found in this run with these services
+  report_reason_all_services: It scans the services found in this run
+  report_reason_suggestion: Suggested by workflow suggest and approved by the operator, for this service
+  report_reason_unknown: Not recorded by the version that ran this stage
+  report_skipped: It did not run because there was nothing to scan
+  report_declined: It did not run because it was not confirmed
+  report_unfinished: It did not finish, so it may not have scanned all of these targets
+  report_confirmed: It can be intrusive, so it asked first and it was confirmed

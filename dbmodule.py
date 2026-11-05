@@ -1,372 +1,505 @@
 import hashlib
-import i18n
+import json
 import os
+import re
 import shutil
 import sqlite3 as lite
 import sys
+import tempfile
+from contextlib import closing
+from datetime import UTC, datetime
+from typing import Any
+
+import i18n
 import yaml
 
-stream = open("config.yaml", 'r+')
-item = yaml.load(stream)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+config_path = os.environ.get("NSEARCH_CONFIG", os.path.join(BASE_DIR, "config.yaml"))
 
-dbname = item["config"]["scriptdb"]
-categories = item["config"]["categories"]
-filePath = item["config"]["filePath"]
-fileBackup = item["config"]["fileBackup"]
-scriptsPath = item["config"]["scriptsPath"]
-currentChecksum = item["config"]["checksum"]
+try:
+  with open(config_path, 'r', encoding="utf-8") as stream:
+    item = yaml.safe_load(stream)
+  dbname = os.path.join(BASE_DIR, item["config"]["scriptdb"])
+  categories = list(item["config"]["categories"])
+  filePath = item["config"]["filePath"]
+  fileBackup = os.path.join(BASE_DIR, item["config"]["fileBackup"])
+  scriptsPath = item["config"]["scriptsPath"]
+  currentChecksum = item["config"].get("checksum", "")
+except FileNotFoundError:
+  print("Error: config.yaml not found. Run 'bash install.sh' or copy config.yaml.example to config.yaml")
+  sys.exit(1)
+except (yaml.YAMLError, KeyError, TypeError):
+  print("Error: config.yaml is not valid. Run 'bash install.sh' or compare it with config.yaml.example")
+  sys.exit(1)
 
-lastresults = {};
+lastresults: dict[int, dict[str, Any]] = {}
+lastresultsFav = False
+
+def sanitize(text):
+  return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]", "?", str(text))
+
+def __fileHash():
+  with open(filePath, 'rb') as scriptFile:
+    return hashlib.sha256(scriptFile.read()).hexdigest()
+
+# Rebuild the script tables in one transaction; favorites are never dropped
+def __buildDb():
+  conn = lite.connect(dbname)
+  try:
+    cursor = conn.cursor()
+    cursor.execute("BEGIN")
+    for table in ("script_category", "categories", "scripts"):
+      cursor.execute("DROP TABLE IF EXISTS " + table)
+    print(i18n.t("setup.create_script_table"))
+    cursor.execute('''create table scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      name TEXT NOT NULL, author TEXT NULL)''')
+    print(i18n.t("setup.create_category_table"))
+    cursor.execute('''create table categories(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      name TEXT NOT NULL)''')
+    print(i18n.t("setup.create_category_script_table"))
+    cursor.execute('''create table script_category(id_category INTEGER NOT NULL,
+      id_script INTEGER NOT NULL)''')
+    cursor.execute("create index idx_script_category_script on script_category(id_script)")
+    cursor.execute("create index idx_script_category_category on script_category(id_category)")
+    print(i18n.t("setup.create_favorites_table"))
+    cursor.execute('''create table if not exists favorites(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+      name TEXT NOT NULL UNIQUE, ranking TEXT NOT NULL)''')
+    print(i18n.t("setup.upload_categories"))
+    cursor.executemany("INSERT INTO categories (name) VALUES (?)", [(category,) for category in categories])
+    setData(cursor)
+    conn.commit()
+  except Exception:
+    conn.rollback()
+    raise
+  finally:
+    conn.close()
 
 def initSetup():
-  print i18n.t("setup.create_db")+" "+dbname
-  db = None
+  print(i18n.t("setup.create_db") + " " + dbname)
   try:
-    cursor = __dbconnect()['cursor']
-    # Create Script Table
-    cursor.execute('''
-      create table if not exists scripts(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL,
-      author TEXT NULL)
-    ''')
-    print i18n.t("setup.create_script_table")
-    # Create Categories Table
-    cursor.execute('''create table if not exists categories(
-      id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-       name TEXT NOT NULL)
-    ''')
-    print i18n.t("setup.create_category_table")
-    # Create Script/Category Table
-    cursor.execute('''create table if not exists script_category(
-      id_category INTEGER NOT NULL,
-      id_script INETGER NOT NULL)
-    ''')
-    print i18n.t("setup.create_category_script_table")
-    print i18n.t("setup.upload_categories")
-    for category in categories:
-      cursor.execute('''
-        INSERT INTO categories (name) VALUES (?)
-        ''',(category,))
-      # Create Favorite Table
-    print i18n.t("setup.create_favorites_table")
-    cursor.execute('''
-      create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
-      ranking TEXT NOT NULL)
-    ''')
-    __dbconnect()['db'].commit()
-    setData()
+    __buildDb()
     createBackUp()
-    stream.close
-  except Exception, e:
-    print "Error %s:" % e.args[0]
+    __updateHash(currentChecksum, __fileHash())
+  except (OSError, lite.Error) as e:
+    print(f"Error {e}:")
     sys.exit(1)
-  finally:
-    if __dbconnect()['db']:
-      __dbconnect()['db'].close()
 
-#create file backups
+# Create a backup of script.db
 def createBackUp():
-  print "\n"+i18n.t("setup.create_backup")
+  print("\n" + i18n.t("setup.create_backup"))
   shutil.copy2(filePath, fileBackup)
   if os.path.isfile(fileBackup):
-    print i18n.t("setup.create_backup_ok")
+    print(i18n.t("setup.create_backup_ok"))
   else:
-    print i18n.t("setup.create_backup_error")
+    print(i18n.t("setup.create_backup_error"))
 
-#insert data into the tables
-def setData():
-  scriptFile = open(filePath,'r')
-  for line in scriptFile:
-    line = line.replace('Entry { filename = "',"").replace('", categories = { "',',"').replace('", } }','"').replace('", "','","')
-    for i, j in enumerate(categories):
-      line = line.replace('"'+j+'"',str(i+1))
-    newarray = line.split(",")
-    for key,value in enumerate(newarray):
-      if value == newarray[0]:
-        author = None
-        lastrowid = None
-        currentScript = open(scriptsPath+value,'r')
-        for line in currentScript:
-          if line.startswith("author"):
-            author = line.replace('author = "',"").replace('"',',"').replace('[[',"").replace(',"',"").replace("author =","Brandon Enright <bmenrigh@ucsd.edu>, Duane Wessels <wessels@dns-oarc.net>").strip()
-        lastrowid = insertScript(value,author)
-        currentScript.close()
-      else:
-        insertScriptCategory(lastrowid,value)
-  scriptFile.close()
+AUTHOR_RE = re.compile(r'^author\s*=\s*(\{.*?\}|\[\[.*?\]\]|.*?$)', re.MULTILINE | re.DOTALL)
+STRING_RE = re.compile(r'"([^"]*)"|\'([^\']*)\'|\[\[(.*?)\]\]', re.DOTALL)
 
-#update app if the db exists
+def parseAuthor(content):
+  match = AUTHOR_RE.search(content)
+  if not match:
+    return None
+  names = [" ".join("".join(groups).split()) for groups in STRING_RE.findall(match.group(1))]
+  return ", ".join(name for name in names if name) or None
+
+def setData(cursor):
+  categoryIds = {name: i + 1 for i, name in enumerate(categories)}
+  with open(filePath, 'r', encoding="utf-8", errors="replace") as scriptFile:
+    for line in scriptFile:
+      match = re.search(r'filename\s*=\s*"([^"]+)"', line)
+      if not match:
+        continue
+      name = match.group(1)
+      block = re.search(r'categories\s*=\s*\{(.*?)\}', line)
+      names = re.findall(r'"([^"]+)"', block.group(1)) if block else []
+      author = None
+      scriptPath = os.path.join(scriptsPath, name)
+      if os.path.isfile(scriptPath):
+        with open(scriptPath, 'r', encoding="utf-8", errors="replace") as currentScript:
+          author = parseAuthor(currentScript.read())
+      lastrowid = insertScript(cursor, name, author)
+      for category in names:
+        if category in categoryIds:
+          insertScriptCategory(cursor, lastrowid, categoryIds[category])
+
+# Update the app if the database exists
 def updateApp():
-  print i18n.t("setup.checking_db")+" "+dbname
-  db = None
+  print(i18n.t("setup.checking_db") + " " + dbname)
   try:
-    cursor = __dbconnect()['cursor']
-    # Create Favorite Table
-    cursor.execute('''
-      create table if not exists favorites (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,name TEXT NOT NULL UNIQUE,
-      ranking TEXT NOT NULL)
-    ''')
-    newmd5hash = hashlib.md5(open(filePath,'r').read()).hexdigest()
-    if newmd5hash == currentChecksum:
-      print i18n.t("setup.db_is_update")+" "+dbname
-    else:
-      __updateHash(currentChecksum,newmd5hash)
-      print i18n.t("setup.update_db")
-      cursor.executescript('''
-        DROP TABLE IF EXISTS scripts;
-        DELETE FROM SQLITE_SEQUENCE WHERE name='scripts';
-        DROP TABLE IF EXISTS categories;
-        DELETE FROM SQLITE_SEQUENCE WHERE name='categories';
-        DROP TABLE IF EXISTS script_category;
-        DELETE FROM SQLITE_SEQUENCE WHERE name='script_category';
-        ''')
-      __dbconnect()['db'].commit()
-      __dbconnect()['db'].close()
-      initSetup()
-  except Exception, e:
-    print "Error %s:" % e.args[0]
-  finally:
-    if __dbconnect()['db']:
-      __dbconnect()['db'].close()
+    newhash = __fileHash()
+    if newhash == currentChecksum:
+      print(i18n.t("setup.db_is_update") + " " + dbname)
+      return
+    print(i18n.t("setup.update_db"))
+    __buildDb()
+    __updateHash(currentChecksum, newhash)
+  except (OSError, lite.Error) as e:
+    print(f"Error {e}:")
 
+# Insert a script and its author
+def insertScript(cursor, script, author):
+  cursor.execute("INSERT INTO scripts (name, author) VALUES (?, ?)", (script, author))
+  return cursor.lastrowid
 
-# Insert each Script and Author
-def insertScript(script,author):
-  db = None
-  try:
-    db = lite.connect(dbname)
-    db.text_factory = str
-    cursor = db.cursor()
-    cursor.execute('''
-    Insert into scripts (name,author) values (?,?)
-    ''',(script,author,))
-    db.commit()
-    return cursor.lastrowid
-  except Exception, e:
-    if db:
-      db.rollback()
-    print "Error %s:" % e.args[0]
-  finally:
-    if db:
-      db.close()
+# Insert the script and category ids
+def insertScriptCategory(cursor, scriptid, categoryid):
+  cursor.execute("INSERT INTO script_category (id_category, id_script) VALUES (?, ?)", (categoryid, scriptid))
+  sys.stdout.write("#")
+  sys.stdout.flush()
 
-#Insert the scripts_id and categories_id
-def insertScriptCategory(scriptid,categoryid):
-  db = None
-  try:
-    db = lite.connect(dbname)
-    cursor = db.cursor()
-    cursor.execute('''
-    INSERT INTO script_category (id_category,id_script) VALUES (?,?)
-    ''',(categoryid,scriptid,))
-    db.commit()
-    if cursor.rowcount == 1:
-      sys.stdout.flush()
-      sys.stdout.write("#")
-  except Exception, e:
-     if db:
-      db.rollback()
-      print "Error %s:" % e.args[0]
-  finally:
-    if db:
-      db.close()
-
-#get all scripts
+# Get all scripts
 def searchAll():
-  db = None
+  conn = lite.connect(dbname)
   try:
-    db = lite.connect(dbname)
-    db.text_factory = str
-    db.row_factory = lite.Row
-    cursor = db.cursor()
-    cursor.execute("select id, name, author from scripts GROUP BY NAME ORDER BY NAME")
+    conn.row_factory = lite.Row
+    cursor = conn.cursor()
+    cursor.execute("select id, name, author from scripts ORDER BY name")
     return __fetchScript(cursor.fetchall())
-  except Exception, e:
-    print "Error %s:" % e.args[0]
+  except lite.Error as e:
+    print(f"Error {e}:")
   finally:
-    if db:
-      db.close()
+    conn.close()
 
-#set script as a favorite
+# Set a script as a favorite
 def createFavorite(**kwargs):
-  if kwargs is not None:
-    script= None
-    ranking= None
-    db = None
-    try:
-      db = lite.connect(dbname)
-      db.text_factory = str
-      cursor = db.cursor()
-      if kwargs.has_key("name") and kwargs.has_key("ranking"):
-        script = kwargs["name"]
-        ranking = kwargs["ranking"]
-      elif kwargs.has_key("name"):
-        script = kwargs["name"]
-        ranking = "normal"
-      else:
-        print i18n.t("setup.bad_params")
-      cursor.execute('''
-        Insert into favorites (name,ranking) values (?,?)
-        ''',(script,ranking,))
-      db.commit()
-      if cursor.rowcount == 1:
-        print "[+] "+script+" "+i18n.t("setup.add_fav_ok")
-    except Exception, e:
-      print "[-] "+script+" "+i18n.t("setup.add_fav_error")
-    finally:
-      if db:
-        db.close()
+  if "name" not in kwargs:
+    print(i18n.t("setup.bad_params"))
+    return
+  script = kwargs["name"]
+  conn = lite.connect(dbname)
+  try:
+    with conn:
+      conn.execute("INSERT INTO favorites (name, ranking) VALUES (?, ?)", (script, kwargs.get("ranking", "normal")))
+    print("[+] " + sanitize(script) + " " + i18n.t("setup.add_fav_ok"))
+  except lite.IntegrityError:
+    print("[-] " + sanitize(script) + " " + i18n.t("setup.add_fav_error"))
+  finally:
+    conn.close()
 
-#update favorite row
+# Update a favorite
 def updateFavorite(**kwargs):
-  if kwargs is not None:
-    sql = None
-    db = None
-    try:
-      db = lite.connect(dbname)
-      db.text_factory = str
-      cursor = db.cursor()
-      if kwargs.has_key("name") and kwargs.has_key("newname") and kwargs.has_key("newranking"):
-        script = kwargs["name"]
-        newname = kwargs["newname"]
-        newranking = kwargs["newranking"]
-        cursor.execute('''
-          UPDATE favorites SET name=?, ranking=? WHERE name=?
-          ''', (newname, newranking, script,))
-      elif kwargs.has_key("name") and kwargs.has_key("newname"):
-        script = kwargs["name"]
-        newname = kwargs["newname"]
-        cursor.execute('''
-          UPDATE favorites SET name=? WHERE name=?
-          ''', (newname, script,))
-      elif kwargs.has_key("name") and kwargs.has_key("newranking"):
-        script = kwargs["name"]
-        newranking = kwargs["newranking"]
-        cursor.execute('''
-          UPDATE favorites SET ranking=? WHERE name=?
-          ''', (newranking, script,))
-      else:
-        print i18n.t("setup.bad_params")
-      db.commit()
-      if cursor.rowcount == 1:
-        print "[+] "+script+" "+i18n.t("setup.update_fav_ok")
-    except Exception, e:
-      print "Error %s:" % e.args[0]
-      print "[-] "+script+" "+i18n.t("setup.update_fav_error")
-    finally:
-      if db:
-        db.close()
+  fields, params = [], []
+  for column, key in (("name", "newname"), ("ranking", "newranking")):
+    if key in kwargs:
+      fields.append(column + "=?")
+      params.append(kwargs[key])
+  if "name" not in kwargs or not fields:
+    print(i18n.t("setup.bad_params"))
+    return
+  script = kwargs["name"]
+  conn = lite.connect(dbname)
+  try:
+    with conn:
+      updated = conn.execute("UPDATE favorites SET " + ", ".join(fields) + " WHERE name=?", params + [script]).rowcount
+    if updated:
+      print("[+] " + sanitize(script) + " " + i18n.t("setup.update_fav_ok"))
+    else:
+      print("[-] " + sanitize(script) + " " + i18n.t("setup.update_fav_error"))
+  except lite.IntegrityError:
+    print("[-] " + sanitize(script) + " " + i18n.t("setup.update_fav_error"))
+  finally:
+    conn.close()
 
-#delete script values
+# Delete a favorite
 def deleteFavorite(**kwargs):
-  if kwargs is not None:
-    db = None
-    try:
-      db = lite.connect(dbname)
-      db.text_factory = str
-      cursor = db.cursor()
-      if kwargs.has_key("name"):
-        script = kwargs["name"]
-        cursor.execute('''
-          DELETE FROM favorites WHERE name=?
-          ''',(script,))
-        db.commit()
-      if cursor.rowcount == 1:
-        print "[+] "+script+" "+i18n.t("setup.del_fav_ok")
-    except Exception, e:
-      print "[-] "+script+" "+i18n.t("setup.del_fav_error")
-    finally:
-      if db:
-        db.close()
+  if "name" not in kwargs:
+    print(i18n.t("setup.bad_params"))
+    return
+  script = kwargs["name"]
+  conn = lite.connect(dbname)
+  try:
+    with conn:
+      deleted = conn.execute("DELETE FROM favorites WHERE name=?", (script,)).rowcount
+    if deleted:
+      print("[+] " + sanitize(script) + " " + i18n.t("setup.del_fav_ok"))
+    else:
+      print("[-] " + sanitize(script) + " " + i18n.t("setup.del_fav_error"))
+  finally:
+    conn.close()
 
-
-# Functions for all queries
 def searchByCriterial(**kwargs):
-  if kwargs is not None:
-    db = lite.connect(dbname)
-    db.text_factory = str
-    db.row_factory = lite.Row
-    cursor = db.cursor()
-    if kwargs.has_key("name") and kwargs.has_key("category") and kwargs.has_key("author"):
+  conn = lite.connect(dbname)
+  try:
+    conn.row_factory = lite.Row
+    cursor = conn.cursor()
+    if "name" in kwargs and "category" in kwargs and "author" in kwargs:
       script = kwargs["name"]
       category = kwargs["category"]
       author = kwargs["author"]
-      sql= "select scripts.id, scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and scripts.author like '%"+author+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category "
-    elif kwargs.has_key("name") and kwargs.has_key("category"):
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author
+                         FROM scripts JOIN categories ON categories.id=script_category.id_category
+                         JOIN script_category ON scripts.id=script_category.id_script
+                         WHERE categories.name LIKE ? AND scripts.name LIKE ? AND scripts.author LIKE ?''',
+                    ('%'+category+'%', '%'+script+'%', '%'+author+'%'))
+    elif "name" in kwargs and "category" in kwargs:
       script = kwargs["name"]
       category = kwargs["category"]
-      sql= "select scripts.id, scripts.name ,scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
-    elif kwargs.has_key("name") and kwargs.has_key("author"):
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author
+                         FROM scripts JOIN categories ON categories.id=script_category.id_category
+                         JOIN script_category ON scripts.id=script_category.id_script
+                         WHERE categories.name LIKE ? AND scripts.name LIKE ?''',
+                    ('%'+category+'%', '%'+script+'%'))
+    elif "name" in kwargs and "author" in kwargs:
       author = kwargs["author"]
       script = kwargs["name"]
-      sql= "select id, name, author from scripts where name like '%"+script+"%' and author like '%"+author+"%'"
-    elif kwargs.has_key("name"):
+      cursor.execute('''SELECT id, name, author FROM scripts WHERE name LIKE ? AND author LIKE ?''',
+                    ('%'+script+'%', '%'+author+'%'))
+    elif "name" in kwargs:
       script = kwargs["name"]
-      sql= "select id, name, author from scripts where name like '%"+script+"%'"
-    elif kwargs.has_key("category"):
+      cursor.execute('''SELECT id, name, author FROM scripts WHERE name LIKE ?''', ('%'+script+'%',))
+    elif "category" in kwargs:
       category = kwargs["category"]
-      sql= "select scripts.id, scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.id=script_category.id_script and categories.id=script_category.id_category"
-    elif kwargs.has_key("author"):
+      cursor.execute('''SELECT scripts.id, scripts.name, scripts.author
+                         FROM scripts JOIN script_category ON scripts.id=script_category.id_script
+                         JOIN categories ON categories.id=script_category.id_category
+                         WHERE categories.name LIKE ?''', ('%'+category+'%',))
+    elif "author" in kwargs:
       author = kwargs["author"]
-      sql= "select id, name, author from scripts where author like '%"+author+"%'"
+      cursor.execute('''SELECT id, name, author FROM scripts WHERE author LIKE ?''', ('%'+author+'%',))
     else:
-      print i18n.t("setup.bad_params")
-    cursor.execute(sql)
+      print(i18n.t("setup.bad_params"))
+      return {}
     return __fetchScript(cursor.fetchall())
-    db.close()
+  finally:
+    conn.close()
 
 
-# get favs scripts filter
+# Get favorites, with optional filters
 def getFavorites(**kwargs):
-  if kwargs is not None:
-    sql=None
-    db = lite.connect(dbname)
-    db.text_factory = str
-    db.row_factory = lite.Row
-    cursor = db.cursor()
-    if kwargs.has_key("name") and kwargs.has_key("ranking"):
+  conn = lite.connect(dbname)
+  try:
+    conn.row_factory = lite.Row
+    cursor = conn.cursor()
+    if "name" in kwargs and "ranking" in kwargs:
       script = kwargs["name"]
       ranking = kwargs["ranking"]
-      sql= "select scripts.id, scripts.name, scripts.author from scripts, categories, script_category where categories.name like '%"+category+"%' and scripts.name like '%"+script+"%' and  scripts.id=script_category.id_script and categories.id=script_category.id_category "
-    elif kwargs.has_key("name"):
+      cursor.execute("select id, name, ranking from favorites where name like ? and ranking like ?", ('%'+script+'%', '%'+ranking+'%'))
+    elif "name" in kwargs:
       script = kwargs["name"]
-      sql= "select id, name, ranking from favorites where name like '%"+script+"%'"
-    elif kwargs.has_key("ranking"):
+      cursor.execute("select id, name, ranking from favorites where name like ?", ('%'+script+'%',))
+    elif "ranking" in kwargs:
       ranking = kwargs["ranking"]
-      sql= "select id, name, ranking from favorites where ranking like '%"+ranking+"%'"
+      cursor.execute("select id, name, ranking from favorites where ranking like ?", ('%'+ranking+'%',))
     else:
-      sql="select id, name, ranking from favorites"
-    cursor.execute(sql)
-    return __fetchScript(cursor.fetchall(),True)
-    db.close()
+      cursor.execute("select id, name, ranking from favorites")
+    return __fetchScript(cursor.fetchall(), True)
+  finally:
+    conn.close()
 
-# Connection to the databases
-def __dbconnect():
-  db = lite.connect(dbname)
-  return {'cursor':db.cursor(), 'db':db}
-
-# private function to fetch all results into a dic
-def __fetchScript(fetchall,total=False):
-  fetchlist = {};
+# Private function to fetch all results into a dict
+def __fetchScript(fetchall, total=False):
+  fetchlist = {}
   if total:
     for row in fetchall:
-      fetchlist.update({row["id"]:{"name":row["name"], "ranking":row["ranking"]}})
+      fetchlist.update({row["id"]: {"name": row["name"], "ranking": row["ranking"]}})
   else:
     for row in fetchall:
-      fetchlist.update({row["id"]:{"name":row["name"], "author":row["author"]}})
+      fetchlist.update({row["id"]: {"name": row["name"], "author": row["author"]}})
   return fetchlist
 
 
-# private function to update md5hash
+def __updateHash(oldhash, newhash):
+  item["config"]["categories"] = categories
+  item["config"]["checksum"] = newhash
+  fd, tmppath = tempfile.mkstemp(dir=os.path.dirname(os.path.abspath(config_path)))
+  try:
+    with os.fdopen(fd, 'w', encoding="utf-8") as f:
+      yaml.safe_dump(item, f)
+    os.replace(tmppath, config_path)
+  except Exception:
+    os.remove(tmppath)
+    raise
 
-def __updateHash(oldhash,newnhash):
-  stream.seek(0)
-  stream.truncate()
-  newconfig = {'config': {
-                'scriptsPath':scriptsPath,
-                'filePath':filePath,
-                'fileBackup':fileBackup,
-                'scriptdb':dbname,
-                'categories': ['auth','broadcast','brute','default','discovery','dos','exploit','external','fuzzer','intrusive','malware','safe','version','vuln'],
-                'checksum':newnhash}
-              }
-  yaml.dump(newconfig,stream)
+# Workflow tables are kept when the script tables are rebuilt
+WORKFLOW_SCHEMA = """
+  create table if not exists workflow_runs(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    workflow TEXT NOT NULL, target TEXT NOT NULL, status TEXT NOT NULL,
+    started_at TEXT NOT NULL, finished_at TEXT NULL);
+  create table if not exists workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL,
+    arguments TEXT NOT NULL, status TEXT NOT NULL, definition TEXT NULL, targets TEXT NULL, warnings TEXT NULL, UNIQUE(run_id, position));
+  create table if not exists workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL,
+    hostname TEXT NULL, state TEXT NOT NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address));
+  create table if not exists workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL,
+    protocol TEXT NOT NULL, port INTEGER NOT NULL, state TEXT NOT NULL, service TEXT NULL,
+    product TEXT NULL, version TEXT NULL, ever_open INTEGER NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address, protocol, port));
+  create table if not exists workflow_findings(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    run_id INTEGER NOT NULL, stage TEXT NOT NULL, address TEXT NOT NULL, port INTEGER NULL,
+    script TEXT NOT NULL, output TEXT NOT NULL);
+  create index if not exists workflow_findings_run on workflow_findings(run_id);
+"""
+
+WORKFLOW_COLUMNS = (
+  ("workflow_stages", (("definition", "TEXT"), ("targets", "TEXT"), ("warnings", "TEXT"))),
+  ("workflow_hosts", (("last_observation", "TEXT"),)),
+  ("workflow_services", (("ever_open", "INTEGER"), ("last_observation", "TEXT"))),
+)
+
+def __workflowConnect():
+  conn = lite.connect(dbname)
+  conn.row_factory = lite.Row
+  conn.executescript(WORKFLOW_SCHEMA)
+  # Stages saved by earlier versions keep these empty: their runs cannot be resumed, and their reports say it was not recorded.
+  # Their results keep what they had too, because what a later stage replaced is not known
+  for table, added in WORKFLOW_COLUMNS:
+    columns = [row["name"] for row in conn.execute("PRAGMA table_info(" + table + ")")]
+    for column, kind in added:
+      if column not in columns:
+        conn.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + kind + " NULL")
+  return conn
+
+def __now():
+  return datetime.now(UTC).isoformat(timespec="seconds")
+
+# Everything that decides what a stage scans and whether it asks first
+def stageDefinition(stage):
+  return json.dumps({key: stage.get(key) for key in ("name", "source", "services", "confirm", "arguments")}, sort_keys=True)
+
+# Create a workflow run and its pending stages
+def createRun(workflow, target, stages):
+  with closing(__workflowConnect()) as conn, conn:
+    runId = conn.execute("INSERT INTO workflow_runs (workflow, target, status, started_at) VALUES (?, ?, 'running', ?)",
+      (workflow, target, __now())).lastrowid
+    conn.executemany("INSERT INTO workflow_stages (run_id, position, name, arguments, status, definition) VALUES (?, ?, ?, ?, 'pending', ?)",
+      [(runId, position, stage["name"], stage["arguments"], stageDefinition(stage)) for position, stage in enumerate(stages)])
+    return runId
+
+# Add a stage at the end of a run. Returns its position and the name it was given
+def addStage(runId, name, stage):
+  with closing(__workflowConnect()) as conn, conn:
+    position = conn.execute("SELECT COALESCE(MAX(position) + 1, 0) FROM workflow_stages WHERE run_id=?", (runId,)).fetchone()[0]
+    stage = dict(stage, name=name + "-" + str(position + 1))
+    conn.execute("INSERT INTO workflow_stages (run_id, position, name, arguments, status, definition) VALUES (?, ?, ?, ?, 'pending', ?)",
+      (runId, position, stage["name"], stage["arguments"], stageDefinition(stage)))
+    return position, stage
+
+def setStageStatus(runId, position, status):
+  with closing(__workflowConnect()) as conn, conn:
+    conn.execute("UPDATE workflow_stages SET status=? WHERE run_id=? AND position=?", (status, runId, position))
+
+# What a stage was going to scan, kept for the report
+def setStageTargets(runId, position, targets):
+  with closing(__workflowConnect()) as conn, conn:
+    conn.execute("UPDATE workflow_stages SET targets=? WHERE run_id=? AND position=?",
+      (json.dumps([{"target": target, "ports": ports} for target, ports in targets]), runId, position))
+
+def setRunStatus(runId, status):
+  with closing(__workflowConnect()) as conn, conn:
+    conn.execute("UPDATE workflow_runs SET status=?, finished_at=? WHERE id=?",
+      (status, None if status == "running" else __now(), runId))
+
+# Mark a run as running only if it still has the status that was read, so a second console cannot take
+# an interrupted or failed run. This does not protect a run that is already running
+def claimRun(runId, status):
+  with closing(__workflowConnect()) as conn, conn:
+    return conn.execute("UPDATE workflow_runs SET status='running', finished_at=NULL WHERE id=? AND status=?", (runId, status)).rowcount == 1
+
+# Save everything found by one stage in a single transaction. A service name that nmap only
+# guessed from the port number does not replace one that was already found, and a port keeps
+# the fact that it was seen open when a later stage sees it differently
+def saveStageResults(runId, stage, hosts, services, findings):
+  with closing(__workflowConnect()) as conn, conn:
+    conn.executemany("""INSERT INTO workflow_hosts (run_id, address, hostname, state, last_observation) VALUES (?, ?, ?, ?, 'reported')
+      ON CONFLICT(run_id, address) DO UPDATE SET state=excluded.state, last_observation='reported',
+      hostname=COALESCE(NULLIF(excluded.hostname, ''), hostname)""",
+      [(runId, host["address"], host["hostname"], host["state"]) for host in hosts])
+    conn.executemany("""INSERT INTO workflow_services (run_id, address, protocol, port, state, service, product, version, ever_open, last_observation)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'reported')
+      ON CONFLICT(run_id, address, protocol, port) DO UPDATE SET state=excluded.state, last_observation='reported',
+      ever_open=CASE WHEN excluded.state='open' OR state='open' THEN 1 ELSE ever_open END,
+      service=CASE WHEN ? THEN COALESCE(NULLIF(service, ''), excluded.service) ELSE COALESCE(NULLIF(excluded.service, ''), service) END,
+      product=COALESCE(NULLIF(excluded.product, ''), product),
+      version=COALESCE(NULLIF(excluded.version, ''), version)""",
+      [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"], int(item["state"] == "open"), item.get("guess", False))
+        for item in services])
+    # A resumed stage scans its targets again, and the new findings replace the old ones
+    conn.executemany("DELETE FROM workflow_findings WHERE run_id=? AND stage=? AND address=?",
+      [(runId, stage, host["address"]) for host in hosts])
+    conn.executemany("INSERT INTO workflow_findings (run_id, stage, address, port, script, output) VALUES (?, ?, ?, ?, ?, ?)",
+      [(runId, stage, item["address"], item["port"], item["script"], item["output"]) for item in findings])
+
+# Something a stage had to see and did not is no longer a target, and rows from earlier versions have no observation
+OBSERVED = "COALESCE(last_observation, 'reported') != 'missing'"
+
+# Save what a stage expected and did not see, and its warnings. A stage that runs again keeps the ones it had
+def recordObservations(runId, position, warnings, hosts=(), ports=()):
+  with closing(__workflowConnect()) as conn, conn:
+    row = conn.execute("SELECT warnings FROM workflow_stages WHERE run_id=? AND position=?", (runId, position)).fetchone()
+    saved = json.loads(row["warnings"]) if row is not None and row["warnings"] else []
+    conn.execute("UPDATE workflow_stages SET warnings=? WHERE run_id=? AND position=?",
+      (json.dumps(saved + [warning for warning in warnings if warning not in saved]), runId, position))
+    conn.executemany("UPDATE workflow_hosts SET last_observation='missing' WHERE run_id=? AND address=?",
+      [(runId, address) for address in hosts])
+    conn.executemany("UPDATE workflow_services SET last_observation='missing' WHERE run_id=? AND address=? AND protocol=? AND port=?",
+      [(runId, *port) for port in ports])
+
+def getLiveHosts(runId):
+  with closing(__workflowConnect()) as conn:
+    return [row["address"] for row in conn.execute(
+      "SELECT address FROM workflow_hosts WHERE run_id=? AND state='up' AND " + OBSERVED + " ORDER BY address", (runId,))]
+
+# Open ports per host, optionally only for the given service names
+def getOpenPorts(runId, services=None):
+  sql = "SELECT address, port FROM workflow_services WHERE run_id=? AND state='open' AND " + OBSERVED
+  params = [runId]
+  if services:
+    sql += " AND service IN (" + ", ".join("?" for _ in services) + ")"
+    params += services
+  ports = {}
+  with closing(__workflowConnect()) as conn:
+    for row in conn.execute(sql + " ORDER BY address, port", params):
+      ports.setdefault(row["address"], []).append(row["port"])
+  return ports
+
+def __ports(runId, condition):
+  with closing(__workflowConnect()) as conn:
+    return {(row["address"], row["protocol"], row["port"]) for row in conn.execute(
+      "SELECT address, protocol, port FROM workflow_services WHERE run_id=? AND " + condition, (runId,))}
+
+# Ports that are open as far as the run knows
+def getOpenServices(runId):
+  return __ports(runId, "state='open' AND " + OBSERVED)
+
+# Ports that any stage of the run saw open
+def getSeenPorts(runId):
+  return __ports(runId, "(ever_open=1 OR state='open')")
+
+def getStages(runId):
+  with closing(__workflowConnect()) as conn:
+    return [dict(row) for row in conn.execute("SELECT * FROM workflow_stages WHERE run_id=? ORDER BY position", (runId,))]
+
+# Older runs of a target with any of these statuses, newest first
+def getEarlierRuns(runId, target, statuses):
+  sql = "SELECT id FROM workflow_runs WHERE id<? AND target=? AND status IN (" + ", ".join("?" for _ in statuses) + ") ORDER BY id DESC"
+  with closing(__workflowConnect()) as conn:
+    return [row["id"] for row in conn.execute(sql, (runId, target, *statuses))]
+
+def getRuns():
+  with closing(__workflowConnect()) as conn:
+    return [dict(row) for row in conn.execute("SELECT * FROM workflow_runs ORDER BY id DESC")]
+
+def getRun(runId):
+  with closing(__workflowConnect()) as conn:
+    run = conn.execute("SELECT * FROM workflow_runs WHERE id=?", (runId,)).fetchone()
+    if run is None:
+      return None
+    details = {"run": dict(run)}
+    for key, sql in (
+      ("stages", "SELECT * FROM workflow_stages WHERE run_id=? ORDER BY position"),
+      ("hosts", "SELECT * FROM workflow_hosts WHERE run_id=? ORDER BY address"),
+      ("services", "SELECT * FROM workflow_services WHERE run_id=? AND state='open' AND " + OBSERVED + " ORDER BY address, port"),
+      ("findings", "SELECT * FROM workflow_findings WHERE run_id=? ORDER BY id")):
+      details[key] = [dict(row) for row in conn.execute(sql, (runId,))]
+    return details
+
+# Script names mapped to their categories
+def scriptCategories():
+  sql = """SELECT scripts.name AS script, categories.name AS category FROM scripts
+    JOIN script_category ON scripts.id = script_category.id_script
+    JOIN categories ON categories.id = script_category.id_category"""
+  scripts = {}
+  with closing(lite.connect(dbname)) as conn:
+    for script, category in conn.execute(sql):
+      scripts.setdefault(re.sub(r"\.nse$", "", script), set()).add(category)
+  return scripts

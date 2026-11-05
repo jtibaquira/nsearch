@@ -1,0 +1,4 @@
+hosts:
+  stages:
+    - name: discovery
+      arguments: "-sn"

@@ -1,14 +1,20 @@
 ## console.py
 
 import cmd
+
+import i18n
+
 import helper
 import helpernmap
-import os
-import readline
+import helperworkflow
 
-from helper import *
+try:
+  import readline
+except ImportError:
+  pass
 
-banner ='\033[0;36m'+'''
+
+banner = '\033[0;36m' + r'''
   ================================================
     _   _  _____  _____                     _
    | \ | |/  ___||  ___|                   | |
@@ -17,10 +23,10 @@ banner ='\033[0;36m'+'''
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.4b  http://goo.gl/8mFHE5  @jjtibaquira
-   Email: jko@dragonjar.org  |   www.dragonjar.org
+    Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira
+    Email: jacobotibaquira@gmail.com
   ================================================
-'''+'\033[0m'
+''' + '\033[0m'
 
 class Console(cmd.Cmd):
 
@@ -33,17 +39,17 @@ class Console(cmd.Cmd):
     self.undoc_header = i18n.t("help.undoc_header")
     self.ruler = '='
 
-  ## autocomplete definition list
-  serachCommands = [ 'name', 'category', 'help', 'author']
-  showfavOptions = ['name', 'ranking', 'help']
+  ## Autocomplete definition list
+  searchCommands = ('name', 'category', 'help', 'author')
+  showfavOptions = ('name', 'ranking', 'help')
 
   ## Command definitions ##
   def do_history(self, args):
     """Print a list of commands that have been entered"""
-    print self._history
+    print(self._history)
 
   def do_exit(self, args):
-    """Exits from the console"""
+    """Exit the console"""
     return -1
 
   def do_help(self, args):
@@ -51,39 +57,48 @@ class Console(cmd.Cmd):
        'help' or '?' with no arguments prints a list of commands for which help is available
        'help <command>' or '? <command>' gives help on <command>
     """
-    ## The only reason to define this method is for the help text in the doc string
+    ## This method exists only to provide the help text in the docstring
     cmd.Cmd.do_help(self, args)
 
   ## Command definitions to support Cmd object functionality ##
   def do_EOF(self, args):
-    """Exit on system end of file character"""
+    """Exit on end of file"""
     return self.do_exit(args)
 
   ## Override methods in Cmd object ##
+  def onecmd(self, line):
+    """Report unexpected errors without closing the console."""
+    try:
+      return cmd.Cmd.onecmd(self, line)
+    except Exception as e:  # noqa: BLE001 - nothing typed at the prompt may close the console
+      print("Error: " + helper.sanitize(e))
+      return False
+
   def preloop(self):
     """Initialization before prompting user for commands.
-       Despite the claims in the Cmd documentaion, Cmd.preloop() is not a stub.
+       Despite the claims in the Cmd documentation, Cmd.preloop() is not a stub.
     """
     cmd.Cmd.preloop(self)   ## sets up command completion
-    self._history = ""      ## No historyory yet
-    self._locals  = {}      ## Initialize execution namespace for user
-    self._globals = {}
-    old_delims = readline.get_completer_delims()
-    readline.set_completer_delims(old_delims.replace('-', ''))
+    self._history = ""      ## No history yet
+    try:
+      old_delims = readline.get_completer_delims()
+      readline.set_completer_delims(old_delims.replace('-', ''))
+    except NameError:
+      pass
 
   def postloop(self):
     """Take care of any unfinished business.
-       Despite the claims in the Cmd documentaion, Cmd.postloop() is not a stub.
+       Despite the claims in the Cmd documentation, Cmd.postloop() is not a stub.
     """
     cmd.Cmd.postloop(self)   ## Clean up command completion
-    print '\033[0;36m Closing NSEarch ... :D\033[0m'
+    print('\033[0;36m Closing NSEarch ... :D\033[0m')
 
   def precmd(self, line):
     """ This method is called after the line has been input but before
-        it has been interpreted. If you want to modifdy the input line
+        it has been interpreted. If you want to modify the input line
         before execution (for example, variable substitution) do it here.
     """
-    self._history += line.strip()+"\n"
+    self._history += line.strip() + "\n"
     return line
 
   def postcmd(self, stop, line):
@@ -94,47 +109,46 @@ class Console(cmd.Cmd):
 
   def emptyline(self):
     """Do nothing on empty input line"""
-    pass
 
   def do_clear(self, args):
-    """ Clear the shell """
-    os.system("clear")
-    print self.intro
+    """ Clear the screen """
+    helper.clearScreen()
+    print(self.intro)
 
   def do_search(self, args):
-    """ Search """
+    """ Search for scripts """
     search = helper.Helper(args,"search")
     search.process()
 
   def complete_search(self, text, line, begidx, endidx):
     if not text:
-      commands = self.serachCommands[:]
+      commands = list(self.searchCommands)
     else:
       commands = [ f
-                      for f in self.serachCommands
+                      for f in self.searchCommands
                       if f.startswith(text)
                   ]
     return commands
 
   def help_search(self):
-    print '\n'.join([ "\n\tname     : "+i18n.t("help.help_search_name")+"",
-      "\tcategory : "+i18n.t("help.help_search_category")+"",
-      "\tauthor   : "+i18n.t("help.help_search_author")+"",
-      '\t'+i18n.t("help.help_usage")+':',
+    print('\n'.join([ "\n\tname     : " + i18n.t("help.help_fav_name") + "",
+      "\tcategory : " + i18n.t("help.help_search_category") + "",
+      "\tauthor   : " + i18n.t("help.help_search_author") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
       '\t\tsearch name:http',
       '\t\tsearch category:exploit',
       '\t\tsearch author:fyodor',
-      '\t\tsearch name:http category:exploit author:fyodor'])
+      '\t\tsearch name:http category:exploit author:fyodor']))
 
   def do_doc(self, args):
-    """ Display Script Documentaion"""
+    """ Display the documentation of a script """
     doc = helper.Helper(args)
     doc.displayDoc()
 
   def help_doc(self):
-    print "\t"+i18n.t("help.help_doc")
-    print "\t"+i18n.t("help.help_usage")
-    print "\t\t"+i18n.t("help.help_doc_exmp")
+    print("\t" + i18n.t("help.help_doc"))
+    print("\t" + i18n.t("help.help_usage"))
+    print("\t\t" + i18n.t("help.help_doc_exmp"))
 
   def complete_doc(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -142,31 +156,24 @@ class Console(cmd.Cmd):
     return [i for i in resultitems.resultitems() if i.startswith(text)]
 
   def do_last(self,args):
-    """ last help"""
-    try:
-      search = helper.Helper()
-      search.printlastResult()
-    except Exception, e:
-      os.system("clear")
-      print self.intro
-      search = helper.Helper(args,"showfav")
-      search.process()
+    """ Display the last results """
+    helper.Helper().printlastResult()
 
   def help_last(self):
-    print i18n.t("help.help_last")
+    print(i18n.t("help.help_last"))
 
-  # handler fav actions
+  # Favorite actions
   def do_addfav(self,args):
     search = helper.Helper(args,"addfav")
     search.process()
 
   def help_addfav(self):
-    print '\n'.join([
-      "\t"+i18n.t("help.help_addfav")+"",
-      "\tname     : "+i18n.t("help.help_fav_name")+"",
-      "\tranking : "+i18n.t("help.help_fav_ranking")+"",
-      '\t'+i18n.t("help.help_usage")+':',
-      '\t\taddfav name:http ranking:great'])
+    print('\n'.join([
+      "\t" + i18n.t("help.help_addfav") + "",
+      "\tname     : " + i18n.t("help.help_fav_name") + "",
+      "\tranking : " + i18n.t("help.help_fav_ranking") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
+      '\t\taddfav name:http ranking:great']))
 
   def complete_addfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -178,11 +185,11 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_delfav(self):
-    print '\n'.join([
-      "\t"+i18n.t("help.help_delfav")+"",
-      "\tname     : "+i18n.t("help.help_fav_name")+"",
-      '\t'+i18n.t("help.help_usage")+':',
-      '\t\tdelfav name:http'])
+    print('\n'.join([
+      "\t" + i18n.t("help.help_delfav") + "",
+      "\tname     : " + i18n.t("help.help_fav_name") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
+      '\t\tdelfav name:http']))
 
   def complete_delfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -194,13 +201,13 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_modfav(self):
-    print '\n'.join([
-      "\t"+i18n.t("help.help_modfav")+"",
-      "\tname     : "+i18n.t("help.help_search_name")+"",
-      "\tnewname : "+i18n.t("help.help_fav_name")+"",
-      "\tnewranking   : "+i18n.t("help.help_fav_ranking")+"",
-      '\t'+i18n.t("help.help_usage")+':',
-      '\t\tmodfav name:http newname:http-new-script newranking:super-great'])
+    print('\n'.join([
+      "\t" + i18n.t("help.help_modfav") + "",
+      "\tname     : " + i18n.t("help.help_fav_name") + "",
+      "\tnewname : " + i18n.t("help.help_fav_name") + "",
+      "\tnewranking   : " + i18n.t("help.help_fav_ranking") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
+      '\t\tmodfav name:http newname:http-new-script newranking:super-great']))
 
   def complete_modfav(self, text, line, begidx, endidx):
     """ Autocomplete over the last result """
@@ -212,18 +219,18 @@ class Console(cmd.Cmd):
     search.process()
 
   def help_showfav(self):
-    print '\n'.join([
-      "\t"+i18n.t("help.help_showfav")+"",
-      "\tname     : "+i18n.t("help.help_fav_name")+"",
-      "\tranking : "+i18n.t("help.help_fav_ranking")+"",
-      '\t'+i18n.t("help.help_usage")+':',
+    print('\n'.join([
+      "\t" + i18n.t("help.help_showfav") + "",
+      "\tname     : " + i18n.t("help.help_fav_name") + "",
+      "\tranking : " + i18n.t("help.help_fav_ranking") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
       '\t\tshowfav name:http',
       '\t\tshowfav ranking:great',
-      '\t\tshowfav name:http ranking:great'])
+      '\t\tshowfav name:http ranking:great']))
 
   def complete_showfav(self, text, line, begidx, endidx):
     if not text:
-      commands = self.showfavOptions[:]
+      commands = list(self.showfavOptions)
     else:
       commands = [ f
                       for f in self.showfavOptions
@@ -232,25 +239,44 @@ class Console(cmd.Cmd):
     return commands
 
   def do_run(self, args):
-    ''' Command to run templetes '''
+    ''' Command to run templates '''
     nmap = helpernmap.HelperNmap(args)
     nmap.process()
 
   def help_run(self):
-    print '\n'.join([
-      "\t"+i18n.t("help.help_run")+"",
-      "\tnet     : "+i18n.t("help.help_run_net")+"",
-      "\ttemplate : "+i18n.t("help.help_run_template")+"",
-      '\t'+i18n.t("help.help_usage")+':',
-      '\t\trun template:http net:target'])
+    print('\n'.join([
+      "\t" + i18n.t("help.help_run") + "",
+      "\tnet     : " + i18n.t("help.help_run_net") + "",
+      "\ttemplate : " + i18n.t("help.help_run_template") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
+      '\t\trun template:http net:target']))
 
 
-  #default action cmd class
+  def do_workflow(self, args):
+    """ Run a chain of scans, where each stage uses what the previous one found """
+    command, _, rest = args.partition(" ")
+    helperworkflow.HelperWorkflow(rest.strip(), command).process()
+
+  def help_workflow(self):
+    print('\n'.join([
+      "\t" + i18n.t("help.help_workflow") + "",
+      "\tname : " + i18n.t("help.help_workflow_name") + "",
+      "\tnet  : " + i18n.t("help.help_run_net") + "",
+      "\tid   : " + i18n.t("help.help_workflow_id") + "",
+      '\t' + i18n.t("help.help_usage") + ':',
+      '\t\tworkflow list',
+      '\t\tworkflow run name:basic net:target',
+      '\t\tworkflow status',
+      '\t\tworkflow status id:1',
+      '\t\tworkflow resume id:1',
+      '\t\tworkflow report id:1 format:md',
+      '\t\tworkflow report id:1 format:json',
+      '\t\tworkflow compare id:1 with:2',
+      '\t\tworkflow suggest id:1']))
+
+  def complete_workflow(self, text, line, begidx, endidx):
+    return [f for f in ['list', 'run', 'status', 'resume', 'report', 'compare', 'suggest'] if f.startswith(text)]
+
   def default(self, line):
-    """Called on an input line when the command prefix is not recognized.
-       In that case we execute the line as Python code.
-    """
-    try:
-        exec(line) in self._locals, self._globals
-    except Exception, e:
-        print e.__class__, ":", e
+    """Called when the command is not recognized."""
+    print(i18n.t("help.help_unknown_command"))

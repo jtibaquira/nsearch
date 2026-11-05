@@ -1,0 +1,14 @@
+defaults:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: default_scripts
+      from: services
+      arguments: "--script 'default and not external'"
+      confirm: true

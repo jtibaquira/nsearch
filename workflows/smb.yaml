@@ -1,0 +1,14 @@
+smb:
+  stages:
+    - name: discovery
+      arguments: "-sn"
+    - name: ports
+      from: live_hosts
+      arguments: "--top-ports 1000"
+    - name: services
+      from: open_ports
+      arguments: "-sV"
+    - name: smb_enum
+      from: services
+      when: {service: [microsoft-ds, netbios-ssn]}
+      arguments: "--script smb-os-discovery,smb-protocols,smb-security-mode,smb2-capabilities,smb2-security-mode"
