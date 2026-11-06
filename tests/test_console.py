@@ -1,6 +1,12 @@
+import ctypes
+import os
+import subprocess
+import sys
+
 import pytest
 
 import console
+import nsearch
 
 
 def test_unknown_input_is_not_executed(tmp_path, capsys):
@@ -47,3 +53,57 @@ def test_workflow_report_and_compare_are_in_help_and_completion(capsys):
 ])
 def test_completion_returns_lists(complete, text, expected):
   assert getattr(console.Console(), complete)(text, "", 0, 0) == expected
+
+def test_console_preloop_and_command_work_without_readline():
+  root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+  code = ("import importlib, sys\n"
+    "import console\n"
+    "sys.modules['readline'] = None\n"
+    "console = importlib.reload(console)\n"
+    "shell = console.Console()\n"
+    "shell.preloop()\n"
+    "assert shell.onecmd('exit')\n")
+  result = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, check=False)
+  assert result.returncode == 0, result.stderr
+
+def test_windows_virtual_terminal_preserves_console_mode_bits():
+  class Kernel:
+    mode = None
+    def GetStdHandle(self, handle):
+      assert handle == -11
+      return "stdout"
+    def GetConsoleMode(self, handle, mode):
+      assert handle == "stdout"
+      ctypes.cast(mode, ctypes.POINTER(ctypes.c_uint)).contents.value = 0x0031
+      return 1
+    def SetConsoleMode(self, handle, mode):
+      self.mode = mode
+      return 1
+  kernel = Kernel()
+  nsearch.enableVirtualTerminal(kernel)
+  assert kernel.mode == 0x0035
+
+def test_windows_virtual_terminal_is_not_enabled_without_a_console():
+  class Kernel:
+    called = False
+    def GetStdHandle(self, handle): return handle
+    def GetConsoleMode(self, handle, mode): return 0
+    def SetConsoleMode(self, handle, mode): self.called = True
+  kernel = Kernel()
+  nsearch.enableVirtualTerminal(kernel)
+  assert not kernel.called
+
+@pytest.mark.parametrize("failing_call", ["GetStdHandle", "GetConsoleMode", "SetConsoleMode"])
+def test_windows_virtual_terminal_failures_do_not_raise(failing_call):
+  class Kernel:
+    def GetStdHandle(self, handle):
+      if failing_call == "GetStdHandle": raise OSError("no console")
+      return handle
+    def GetConsoleMode(self, handle, mode):
+      if failing_call == "GetConsoleMode": raise OSError("no console mode")
+      ctypes.cast(mode, ctypes.POINTER(ctypes.c_uint)).contents.value = 0
+      return 1
+    def SetConsoleMode(self, handle, mode):
+      if failing_call == "SetConsoleMode": raise OSError("mode unavailable")
+      return 1
+  nsearch.enableVirtualTerminal(Kernel())
