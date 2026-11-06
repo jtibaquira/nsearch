@@ -1,5 +1,8 @@
 import json
+import os
 import sqlite3
+import subprocess
+import sys
 
 import pytest
 import yaml
@@ -168,6 +171,54 @@ def test_script_categories(db):
   categories = db.scriptCategories()
   assert categories["http-title"] == {"default", "safe"}
   assert "http-title.nse" not in categories
+
+@pytest.mark.parametrize("language", ["en", "es"])
+@pytest.mark.parametrize("key", ["config_missing_windows", "config_invalid_windows"])
+def test_windows_configuration_errors_are_translated(language, key):
+  path = os.path.join(dbmodule.BASE_DIR, "i18n", "setup." + language + ".yml")
+  with open(path, encoding="utf-8") as stream:
+    messages = yaml.safe_load(stream)[language]
+  assert messages[key]
+  assert "install.ps1" in messages[key]
+
+def runNsearchConfigError(tmp_path, windows, language, content=None):
+  config = tmp_path / "config.yaml"
+  if content is not None:
+    config.write_text(content, encoding="utf-8")
+  env = os.environ.copy()
+  env.update({"NSEARCH_CONFIG": str(config), "LANG": language})
+  platform = "win32" if windows else "linux"
+  # shutil reads sys.platform when it is imported, so it is loaded before the platform is faked
+  code = "import shutil, sys; sys.platform = '" + platform + "'; import runpy; runpy.run_path('nsearch.py', run_name='not_main')"
+  return subprocess.run([sys.executable, "-c", code],
+    cwd=dbmodule.BASE_DIR, env=env, capture_output=True, text=True, check=False)
+
+@pytest.mark.parametrize("language,expected", [
+  ("en_US.UTF-8", "Error: config.yaml not found. Run 'install.ps1' or copy config.yaml.example to config.yaml"),
+  ("es_CO.UTF-8", "Error: no se encontró config.yaml. Ejecute 'install.ps1' o copie config.yaml.example a config.yaml"),
+])
+def test_windows_missing_config_is_localized_before_dbmodule_import(tmp_path, language, expected):
+  result = runNsearchConfigError(tmp_path, True, language)
+  assert result.returncode == 1
+  assert result.stdout.strip() == expected
+
+@pytest.mark.parametrize("language,expected", [
+  ("en_US.UTF-8", "Error: config.yaml is not valid. Run 'install.ps1' or compare it with config.yaml.example"),
+  ("es_CO.UTF-8", "Error: config.yaml no es válido. Ejecute 'install.ps1' o compárelo con config.yaml.example"),
+])
+def test_windows_invalid_config_is_localized_before_dbmodule_import(tmp_path, language, expected):
+  result = runNsearchConfigError(tmp_path, True, language, "config: [not valid")
+  assert result.returncode == 1
+  assert result.stdout.strip() == expected
+
+@pytest.mark.parametrize("content,expected", [
+  (None, "Error: config.yaml not found. Run 'bash install.sh' or copy config.yaml.example to config.yaml"),
+  ("config: [not valid", "Error: config.yaml is not valid. Run 'bash install.sh' or compare it with config.yaml.example"),
+])
+def test_unix_config_errors_remain_unchanged(tmp_path, content, expected):
+  result = runNsearchConfigError(tmp_path, False, "es_CO.UTF-8", content)
+  assert result.returncode == 1
+  assert result.stdout.strip() == expected
 
 def test_a_database_error_in_search_is_reported(db, capsys):
   connection = db.lite.connect(db.dbname)

@@ -11,18 +11,25 @@ import re
 
 import i18n
 
+
+def configureI18n():
+  currentLocale = os.environ.get("LANG", "en")
+  currentLocale = re.split(r"[_.]", currentLocale)[0]
+  i18n.load_path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'i18n'))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+  i18n.set("fallback", "en")  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+  i18n.set("locale", currentLocale)  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+
+if sys.platform == "win32":
+  configureI18n()
+
 import console
 import dbmodule
 import helper
 
 # Main action
 if __name__ == '__main__':
-
-  currentLocale = os.environ.get("LANG", "en")
-  currentLocale = re.split(r"[_.]", currentLocale)[0]
-  i18n.load_path.append(os.path.join(dbmodule.BASE_DIR, 'i18n'))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
-  i18n.set("fallback", "en")  # type: ignore[attr-defined]  # python-i18n sets these at runtime
-  i18n.set("locale", currentLocale)  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+  if sys.platform != "win32":
+    configureI18n()
 
   print(console.banner)
   if not os.path.isfile(dbmodule.dbname):
