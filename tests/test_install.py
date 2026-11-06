@@ -20,6 +20,8 @@ def script():
   with open(os.path.join(ROOT, "install.sh"), encoding="utf-8") as f:
     return f.read()
 
+UNIX_ONLY = pytest.mark.skipif(sys.platform == "win32", reason="install.sh is the Unix installer; Windows uses install.ps1, tested below and in CI")
+
 def requirePython(tmp_path, code):
   python = tmp_path / "python3"
   python.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; then echo "Python 3.11.9"; exit 0; fi\nexit ' + str(code) + "\n", encoding="utf-8")
@@ -28,14 +30,14 @@ def requirePython(tmp_path, code):
   return subprocess.run(["bash", "-c", function + "\nrequirePython\necho reached"], capture_output=True, text=True, check=False,
     env={"PATH": str(tmp_path) + os.pathsep + os.environ["PATH"]}, stdin=subprocess.DEVNULL)
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="these tests run install.sh functions with bash")
+@UNIX_ONLY
 def test_installer_stops_on_an_old_python(tmp_path):
   result = requirePython(tmp_path, 1)
   assert result.returncode == 1
   assert "reached" not in result.stdout
   assert "Python 3.12 or later" in result.stderr and "Python 3.11.9" in result.stderr
 
-@pytest.mark.skipif(shutil.which("bash") is None, reason="these tests run install.sh functions with bash")
+@UNIX_ONLY
 def test_installer_accepts_a_supported_python(tmp_path):
   result = requirePython(tmp_path, 0)
   assert result.returncode == 0 and "reached" in result.stdout
@@ -61,6 +63,7 @@ def test_nsearch_checks_python_before_importing_anything_else(version, stops):
   else:
     assert result.returncode == 0 and result.stdout.strip().endswith("True")
 
+@UNIX_ONLY
 def test_installer_explains_a_missing_python(tmp_path):
   function = re.search(r"function requirePython\(\)\{.*?\n}", script(), re.DOTALL).group(0)
   bash = shutil.which("bash")

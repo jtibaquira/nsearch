@@ -73,7 +73,7 @@ jobs:
 
       - name: Run pytest
         run: |
-          .\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+          .\.venv\Scripts\python.exe -m pytest -q -rs -p no:cacheprovider
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run ruff
