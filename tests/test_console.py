@@ -74,13 +74,13 @@ def test_windows_virtual_terminal_preserves_console_mode_bits():
       return "stdout"
     def GetConsoleMode(self, handle, mode):
       assert handle == "stdout"
-      ctypes.cast(mode, ctypes.POINTER(ctypes.c_uint)).contents.value = 0x0031
+      ctypes.cast(mode, ctypes.POINTER(ctypes.c_ulong)).contents.value = 0x0031
       return 1
     def SetConsoleMode(self, handle, mode):
       self.mode = mode
       return 1
   kernel = Kernel()
-  nsearch.enableVirtualTerminal(kernel)
+  nsearch.enableVirtualTerminal(lambda: kernel)
   assert kernel.mode == 0x0035
 
 def test_windows_virtual_terminal_is_not_enabled_without_a_console():
@@ -90,7 +90,7 @@ def test_windows_virtual_terminal_is_not_enabled_without_a_console():
     def GetConsoleMode(self, handle, mode): return 0
     def SetConsoleMode(self, handle, mode): self.called = True
   kernel = Kernel()
-  nsearch.enableVirtualTerminal(kernel)
+  nsearch.enableVirtualTerminal(lambda: kernel)
   assert not kernel.called
 
 @pytest.mark.parametrize("failing_call", ["GetStdHandle", "GetConsoleMode", "SetConsoleMode"])
@@ -101,9 +101,34 @@ def test_windows_virtual_terminal_failures_do_not_raise(failing_call):
       return handle
     def GetConsoleMode(self, handle, mode):
       if failing_call == "GetConsoleMode": raise OSError("no console mode")
-      ctypes.cast(mode, ctypes.POINTER(ctypes.c_uint)).contents.value = 0
+      ctypes.cast(mode, ctypes.POINTER(ctypes.c_ulong)).contents.value = 0
       return 1
     def SetConsoleMode(self, handle, mode):
       if failing_call == "SetConsoleMode": raise OSError("mode unavailable")
       return 1
-  nsearch.enableVirtualTerminal(Kernel())
+  nsearch.enableVirtualTerminal(lambda: Kernel())
+
+def test_windows_virtual_terminal_keeps_a_64_bit_handle():
+  class Kernel:
+    handle = None
+    def GetStdHandle(self, handle): return 2 ** 40
+    def GetConsoleMode(self, handle, mode):
+      self.handle = handle
+      return 0
+    def SetConsoleMode(self, handle, mode): return 1
+  kernel = Kernel()
+  nsearch.enableVirtualTerminal(lambda: kernel)
+  assert kernel.handle == 2 ** 40
+
+def test_windows_virtual_terminal_survives_a_missing_kernel32():
+  def missing():
+    raise OSError("no kernel32")
+  nsearch.enableVirtualTerminal(missing)
+
+@pytest.mark.skipif(sys.platform != "win32", reason="kernel32 only exists on Windows")
+def test_windows_kernel32_has_pointer_sized_handles():
+  from ctypes import wintypes
+  kernel32 = nsearch.windowsKernel32()
+  assert kernel32.GetStdHandle.restype is wintypes.HANDLE
+  assert kernel32.GetConsoleMode.argtypes[0] is wintypes.HANDLE
+  nsearch.enableVirtualTerminal(nsearch.windowsKernel32)
