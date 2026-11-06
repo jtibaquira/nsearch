@@ -89,12 +89,10 @@ function SetFolderPermissions {
     if ($LASTEXITCODE -ne 0) { throw "icacls failed with exit code $LASTEXITCODE" }
     & icacls "$PSScriptRoot\*" /reset /T /C /Q
     if ($LASTEXITCODE -ne 0) { throw "icacls reset failed with exit code $LASTEXITCODE" }
-    $acl = Get-Acl $PSScriptRoot
-    $badSids = @("S-1-5-32-545", "S-1-5-11", "S-1-1-0")
-    foreach ($sid in $badSids) {
-      if ($acl.Access | Where-Object { $_.SecurityIdentifier.Value -eq $sid }) {
-        throw "Found ACE for $sid"
-      }
+    $rules = (Get-Acl -LiteralPath $PSScriptRoot).GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])
+    $sids = @($rules | ForEach-Object { $_.IdentityReference.Value })
+    foreach ($sid in @("S-1-5-32-545", "S-1-5-11", "S-1-1-0")) {
+      if ($sids -contains $sid) { throw "Found ACE for $sid" }
     }
   } catch {
     Write-Host "[-] Cannot set folder permissions: $_" -ForegroundColor Red

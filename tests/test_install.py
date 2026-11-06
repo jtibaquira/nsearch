@@ -177,3 +177,8 @@ def test_install_ps1_banner_matches_the_console_banner():
   text = powershell()
   assert "\\`" not in text
   assert "Write-Host '| . ` | `--. \\|  __|  / _` || ''__| / __|| ''_  |'" in text
+
+def test_install_ps1_reads_the_permissions_as_sids():
+  text = powershell()
+  assert "GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])" in text
+  assert ".SecurityIdentifier.Value" not in text
