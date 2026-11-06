@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 
 import i18n
 import nmap
@@ -7,6 +8,14 @@ import yaml
 
 from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
+
+WINDOWS_NMAP = (r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")
+
+# python-nmap only looks in PATH and Unix folders. The Windows installer does not always add nmap to PATH
+def newScanner():
+  if sys.platform == "win32":
+    return nmap.PortScanner(nmap_search_path=("nmap",) + WINDOWS_NMAP)
+  return nmap.PortScanner()
 
 
 class HelperNmap:
@@ -21,7 +30,7 @@ class HelperNmap:
     if self.__validateParams():
       print(i18n.t("help.running_scan"))
       try:
-        nm = nmap.PortScanner()
+        nm = newScanner()
       except nmap.PortScannerError:
         print(i18n.t("help.help_run_nmap_missing"))
         return
