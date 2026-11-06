@@ -27,6 +27,8 @@ NSEarch helps you find the scripts used by nmap (NSE). You can search by name, c
 - Python 3.12 or later. It is the oldest version with at least one more year of security support, until October 2028
 - nmap
 
+On Windows 10/11, install Python 3.12 or later and the official Nmap installer, including Npcap. The Windows installer accepts either the Python launcher (`py -3`) or `python`.
+
 The Python dependencies are listed in `requirements.txt`. The install script places them in a local virtual environment.
 
 ## Installation
@@ -47,6 +49,42 @@ $ bash install.sh
 ```
 
 Use `bash`, not `sh`: under `sh`, the script stops and asks you to run it with `bash`.
+
+### Windows 10/11 installation
+
+Run PowerShell from the project directory:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+The installer creates `.venv` and `config.yaml`. If Nmap is installed in a different directory, pass its installation path with `-NmapDir`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -NmapDir 'D:\Tools\Nmap'
+```
+
+The installer restricts the project folder to your account, `SYSTEM`, and `Administrators`. New files and folders inside it, including the configuration, SQLite database, and reports, inherit those permissions. It does not request or need Administrator privileges. If it cannot apply the permissions, it stops and advises you to clone the project into a folder you own.
+
+In `config.yaml`, quote Windows paths with single quotes. Do not put a trailing slash on `scriptsPath`:
+
+```yaml
+config:
+  scriptsPath: 'C:\Program Files (x86)\Nmap\scripts'
+  filePath: 'C:\Program Files (x86)\Nmap\scripts\script.db'
+```
+
+Run NSEarch with the virtual environment's Python:
+
+```powershell
+.\.venv\Scripts\python.exe nsearch.py
+```
+
+Without Administrator privileges, nmap uses a connect scan (`-sT`), as it does without root on Unix. The included templates and workflows do not use `-sS`, `-O`, `-sU`, or `-A`.
+
+The Windows console does not provide readline, so Tab autocompletion is unavailable. NSEarch enables ANSI colors at startup; older consoles that do not support them may show the color codes as text. Windows Terminal is recommended.
+
+If you press Ctrl+C during a workflow, nmap is stopped. Use `workflow resume id:<id>` to continue with the saved results; see [Workflows](#workflows) for resume behavior.
 
 ### Manual installation
 
@@ -314,12 +352,20 @@ $ .venv/bin/ruff check .
 $ .venv/bin/mypy .
 ```
 
+On Windows, run the checks with the virtual environment's Python and executables:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\ruff.exe check .
+.\.venv\Scripts\mypy.exe .
+```
+
 ## TODO
 
 * GUI
 * Fast-Track
 * Create file output for `run`
-* Windows version
 
 ## Feedback
 
