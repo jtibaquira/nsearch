@@ -1,0 +1,87 @@
+name: Windows
+
+on:
+  pull_request:
+  push:
+    branches: [dev, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Create a fake nmap folder
+        run: |
+          $fake = Join-Path $env:RUNNER_TEMP "Nmap's Fake Dir"
+          New-Item -ItemType Directory -Force -Path (Join-Path $fake "scripts") | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $fake "nmap.exe") | Out-Null
+          Set-Content -LiteralPath (Join-Path $fake "scripts\script.db") -Value 'Entry { filename = "http-title.nse", categories = { "default", "safe", } }'
+          "NMAP_FAKE=$fake" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install NSEarch with the fake nmap
+        run: |
+          .\install.ps1 -NmapDir $env:NMAP_FAKE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check the paths in config.yaml
+        run: |
+          @'
+          import os
+          import yaml
+          with open("config.yaml", encoding="utf-8") as f:
+            config = yaml.safe_load(f)["config"]
+          scripts = os.path.join(os.environ["NMAP_FAKE"], "scripts")
+          assert config["scriptsPath"] == scripts, config["scriptsPath"]
+          assert config["filePath"] == os.path.join(scripts, "script.db"), config["filePath"]
+          assert "'" in scripts and " " in scripts and not scripts.endswith("\\")
+          '@ | .\.venv\Scripts\python.exe -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check the permissions of the project folder
+        run: |
+          $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+          $sidType = [System.Security.Principal.SecurityIdentifier]
+          foreach ($path in @($env:GITHUB_WORKSPACE, "config.yaml", ".venv")) {
+            $sids = (Get-Acl -LiteralPath $path).GetAccessRules($true, $true, $sidType) | ForEach-Object { $_.IdentityReference.Value }
+            foreach ($sid in @("S-1-5-32-545", "S-1-5-11", "S-1-1-0")) {
+              if ($sids -contains $sid) { throw "$path gives access to $sid" }
+            }
+            foreach ($sid in @($user, "S-1-5-18", "S-1-5-32-544")) {
+              if ($sids -notcontains $sid) { throw "$path does not give access to $sid" }
+            }
+          }
+
+      - name: Install the development requirements
+        run: |
+          .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run pytest
+        run: |
+          .\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run ruff
+        run: |
+          .\.venv\Scripts\python.exe -m ruff check .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run mypy
+        run: |
+          .\.venv\Scripts\python.exe -m mypy .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
