@@ -27,13 +27,13 @@ try:
   currentChecksum = item["config"].get("checksum", "")
 except FileNotFoundError:
   if sys.platform == "win32":
-    print(i18n.t("setup.config_missing_windows"))
+    print(i18n.t("setup.config_missing_windows"))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
   else:
     print("Error: config.yaml not found. Run 'bash install.sh' or copy config.yaml.example to config.yaml")
   sys.exit(1)
 except (yaml.YAMLError, KeyError, TypeError):
   if sys.platform == "win32":
-    print(i18n.t("setup.config_invalid_windows"))
+    print(i18n.t("setup.config_invalid_windows"))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
   else:
     print("Error: config.yaml is not valid. Run 'bash install.sh' or compare it with config.yaml.example")
   sys.exit(1)
