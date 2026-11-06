@@ -33,6 +33,13 @@ jobs:
           Set-Content -LiteralPath (Join-Path $fake "scripts\script.db") -Value 'Entry { filename = "http-title.nse", categories = { "default", "safe", } }'
           "NMAP_FAKE=$fake" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      - name: Give other accounts access before installing
+        run: |
+          icacls $env:GITHUB_WORKSPACE /grant "*S-1-5-32-545:(OI)(CI)RX" "*S-1-1-0:(OI)(CI)R"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          icacls README.md /grant "*S-1-5-11:R"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Install NSEarch with the fake nmap
         run: |
           .\install.ps1 -NmapDir $env:NMAP_FAKE
@@ -58,10 +65,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
           $sidType = [System.Security.Principal.SecurityIdentifier]
-          foreach ($path in @($env:GITHUB_WORKSPACE, "config.yaml", ".venv", "reports", "reports\workflow-0.md")) {
+          foreach ($path in @($env:GITHUB_WORKSPACE, "config.yaml", "README.md", ".venv", "reports", "reports\workflow-0.md")) {
             $sids = (Get-Acl -LiteralPath $path).GetAccessRules($true, $true, $sidType) | ForEach-Object { $_.IdentityReference.Value }
-            foreach ($sid in @("S-1-5-32-545", "S-1-5-11", "S-1-1-0")) {
-              if ($sids -contains $sid) { throw "$path gives access to $sid" }
+            foreach ($sid in $sids) {
+              if (@($user, "S-1-5-18", "S-1-5-32-544") -notcontains $sid) { throw "$path gives access to $sid" }
             }
             foreach ($sid in @($user, "S-1-5-18", "S-1-5-32-544")) {
               if ($sids -notcontains $sid) { throw "$path does not give access to $sid" }

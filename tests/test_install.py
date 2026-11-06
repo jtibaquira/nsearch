@@ -183,5 +183,12 @@ def test_install_ps1_banner_matches_the_console_banner():
 
 def test_install_ps1_reads_the_permissions_as_sids():
   text = powershell()
-  assert "GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])" in text
+  assert "GetAccessRules($true, $true, $sidType)" in text
   assert ".SecurityIdentifier.Value" not in text
+
+def test_install_ps1_removes_other_accounts_before_resetting_the_files():
+  text = powershell()
+  permissions = text[text.index("function SetFolderPermissions"):text.index('Write-Host "[+] Checking dependencies')]
+  assert "/remove:g" in permissions
+  assert "$allowed -notcontains" in permissions
+  assert permissions.index("/remove:g") < permissions.index("/reset /T")

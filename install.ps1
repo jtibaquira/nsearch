@@ -84,16 +84,24 @@ function ConvertTo-YamlQuoted {
 
 function SetFolderPermissions {
   $userSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+  $allowed = @($userSid, "S-1-5-18", "S-1-5-32-544")
+  $sidType = [System.Security.Principal.SecurityIdentifier]
   try {
     & icacls $PSScriptRoot /inheritance:r /grant:r "*${userSid}:(OI)(CI)F" "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F"
     if ($LASTEXITCODE -ne 0) { throw "icacls failed with exit code $LASTEXITCODE" }
+    # /grant:r only replaces the entries of these three accounts, so explicit entries for anyone else are removed here
+    $others = @((Get-Acl -LiteralPath $PSScriptRoot).GetAccessRules($true, $true, $sidType) |
+      Where-Object { $_.AccessControlType -eq 'Allow' -and $allowed -notcontains $_.IdentityReference.Value } |
+      ForEach-Object { $_.IdentityReference.Value } | Select-Object -Unique)
+    foreach ($sid in $others) {
+      & icacls $PSScriptRoot /remove:g "*$sid"
+      if ($LASTEXITCODE -ne 0) { throw "icacls could not remove $sid (exit code $LASTEXITCODE)" }
+    }
+    $left = @((Get-Acl -LiteralPath $PSScriptRoot).GetAccessRules($true, $true, $sidType) |
+      Where-Object { $_.AccessControlType -eq 'Allow' -and $allowed -notcontains $_.IdentityReference.Value })
+    if ($left.Count -gt 0) { throw "Found access for $($left[0].IdentityReference.Value)" }
     & icacls "$PSScriptRoot\*" /reset /T /C /Q
     if ($LASTEXITCODE -ne 0) { throw "icacls reset failed with exit code $LASTEXITCODE" }
-    $rules = (Get-Acl -LiteralPath $PSScriptRoot).GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])
-    $sids = @($rules | ForEach-Object { $_.IdentityReference.Value })
-    foreach ($sid in @("S-1-5-32-545", "S-1-5-11", "S-1-1-0")) {
-      if ($sids -contains $sid) { throw "Found ACE for $sid" }
-    }
   } catch {
     Write-Host "[-] Cannot set folder permissions: $_" -ForegroundColor Red
     Write-Host "    Consider cloning the repo into a folder owned by your user account."
