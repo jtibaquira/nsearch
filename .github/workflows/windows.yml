@@ -54,9 +54,11 @@ jobs:
 
       - name: Check the permissions of the project folder
         run: |
+          .\.venv\Scripts\python.exe -c "import os, tempfile; os.makedirs('reports', exist_ok=True); fd, tmp = tempfile.mkstemp(dir='reports'); os.close(fd); os.replace(tmp, os.path.join('reports', 'workflow-0.md'))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
           $sidType = [System.Security.Principal.SecurityIdentifier]
-          foreach ($path in @($env:GITHUB_WORKSPACE, "config.yaml", ".venv")) {
+          foreach ($path in @($env:GITHUB_WORKSPACE, "config.yaml", ".venv", "reports", "reports\workflow-0.md")) {
             $sids = (Get-Acl -LiteralPath $path).GetAccessRules($true, $true, $sidType) | ForEach-Object { $_.IdentityReference.Value }
             foreach ($sid in @("S-1-5-32-545", "S-1-5-11", "S-1-1-0")) {
               if ($sids -contains $sid) { throw "$path gives access to $sid" }

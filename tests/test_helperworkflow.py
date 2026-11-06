@@ -60,7 +60,7 @@ class FakeScanner:
 @pytest.fixture
 def scanner(monkeypatch):
   fake = FakeScanner()
-  monkeypatch.setattr(nmap, "PortScanner", lambda: fake)
+  monkeypatch.setattr(nmap, "PortScanner", lambda **kwargs: fake)
   return fake
 
 @pytest.fixture
@@ -310,7 +310,7 @@ def test_interrupted_confirmation_counts_as_no(monkeypatch):
 def test_missing_nmap(db, workflows, answers, monkeypatch, capsys):
   workflows("w", CHAIN)
   monkeypatch.setattr(db, "scriptCategories", lambda: SCRIPTS)
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("not found")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   answers.append("y")
@@ -624,7 +624,7 @@ def test_a_resumed_run_can_stop_and_resume_again(db, scanner, workflows, answers
 def test_resume_without_nmap_changes_nothing(db, workflows, answers, catalog, monkeypatch, capsys):
   runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
   before = db.getRun(runId)
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("not found")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   answers.append("y")
@@ -641,7 +641,8 @@ def test_resume_does_not_print_control_characters(db, scanner, workflows, answer
   assert "\x1b" not in capsys.readouterr().out
 
 def installedScripts():
-  for path in ("/opt/homebrew/share/nmap/scripts/script.db", "/usr/local/share/nmap/scripts/script.db", "/usr/share/nmap/scripts/script.db"):
+  for path in ("/opt/homebrew/share/nmap/scripts/script.db", "/usr/local/share/nmap/scripts/script.db", "/usr/share/nmap/scripts/script.db",
+    r"C:\Program Files (x86)\Nmap\scripts\script.db", r"C:\Program Files\Nmap\scripts\script.db"):
     if helperworkflow.os.path.exists(path):
       with open(path, encoding="utf-8") as f:
         return {name: set(re.findall(r'"([a-z]+)"', categories)) for name, categories in re.findall(r'filename = "([^"]+)\.nse", categories = \{([^}]*)\}', f.read())}
@@ -804,7 +805,6 @@ def test_reports_are_only_readable_by_their_owner(db, scanner, workflows, answer
   assert stat.S_IMODE(os.stat(reports).st_mode) == 0o700
   assert os.listdir(reports) == ["workflow-1." + extension]
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
 def test_report_replaces_a_symlink_instead_of_following_it(db, scanner, workflows, answers, catalog, reports, tmp_path):
   fullRun(scanner, workflows, answers)
   reports.mkdir()
@@ -1168,7 +1168,7 @@ def test_an_unfinished_suggestion_is_offered_again(db, scanner, catalog, answers
   assert "1. http-headers" in capsys.readouterr().out
 
 def test_suggest_without_nmap_changes_nothing(db, catalog, answers, monkeypatch, capsys):
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("missing")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   runId = foundRun(db)
@@ -1276,12 +1276,23 @@ def test_compare_does_not_warn_about_equal_stages(db, scanner, workflows, answer
   compare()
   assert "different stages" not in capsys.readouterr().out
 
-@pytest.mark.skipif(os.name == "nt", reason="symlink permissions")
 def test_report_rejects_a_symlinked_folder(db, scanner, workflows, answers, catalog, reports, tmp_path, capsys):
   fullRun(scanner, workflows, answers)
   outside = tmp_path / "outside"
   outside.mkdir()
   reports.symlink_to(outside)
+  capsys.readouterr()
+  report()
+  assert "symbolic link" in capsys.readouterr().out
+  assert os.listdir(outside) == []
+
+@pytest.mark.skipif(os.name != "nt", reason="junctions only exist on Windows")
+def test_report_rejects_a_junction(db, scanner, workflows, answers, catalog, reports, tmp_path, capsys):
+  import _winapi
+  fullRun(scanner, workflows, answers)
+  outside = tmp_path / "outside"
+  outside.mkdir()
+  _winapi.CreateJunction(str(outside), str(reports))
   capsys.readouterr()
   report()
   assert "symbolic link" in capsys.readouterr().out

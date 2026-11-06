@@ -11,6 +11,7 @@ import nmap
 import yaml
 
 import dbmodule
+import helpernmap
 from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
 
@@ -390,7 +391,7 @@ def reportMarkdown(report):
 # The name is built from the run id, and only this user can read the file. A temporary file
 # means a symlink left at the final path is replaced, not followed
 def writeReport(runId, extension, content):
-  if os.path.islink(REPORTS_DIR):
+  if os.path.islink(REPORTS_DIR) or os.path.isjunction(REPORTS_DIR):
     raise OSError(i18n.t("help.workflow_report_symlink"))
   os.makedirs(REPORTS_DIR, mode=0o700, exist_ok=True)
   path = os.path.join(REPORTS_DIR, "workflow-" + str(runId) + "." + extension)
@@ -511,7 +512,7 @@ class HelperWorkflow:
 
   def __execute(self, name, net, stages, runId=None, finished=(), status=None):
     try:
-      nm = nmap.PortScanner()
+      nm = helpernmap.newScanner()
     except nmap.PortScannerError:
       print(i18n.t("help.help_run_nmap_missing"))
       return
@@ -723,7 +724,7 @@ class HelperWorkflow:
         print(i18n.t("help.workflow_cancelled"))
         continue
       try:
-        nm = nmap.PortScanner()
+        nm = helpernmap.newScanner()
       except nmap.PortScannerError:
         print(i18n.t("help.help_run_nmap_missing"))
         return
