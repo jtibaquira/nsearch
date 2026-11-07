@@ -10,8 +10,10 @@ tls:
       arguments: "-sV"
     - name: tls_info
       from: services
+      when: {service: [https, ssl, ftps, smtps, imaps, pop3s, nntps, ldaps], tunnel: [ssl]}
       arguments: "--script ssl-cert,ssl-date,ssl-heartbleed,ssl-poodle,ssl-ccs-injection,ssl-dh-params,sslv2,tls-alpn"
     - name: tls_ciphers
       from: services
+      when: {service: [https, ssl, ftps, smtps, imaps, pop3s, nntps, ldaps], tunnel: [ssl]}
       arguments: "--script ssl-enum-ciphers"
       confirm: true

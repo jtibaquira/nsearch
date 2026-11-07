@@ -332,7 +332,7 @@ web:
 | Key | Meaning |
 |---|---|
 | `from` | What the stage scans: `live_hosts`, `open_ports`, or `services`. Only the first stage has no `from`, and it scans the target you gave. |
-| `when` | With `from: services`, limits the stage to these service names. These stages always use version detection (`-sV`), so scripts also work on services on other ports. |
+| `when` | With `from: services`, limits the stage to ports matching the `service` list, the `tunnel` list (such as `ssl`), or either list when both are present. These stages always use version detection (`-sV`), so scripts also work on services on other ports. |
 | `confirm` | Asks before running the stage. Required for any script that is not in the `safe` category, and for any script expression that uses `not`. |
 | `host_timeout` | Maximum time per host. The default is 15 minutes. |
 

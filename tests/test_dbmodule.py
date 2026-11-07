@@ -315,3 +315,46 @@ def test_a_port_first_seen_filtered_and_then_open_counts_as_seen(db):
   db.saveStageResults(runId, "services", [], [dict(service, state="open")], [])
   db.saveStageResults(runId, "scripts", [], [service], [])
   assert db.getSeenPorts(runId) == {("10.0.0.1", "tcp", 22)}
+
+def test_a_database_without_the_tunnel_column_is_migrated_without_losing_rows(db):
+  conn = sqlite3.connect(db.dbname)
+  conn.executescript("""
+    create table workflow_runs(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, workflow TEXT NOT NULL, target TEXT NOT NULL, status TEXT NOT NULL, started_at TEXT NOT NULL, finished_at TEXT NULL);
+    create table workflow_stages(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, run_id INTEGER NOT NULL, position INTEGER NOT NULL, name TEXT NOT NULL, arguments TEXT NOT NULL, status TEXT NOT NULL, definition TEXT NULL, targets TEXT NULL, warnings TEXT NULL, UNIQUE(run_id, position));
+    create table workflow_hosts(run_id INTEGER NOT NULL, address TEXT NOT NULL, hostname TEXT NULL, state TEXT NOT NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address));
+    create table workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL, protocol TEXT NOT NULL, port INTEGER NOT NULL, state TEXT NOT NULL, service TEXT NULL, product TEXT NULL, version TEXT NULL, ever_open INTEGER NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address, protocol, port));
+    insert into workflow_runs values (1, 'w', '10.0.0.1', 'completed', 'x', 'y');
+    insert into workflow_services values (1, '10.0.0.1', 'tcp', 443, 'open', 'https', 'nginx', '1.0', 1, 'reported');
+  """)
+  conn.commit()
+  conn.close()
+  services = db.getRun(1)["services"]
+  assert len(services) == 1
+  assert services[0]["port"] == 443 and services[0]["service"] == "https" and services[0]["tunnel"] is None
+  db.saveStageResults(1, "services", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 8443, "state": "open", "service": "http", "product": "", "version": "", "tunnel": "ssl"}], [])
+  assert [(item["port"], item["tunnel"]) for item in db.getRun(1)["services"]] == [(443, None), (8443, "ssl")]
+
+def test_tunnel_is_replaced_by_real_detection_and_kept_across_table_guesses(db):
+  runId = db.createRun("w", "10.0.0.1", [{"name": "ports", "arguments": "-F"}])
+  def save(tunnel, guess, service="http"):
+    db.saveStageResults(runId, "s", [], [{"address": "10.0.0.1", "protocol": "tcp", "port": 8443, "state": "open",
+      "service": service, "product": "", "version": "", "tunnel": tunnel, "guess": guess}], [])
+    return db.getRun(runId)["services"][0]["tunnel"]
+  assert save("", True) == ""
+  assert save("ssl", False) == "ssl"
+  assert save("", True) == "ssl"
+  assert save("other", True) == "ssl"
+  assert save("", False) == ""
+
+def test_get_open_ports_filters_by_service_tunnel_or_either(db):
+  runId = db.createRun("w", "10.0.0.1", [{"name": "ports", "arguments": "-F"}])
+  db.saveStageResults(runId, "services", [], [
+    {"address": "10.0.0.1", "protocol": "tcp", "port": 22, "state": "open", "service": "ssh", "product": "", "version": "", "tunnel": ""},
+    {"address": "10.0.0.1", "protocol": "tcp", "port": 80, "state": "open", "service": "http", "product": "", "version": "", "tunnel": ""},
+    {"address": "10.0.0.1", "protocol": "tcp", "port": 443, "state": "open", "service": "https", "product": "", "version": "", "tunnel": ""},
+    {"address": "10.0.0.1", "protocol": "tcp", "port": 8443, "state": "open", "service": "http", "product": "", "version": "", "tunnel": "ssl"},
+  ], [])
+  assert db.getOpenPorts(runId, ["https"]) == {"10.0.0.1": [443]}
+  assert db.getOpenPorts(runId, None, ["ssl"]) == {"10.0.0.1": [8443]}
+  assert db.getOpenPorts(runId, ["https"], ["ssl"]) == {"10.0.0.1": [443, 8443]}
+  assert db.getOpenPorts(runId, ["ftps"], ["tls"]) == {}
