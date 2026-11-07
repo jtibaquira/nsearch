@@ -19,6 +19,8 @@ Write-Host '================================================='
 Write-Host ""
 
 function RequirePython {
+  # Windows PowerShell 5.1 turns what py or python print on stderr into an error, and 'Stop' would end the script here instead of reaching the messages below
+  $ErrorActionPreference = 'Continue'
   $exe = ""
   $pyArgs = @()
   if (Get-Command "py" -ErrorAction SilentlyContinue) {

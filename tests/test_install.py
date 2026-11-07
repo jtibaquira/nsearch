@@ -192,3 +192,9 @@ def test_install_ps1_removes_other_accounts_before_resetting_the_files():
   assert "/remove:g" in permissions
   assert "$allowed -notcontains" in permissions
   assert permissions.index("/remove:g") < permissions.index("/reset /T")
+
+def test_install_ps1_python_checks_survive_stderr_on_windows_powershell():
+  text = powershell()
+  requirePython = text[text.index("function RequirePython"):text.index("function FindNmap")]
+  assert "$ErrorActionPreference = 'Continue'" in requirePython
+  assert requirePython.index("$ErrorActionPreference = 'Continue'") < requirePython.index('& "py"')

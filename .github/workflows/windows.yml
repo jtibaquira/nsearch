@@ -40,9 +40,14 @@ jobs:
           icacls README.md /grant "*S-1-5-11:R"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Install NSEarch with the fake nmap
+      - name: Install NSEarch with Windows PowerShell 5.1 and a py launcher without Python
+        shell: powershell
         run: |
-          .\install.ps1 -NmapDir $env:NMAP_FAKE
+          $fakePy = Join-Path $env:RUNNER_TEMP "fake-py"
+          New-Item -ItemType Directory -Force -Path $fakePy | Out-Null
+          Set-Content -LiteralPath (Join-Path $fakePy "py.cmd") -Value "@echo No installed Python found! 1>&2", "@exit /b 1" -Encoding ascii
+          $env:PATH = "$fakePy;$env:PATH"
+          powershell -ExecutionPolicy Bypass -File .\install.ps1 -NmapDir $env:NMAP_FAKE
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Check the paths in config.yaml
