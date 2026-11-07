@@ -1,3 +1,4 @@
+import os
 from typing import ClassVar
 
 import nmap
@@ -91,14 +92,27 @@ def test_scan_output_is_exact(scanner, capsys):
     "id => out?[2J",
   ]
 
-def test_windows_also_looks_in_the_nmap_install_folders(monkeypatch):
+def test_windows_runs_the_configured_nmap_then_the_install_folders(monkeypatch, tmp_path):
   def fakeScanner(**kwargs):
     fakeScanner.kwargs = kwargs
     return FakeScanner()
   monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", str(tmp_path / "Nmap" / "scripts") + os.sep)
   monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
   helpernmap.newScanner()
-  assert fakeScanner.kwargs == {"nmap_search_path": ("nmap", r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")}
+  assert fakeScanner.kwargs == {"nmap_search_path": (
+    str(tmp_path / "Nmap" / "nmap.exe"), r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")}
+
+def test_windows_never_runs_nmap_from_path_or_the_current_folder(monkeypatch, tmp_path):
+  def fakeScanner(**kwargs):
+    fakeScanner.kwargs = kwargs
+    return FakeScanner()
+  monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", str(tmp_path / "scripts"))
+  monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
+  helpernmap.newScanner()
+  # A bare name is what Windows would look up in the current folder and in PATH
+  assert not {"nmap", "nmap.exe"} & set(fakeScanner.kwargs["nmap_search_path"])
 
 def test_other_systems_keep_the_default_nmap_lookup(monkeypatch):
   def fakeScanner(**kwargs):

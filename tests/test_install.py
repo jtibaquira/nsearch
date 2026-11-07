@@ -171,10 +171,10 @@ def test_install_ps1_banner_no_backtick_escapes():
   assert r"`|" not in text
   assert r"`'" not in text
 
-def test_install_ps1_looks_for_nmap_in_path_before_the_install_folders():
+def test_install_ps1_looks_in_the_install_folders_before_path():
   text = powershell()
   findNmap = text[text.index("function FindNmap"):text.index("function ConvertTo-YamlQuoted")]
-  assert findNmap.index("Get-Command nmap.exe") < findNmap.index("C:\\Program Files (x86)\\Nmap")
+  assert findNmap.index("C:\\Program Files (x86)\\Nmap") < findNmap.index("Get-Command nmap.exe")
 
 def test_install_ps1_banner_matches_the_console_banner():
   text = powershell()

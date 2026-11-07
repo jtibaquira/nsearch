@@ -6,15 +6,18 @@ import i18n
 import nmap
 import yaml
 
+import dbmodule
 from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
 
 WINDOWS_NMAP = (r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")
 
-# python-nmap only looks in PATH and Unix folders. The Windows installer does not always add nmap to PATH
+# On Windows, only the nmap.exe next to the configured scripts folder or in the standard install folders is run.
+# A bare "nmap" would also be looked up in the current folder and in PATH, where a fake nmap.exe could be waiting
 def newScanner():
   if sys.platform == "win32":
-    return nmap.PortScanner(nmap_search_path=("nmap",) + WINDOWS_NMAP)
+    configured = os.path.join(os.path.dirname(os.path.normpath(dbmodule.scriptsPath)), "nmap.exe")
+    return nmap.PortScanner(nmap_search_path=(configured,) + WINDOWS_NMAP)
   return nmap.PortScanner()
 
 

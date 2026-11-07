@@ -62,15 +62,15 @@ function FindNmap {
     }
     return $requestedDir
   }
-  $cmd = Get-Command nmap.exe -ErrorAction SilentlyContinue
-  if ($cmd) {
-    $dir = Split-Path -Parent $cmd.Source
-    if (Test-Path -LiteralPath (Join-Path $dir "scripts\script.db")) { return $dir }
-  }
   foreach ($path in "C:\Program Files (x86)\Nmap", "C:\Program Files\Nmap") {
     if ((Test-Path -LiteralPath (Join-Path $path "nmap.exe")) -and (Test-Path -LiteralPath (Join-Path $path "scripts\script.db"))) {
       return $path
     }
+  }
+  $cmd = Get-Command nmap.exe -ErrorAction SilentlyContinue
+  if ($cmd) {
+    $dir = Split-Path -Parent $cmd.Source
+    if (Test-Path -LiteralPath (Join-Path $dir "scripts\script.db")) { return $dir }
   }
   Write-Host "[-] nmap.exe not found. Please install Nmap with Npcap, then run this script again." -ForegroundColor Red
   Write-Host "    You can search for Nmap with: winget search Nmap"
