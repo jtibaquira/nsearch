@@ -805,12 +805,21 @@ def test_reports_are_only_readable_by_their_owner(db, scanner, workflows, answer
   assert stat.S_IMODE(os.stat(reports).st_mode) == 0o700
   assert os.listdir(reports) == ["workflow-1." + extension]
 
+def symlinkOrSkip(link, target):
+  try:
+    link.symlink_to(target)
+  except OSError as error:
+    # Windows only lets an Administrator, or Developer Mode, create symbolic links. CI has that right, so it never skips there
+    if getattr(error, "winerror", None) == 1314 and not os.environ.get("CI"):
+      pytest.skip("this Windows account cannot create symbolic links")
+    raise
+
 def test_report_replaces_a_symlink_instead_of_following_it(db, scanner, workflows, answers, catalog, reports, tmp_path):
   fullRun(scanner, workflows, answers)
   reports.mkdir()
   victim = tmp_path / "victim"
   victim.write_text("original", encoding="utf-8")
-  (reports / "workflow-1.md").symlink_to(victim)
+  symlinkOrSkip(reports / "workflow-1.md", victim)
   report()
   assert victim.read_text(encoding="utf-8") == "original"
   assert not (reports / "workflow-1.md").is_symlink()
@@ -1196,13 +1205,7 @@ def test_report_explains_a_suggested_stage(db, scanner, catalog, answers, report
   assert stage["targets"] == [{"target": "10.0.0.1", "ports": "80"}]
 
 def test_every_service_in_the_table_has_real_safe_scripts():
-  dbFile = "/opt/homebrew/share/nmap/scripts/script.db"
-  if not os.path.isfile(dbFile):
-    pytest.skip("nmap is not installed here")
-  scripts = {}
-  with open(dbFile, encoding="utf-8") as f:
-    for name, found in re.findall(r'filename = "([^"]+)\.nse", categories = \{([^}]*)\}', f.read()):
-      scripts[name] = set(re.findall(r'"([a-z]+)"', found))
+  scripts = installedScripts()
   for service in helperworkflow.SUGGESTIONS:
     names = helperworkflow.suggestedScripts(service, scripts, set())
     assert names, service
@@ -1280,7 +1283,7 @@ def test_report_rejects_a_symlinked_folder(db, scanner, workflows, answers, cata
   fullRun(scanner, workflows, answers)
   outside = tmp_path / "outside"
   outside.mkdir()
-  reports.symlink_to(outside)
+  symlinkOrSkip(reports, outside)
   capsys.readouterr()
   report()
   assert "symbolic link" in capsys.readouterr().out
