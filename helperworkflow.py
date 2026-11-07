@@ -5,6 +5,7 @@ import os
 import re
 import shlex
 import tempfile
+import xml.etree.ElementTree as ET
 
 import i18n
 import nmap
@@ -30,7 +31,7 @@ NMAP_PORT_TABLE_CONF = "3"
 RESUMABLE_RUNS = ("interrupted", "failed", "running")
 FINISHED_STAGES = ("completed", "skipped", "declined")
 COMPLETED_RUNS = ("completed", "completed_with_warnings")
-WARNING_TYPES = ("host_missing", "port_changed", "port_missing", "port_not_seen")
+WARNING_TYPES = ("host_missing", "host_timeout", "port_changed", "port_missing", "port_not_seen")
 # Script name prefixes per service. A service name comes from the scanned host, so it is only ever
 # looked up here, and what reaches nmap comes from this table and the script database
 SUGGESTIONS = {
@@ -179,8 +180,27 @@ def askConfirmation(message):
   except (EOFError, KeyboardInterrupt):
     return False
 
+# python-nmap ignores timedout="true", so read it from the XML that nmap just wrote
+def timedOutHosts(nm, scope):
+  raw = nm.get_nmap_last_output() if hasattr(nm, "get_nmap_last_output") else ""
+  if not raw:
+    return set()
+  try:
+    root = ET.fromstring(raw)
+  except ET.ParseError:
+    return set()
+  hosts = set()
+  for host in root.findall("host"):
+    if host.get("timedout") != "true":
+      continue
+    for item in host.findall("address"):
+      address = validAddress(item.get("addr", ""))
+      if address is not None and (scope is None or address in scope):
+        hosts.add(address)
+  return hosts
+
 # Convert the python-nmap result, ignoring anything outside the scope of the run
-def collectResults(nm, scope):
+def collectResults(nm, scope, timedOut=()):
   hosts, services, findings = [], [], []
   for host in nm.all_hosts():
     address = validAddress(host)
@@ -188,6 +208,10 @@ def collectResults(nm, scope):
       print(i18n.t("help.workflow_out_of_scope") + ": " + sanitize(host))
       continue
     data = nm[host]
+    if address in timedOut:
+      if data.state() == "up":
+        hosts.append({"address": address, "hostname": data.hostname(), "state": "up"})
+      continue
     hosts.append({"address": address, "hostname": data.hostname(), "state": data.state()})
     for script in data.get("hostscript", []):
       findings.append({"address": address, "port": None, "script": script.get("id", ""), "output": script.get("output", "")})
@@ -202,8 +226,12 @@ def collectResults(nm, scope):
 
 # Compare one nmap call with what the run knew. A stage that scans something found earlier must see it again,
 # and not seeing it says nothing about why: nmap does not tell a closed port from a blocked scan
-def compareObservations(openBefore, target, ports, hosts, services):
-  warnings, missingHosts, missingPorts = [], [], []
+def compareObservations(openBefore, target, ports, hosts, services, timedOut=()):
+  warnings = [{"type": "host_timeout", "address": address} for address in sorted(timedOut)]
+  missingHosts = sorted(timedOut)
+  if target in timedOut:
+    return warnings, missingHosts, [key for key in openBefore if key[0] == target]
+  missingPorts = []
   reported = {(item["address"], item["protocol"], item["port"]): item["state"] for item in services}
   for key, state in reported.items():
     if key in openBefore and state != "open":
@@ -233,14 +261,16 @@ def findsPorts(stage):
 # Ports that the closest earlier run saw and this one did not. That run must have looked for ports in the same
 # way, whether or not it had warnings: a port that really closed is then only reported by the first run after it
 def missingSinceLastRun(runId, target):
-  stages = [stage for stage in dbmodule.getStages(runId) if findsPorts(stage)]
+  allStages = dbmodule.getStages(runId)
+  stages = [stage for stage in allStages if findsPorts(stage)]
   if not stages or any(stage["status"] not in ("completed", "skipped") for stage in stages):
     return stages, []
+  timedOut = {warning.get("address") for stage in allStages for warning in stageWarnings(stage) if warning.get("type") == "host_timeout"}
   for earlier in dbmodule.getEarlierRuns(runId, target, COMPLETED_RUNS):
     previous = [stage for stage in dbmodule.getStages(earlier) if findsPorts(stage)]
     if [stage["definition"] for stage in previous] == [stage["definition"] for stage in stages] and all(stage["status"] == "completed" for stage in previous):
       return stages, [{"type": "port_not_seen", "address": address, "protocol": protocol, "port": port, "run": earlier}
-        for address, protocol, port in sorted(dbmodule.getSeenPorts(earlier) - dbmodule.getSeenPorts(runId))]
+        for address, protocol, port in sorted(dbmodule.getSeenPorts(earlier) - dbmodule.getSeenPorts(runId)) if address not in timedOut]
   return stages, []
 
 def stageWarnings(stage):
@@ -556,8 +586,12 @@ class HelperWorkflow:
       for target, ports in targets:
         arguments = ("-6 " if ":" in target else "") + stage["arguments"]
         nm.scan(hosts=target, ports=ports, arguments=arguments)
-        hosts, services, findings = collectResults(nm, scope)
-        observations = compareObservations(dbmodule.getOpenServices(runId), target, ports, hosts, services) if stage["source"] is not None else ([], [], [])
+        timedOut = timedOutHosts(nm, scope)
+        hosts, services, findings = collectResults(nm, scope, timedOut)
+        if stage["source"] is None:
+          observations = ([{"type": "host_timeout", "address": address} for address in sorted(timedOut)], sorted(timedOut), [])
+        else:
+          observations = compareObservations(dbmodule.getOpenServices(runId), target, ports, hosts, services, timedOut)
         dbmodule.saveStageResults(runId, stage["name"], hosts, services, findings)
         dbmodule.recordObservations(runId, position, *observations)
     except (nmap.PortScannerError, OSError, dbmodule.lite.Error) as e:
