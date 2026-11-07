@@ -1,0 +1,106 @@
+name: Windows
+
+on:
+  pull_request:
+  push:
+    branches: [dev, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Create a fake nmap folder
+        run: |
+          $fake = Join-Path $env:RUNNER_TEMP "Nmap's Fake Dir"
+          New-Item -ItemType Directory -Force -Path (Join-Path $fake "scripts") | Out-Null
+          New-Item -ItemType File -Force -Path (Join-Path $fake "nmap.exe") | Out-Null
+          Set-Content -LiteralPath (Join-Path $fake "scripts\script.db") -Value 'Entry { filename = "http-title.nse", categories = { "default", "safe", } }'
+          "NMAP_FAKE=$fake" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Give other accounts access before installing
+        run: |
+          icacls $env:GITHUB_WORKSPACE /grant "*S-1-5-32-545:(OI)(CI)RX" "*S-1-1-0:(OI)(CI)R"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          icacls README.md /grant "*S-1-5-11:R"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install NSEarch with Windows PowerShell 5.1 and a py launcher without Python
+        shell: powershell
+        run: |
+          $fakePy = Join-Path $env:RUNNER_TEMP "fake-py"
+          New-Item -ItemType Directory -Force -Path $fakePy | Out-Null
+          Set-Content -LiteralPath (Join-Path $fakePy "py.cmd") -Value "@echo No installed Python found! 1>&2", "@exit /b 1" -Encoding ascii
+          $env:PATH = "$fakePy;$env:PATH"
+          powershell -ExecutionPolicy Bypass -File .\install.ps1 -NmapDir $env:NMAP_FAKE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check the paths in config.yaml
+        run: |
+          @'
+          import os
+          import yaml
+          with open("config.yaml", encoding="utf-8") as f:
+            config = yaml.safe_load(f)["config"]
+          scripts = os.path.join(os.environ["NMAP_FAKE"], "scripts")
+          assert config["scriptsPath"] == scripts, config["scriptsPath"]
+          assert config["filePath"] == os.path.join(scripts, "script.db"), config["filePath"]
+          assert "'" in scripts and " " in scripts and not scripts.endswith("\\")
+          '@ | .\.venv\Scripts\python.exe -
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check the permissions of the project folder
+        run: |
+          .\.venv\Scripts\python.exe -c "import os, tempfile; os.makedirs('reports', mode=0o700, exist_ok=True); fd, tmp = tempfile.mkstemp(dir='reports'); os.close(fd); os.replace(tmp, os.path.join('reports', 'workflow-0.md'))"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+          $sidType = [System.Security.Principal.SecurityIdentifier]
+          # An elevated Administrator token makes the Administrators group the owner of new folders
+          $owner = (Get-Acl -LiteralPath "reports").GetOwner($sidType).Value
+          if (@($user, "S-1-5-32-544") -notcontains $owner) { throw "reports is owned by $owner" }
+          foreach ($path in @($env:GITHUB_WORKSPACE, "config.yaml", "README.md", ".venv", "reports", "reports\workflow-0.md")) {
+            $sids = (Get-Acl -LiteralPath $path).GetAccessRules($true, $true, $sidType) | ForEach-Object { $_.IdentityReference.Value }
+            $account = if (@("reports", "reports\workflow-0.md") -contains $path -and $sids -contains "S-1-3-4") { "S-1-3-4" } else { $user }
+            $expected = @($account, "S-1-5-18", "S-1-5-32-544")
+            foreach ($sid in $sids) {
+              if ($expected -notcontains $sid) { throw "$path gives access to $sid" }
+            }
+            foreach ($sid in $expected) {
+              if ($sids -notcontains $sid) { throw "$path does not give access to $sid" }
+            }
+          }
+
+      - name: Install the development requirements
+        run: |
+          .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run pytest
+        run: |
+          .\.venv\Scripts\python.exe -m pytest -q -rs -p no:cacheprovider
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run ruff
+        run: |
+          .\.venv\Scripts\python.exe -m ruff check .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run mypy
+        run: |
+          .\.venv\Scripts\python.exe -m mypy .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
