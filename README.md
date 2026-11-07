@@ -66,7 +66,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -NmapDir 'D:\Tools\Nmap'
 
 NSEarch runs the `nmap.exe` in the folder above `scriptsPath`, or the one in a standard Nmap install folder. It never runs an `nmap.exe` from `PATH` or from the current folder.
 
-The installer restricts the project folder to your account, `SYSTEM`, and `Administrators`. New files and folders inside it, including the configuration, SQLite database, and reports, inherit those permissions. It does not request or need Administrator privileges. If it cannot apply the permissions, it stops and advises you to clone the project into a folder you own.
+The installer restricts the project folder to your account, `SYSTEM`, and `Administrators`. New files and folders inside it, including the configuration and the SQLite database, inherit those permissions, while `reports` gets its own ACL restricted to your account as owner, `SYSTEM`, and `Administrators`. It does not request or need Administrator privileges. If it cannot apply the permissions, it stops and advises you to clone the project into a folder you own.
 
 In `config.yaml`, quote Windows paths with single quotes. Do not put a trailing slash on `scriptsPath`:
 

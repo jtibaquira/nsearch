@@ -66,16 +66,20 @@ jobs:
 
       - name: Check the permissions of the project folder
         run: |
-          .\.venv\Scripts\python.exe -c "import os, tempfile; os.makedirs('reports', exist_ok=True); fd, tmp = tempfile.mkstemp(dir='reports'); os.close(fd); os.replace(tmp, os.path.join('reports', 'workflow-0.md'))"
+          .\.venv\Scripts\python.exe -c "import os, tempfile; os.makedirs('reports', mode=0o700, exist_ok=True); fd, tmp = tempfile.mkstemp(dir='reports'); os.close(fd); os.replace(tmp, os.path.join('reports', 'workflow-0.md'))"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $user = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
           $sidType = [System.Security.Principal.SecurityIdentifier]
+          $owner = (Get-Acl -LiteralPath "reports").GetOwner($sidType).Value
+          if ($owner -ne $user) { throw "reports is owned by $owner instead of $user" }
           foreach ($path in @($env:GITHUB_WORKSPACE, "config.yaml", "README.md", ".venv", "reports", "reports\workflow-0.md")) {
             $sids = (Get-Acl -LiteralPath $path).GetAccessRules($true, $true, $sidType) | ForEach-Object { $_.IdentityReference.Value }
+            $account = if (@("reports", "reports\workflow-0.md") -contains $path -and $sids -contains "S-1-3-4") { "S-1-3-4" } else { $user }
+            $expected = @($account, "S-1-5-18", "S-1-5-32-544")
             foreach ($sid in $sids) {
-              if (@($user, "S-1-5-18", "S-1-5-32-544") -notcontains $sid) { throw "$path gives access to $sid" }
+              if ($expected -notcontains $sid) { throw "$path gives access to $sid" }
             }
-            foreach ($sid in @($user, "S-1-5-18", "S-1-5-32-544")) {
+            foreach ($sid in $expected) {
               if ($sids -notcontains $sid) { throw "$path does not give access to $sid" }
             }
           }
