@@ -1712,9 +1712,27 @@ def test_a_host_that_times_out_after_ports_were_found_drops_its_ports_for_later_
   details = db.getRun(runId)
   assert details["run"]["status"] == "completed_with_warnings"
   assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
-  assert db.getOpenPorts(runId) == {}
+  assert db.getOpenPorts(runId) == {"10.0.0.1": [80]}
+  assert [item["port"] for item in details["services"]] == [80]
   assert details["stages"][3]["status"] == "skipped"
   assert len(scanner.calls) == 3
+
+def test_a_host_timeout_survives_interrupting_and_resuming_the_run(db, scanner, workflows, answers, monkeypatch):
+  two = {"10.0.0.1": FakeHost({}), "10.0.0.2": FakeHost({})}
+  scanner.error = (5, KeyboardInterrupt())
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: two, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.2": FakeHost({80: HTTP_OPEN})},
+    3: {"10.0.0.1": FakeHost({}, timedout=True)}}, net="10.0.0.0/24")
+  assert db.getRun(runId)["run"]["status"] == "interrupted"
+  scanner.error = None
+  scanner.results = {5: {"10.0.0.2": FakeHost({80: HTTP_OPEN})}, 6: {"10.0.0.2": FakeHost({80: HTTP_OPEN})}}
+  answers.append("y")
+  helperworkflow.HelperWorkflow("id:" + str(runId), "resume").process()
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert [(hosts, ports) for hosts, ports, _ in scanner.calls[5:]] == [("10.0.0.2", "80"), ("10.0.0.2", "80")]
+  assert [item["address"] for item in details["services"]] == ["10.0.0.1", "10.0.0.2"]
 
 def test_a_host_that_times_out_in_the_first_stage_is_reported_and_skipped_later(db, scanner, workflows, answers, monkeypatch, capsys):
   runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: {"10.0.0.1": FakeHost({}, timedout=True)}})

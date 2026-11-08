@@ -230,7 +230,7 @@ def compareObservations(openBefore, target, ports, hosts, services, timedOut=())
   warnings = [{"type": "host_timeout", "address": address} for address in sorted(timedOut)]
   missingHosts = sorted(timedOut)
   if target in timedOut:
-    return warnings, missingHosts, [key for key in openBefore if key[0] == target]
+    return warnings, missingHosts, []
   missingPorts = []
   reported = {(item["address"], item["protocol"], item["port"]): item["state"] for item in services}
   for key, state in reported.items():
@@ -301,11 +301,12 @@ def finishRun(runId, target):
 def stageTargets(runId, stage, net):
   if stage["source"] is None:
     return [(net, None)]
+  hosts = [address for address in dbmodule.getLiveHosts(runId) if validAddress(address)]
   if stage["source"] == "live_hosts":
-    hosts = [address for address in dbmodule.getLiveHosts(runId) if validAddress(address)]
     return [(address, None) for address in hosts]
+  live = set(hosts)
   ports = dbmodule.getOpenPorts(runId, stage["services"])
-  return [(address, ",".join(str(int(port)) for port in found)) for address, found in ports.items() if validAddress(address)]
+  return [(address, ",".join(str(int(port)) for port in found)) for address, found in ports.items() if address in live]
 
 def loadStored(value):
   try:
