@@ -100,6 +100,8 @@ es:
   report_reason_live_hosts: Escanea los hosts activos encontrados en esta ejecución
   report_reason_open_ports: Escanea los puertos abiertos encontrados en esta ejecución
   report_reason_services: Escanea los puertos abiertos encontrados en esta ejecución con estos servicios
+  report_reason_tunnels: Escanea los puertos abiertos encontrados en esta ejecución con estos túneles
+  report_reason_or_tunnels: o estos túneles
   report_reason_all_services: Escanea los servicios encontrados en esta ejecución
   report_reason_suggestion: Sugerida por workflow suggest y aprobada por el operador, para este servicio
   report_reason_unknown: No lo registró la versión que ejecutó esta etapa

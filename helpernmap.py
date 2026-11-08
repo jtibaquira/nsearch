@@ -1,12 +1,29 @@
+import ntpath
 import os
 import re
+import sys
 
 import i18n
 import nmap
 import yaml
 
+import dbmodule
 from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
+
+WINDOWS_NMAP = (r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")
+
+# On Windows, only the nmap.exe next to the configured scripts folder or in the standard install folders is run.
+# A bare "nmap" would also be looked up in the current folder and in PATH, where a fake nmap.exe could be waiting
+def newScanner():
+  if sys.platform == "win32":
+    scriptsPath = dbmodule.scriptsPath
+    drive, _ = ntpath.splitdrive(scriptsPath)
+    configured = ntpath.join(ntpath.dirname(ntpath.normpath(scriptsPath)), "nmap.exe") if scriptsPath else ""
+    if drive and ntpath.isabs(scriptsPath) and ntpath.isabs(configured):
+      return nmap.PortScanner(nmap_search_path=(configured,) + WINDOWS_NMAP)
+    return nmap.PortScanner(nmap_search_path=WINDOWS_NMAP)
+  return nmap.PortScanner()
 
 
 class HelperNmap:
@@ -21,7 +38,7 @@ class HelperNmap:
     if self.__validateParams():
       print(i18n.t("help.running_scan"))
       try:
-        nm = nmap.PortScanner()
+        nm = newScanner()
       except nmap.PortScannerError:
         print(i18n.t("help.help_run_nmap_missing"))
         return

@@ -1,3 +1,4 @@
+import ntpath
 from typing import ClassVar
 
 import nmap
@@ -25,6 +26,8 @@ class FakeScanner:
     return ["127.0.0.1"]
   def __getitem__(self, host):
     return FakeHost()
+  def __init__(self, nmap_search_path=None):
+    pass
 
 @pytest.fixture
 def scanner(monkeypatch):
@@ -59,7 +62,7 @@ def test_remote_output_is_sanitized(scanner, capsys):
   assert "port : 80" in out and "port : 81" not in out
 
 def test_missing_nmap_is_reported(monkeypatch, capsys):
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("nmap program was not found in path")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   helpernmap.HelperNmap("template:ping net:127.0.0.1").process()
@@ -88,3 +91,69 @@ def test_scan_output_is_exact(scanner, capsys):
     "port : 80\tstate : open ?]0;pwn 1 ",
     "id => out?[2J",
   ]
+
+def test_windows_runs_the_configured_nmap_then_the_install_folders(monkeypatch):
+  def fakeScanner(**kwargs):
+    fakeScanner.kwargs = kwargs
+    return FakeScanner()
+  monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", r"C:\Nmap\scripts" + "\\")
+  monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
+  helpernmap.newScanner()
+  assert fakeScanner.kwargs == {"nmap_search_path": (
+    r"C:\Nmap\nmap.exe", r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")}
+
+def test_windows_never_runs_nmap_from_path_or_the_current_folder(monkeypatch, tmp_path):
+  def fakeScanner(**kwargs):
+    fakeScanner.kwargs = kwargs
+    return FakeScanner()
+  monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", str(tmp_path / "scripts"))
+  monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
+  helpernmap.newScanner()
+  # A bare name is what Windows would look up in the current folder and in PATH
+  assert not {"nmap", "nmap.exe"} & set(fakeScanner.kwargs["nmap_search_path"])
+
+@pytest.mark.parametrize("scriptsPath", ["", "scripts", r".\scripts", r"\scripts"])
+def test_windows_ignores_empty_or_relative_scripts_path(monkeypatch, scriptsPath):
+  def fakeScanner(**kwargs):
+    fakeScanner.kwargs = kwargs
+    return FakeScanner()
+  monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", scriptsPath)
+  monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
+  helpernmap.newScanner()
+  assert fakeScanner.kwargs == {"nmap_search_path": helpernmap.WINDOWS_NMAP}
+  assert all(ntpath.splitdrive(path)[0] and ntpath.isabs(path) for path in fakeScanner.kwargs["nmap_search_path"])
+
+@pytest.mark.parametrize("scriptsPath,expected", [
+  (r"D:\Tools\Nmap\scripts", r"D:\Tools\Nmap\nmap.exe"),
+  (r"\\server\share\Nmap\scripts", r"\\server\share\Nmap\nmap.exe"),
+])
+def test_windows_puts_configured_nmap_first_when_scripts_path_is_absolute(monkeypatch, scriptsPath, expected):
+  def fakeScanner(**kwargs):
+    fakeScanner.kwargs = kwargs
+    return FakeScanner()
+  monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", scriptsPath)
+  monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
+  helpernmap.newScanner()
+  assert fakeScanner.kwargs == {"nmap_search_path": (expected,) + helpernmap.WINDOWS_NMAP}
+  assert all(ntpath.splitdrive(path)[0] and ntpath.isabs(path) for path in fakeScanner.kwargs["nmap_search_path"])
+
+def test_other_systems_keep_the_default_nmap_lookup(monkeypatch):
+  def fakeScanner(**kwargs):
+    fakeScanner.kwargs = kwargs
+    return FakeScanner()
+  monkeypatch.setattr(helpernmap.sys, "platform", "linux")
+  monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
+  helpernmap.newScanner()
+  assert fakeScanner.kwargs == {}
+
+def test_missing_nmap_is_reported_on_windows(monkeypatch, capsys):
+  def missing(**kwargs):
+    raise nmap.PortScannerError("nmap program was not found in path")
+  monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(nmap, "PortScanner", missing)
+  helpernmap.HelperNmap("template:ping net:127.0.0.1").process()
+  assert "nmap was not found" in capsys.readouterr().out

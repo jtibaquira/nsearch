@@ -100,6 +100,8 @@ en:
   report_reason_live_hosts: It scans the live hosts found in this run
   report_reason_open_ports: It scans the open ports found in this run
   report_reason_services: It scans the open ports found in this run with these services
+  report_reason_tunnels: It scans the open ports found in this run with these tunnels
+  report_reason_or_tunnels: or these tunnels
   report_reason_all_services: It scans the services found in this run
   report_reason_suggestion: Suggested by workflow suggest and approved by the operator, for this service
   report_reason_unknown: Not recorded by the version that ran this stage
