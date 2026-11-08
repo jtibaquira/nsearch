@@ -64,7 +64,7 @@ The installer creates `.venv` and `config.yaml`. If Nmap is installed in a diffe
 powershell -ExecutionPolicy Bypass -File .\install.ps1 -NmapDir 'D:\Tools\Nmap'
 ```
 
-NSEarch runs the `nmap.exe` in the folder above `scriptsPath`, or the one in a standard Nmap install folder. It never runs an `nmap.exe` from `PATH` or from the current folder.
+NSEarch runs the `nmap.exe` in the folder above `scriptsPath` when `scriptsPath` is a full path with a drive letter or a network share, or the one in a standard Nmap install folder. It never runs an `nmap.exe` from `PATH` or from the current folder.
 
 The installer restricts the project folder to your account, `SYSTEM`, and `Administrators`. New files and folders inside it, including the configuration and the SQLite database, inherit those permissions, while `reports` gets its own ACL restricted to your account as owner, `SYSTEM`, and `Administrators`. It does not request or need Administrator privileges. If it cannot apply the permissions, it stops and advises you to clone the project into a folder you own.
 

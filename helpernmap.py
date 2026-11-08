@@ -1,3 +1,4 @@
+import ntpath
 import os
 import re
 import sys
@@ -16,8 +17,12 @@ WINDOWS_NMAP = (r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap
 # A bare "nmap" would also be looked up in the current folder and in PATH, where a fake nmap.exe could be waiting
 def newScanner():
   if sys.platform == "win32":
-    configured = os.path.join(os.path.dirname(os.path.normpath(dbmodule.scriptsPath)), "nmap.exe")
-    return nmap.PortScanner(nmap_search_path=(configured,) + WINDOWS_NMAP)
+    scriptsPath = dbmodule.scriptsPath
+    drive, _ = ntpath.splitdrive(scriptsPath)
+    configured = ntpath.join(ntpath.dirname(ntpath.normpath(scriptsPath)), "nmap.exe") if scriptsPath else ""
+    if drive and ntpath.isabs(scriptsPath) and ntpath.isabs(configured):
+      return nmap.PortScanner(nmap_search_path=(configured,) + WINDOWS_NMAP)
+    return nmap.PortScanner(nmap_search_path=WINDOWS_NMAP)
   return nmap.PortScanner()
 
 

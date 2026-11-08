@@ -1,4 +1,4 @@
-import os
+import ntpath
 from typing import ClassVar
 
 import nmap
@@ -92,16 +92,16 @@ def test_scan_output_is_exact(scanner, capsys):
     "id => out?[2J",
   ]
 
-def test_windows_runs_the_configured_nmap_then_the_install_folders(monkeypatch, tmp_path):
+def test_windows_runs_the_configured_nmap_then_the_install_folders(monkeypatch):
   def fakeScanner(**kwargs):
     fakeScanner.kwargs = kwargs
     return FakeScanner()
   monkeypatch.setattr(helpernmap.sys, "platform", "win32")
-  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", str(tmp_path / "Nmap" / "scripts") + os.sep)
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", r"C:\Nmap\scripts" + "\\")
   monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
   helpernmap.newScanner()
   assert fakeScanner.kwargs == {"nmap_search_path": (
-    str(tmp_path / "Nmap" / "nmap.exe"), r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")}
+    r"C:\Nmap\nmap.exe", r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")}
 
 def test_windows_never_runs_nmap_from_path_or_the_current_folder(monkeypatch, tmp_path):
   def fakeScanner(**kwargs):
@@ -113,6 +113,33 @@ def test_windows_never_runs_nmap_from_path_or_the_current_folder(monkeypatch, tm
   helpernmap.newScanner()
   # A bare name is what Windows would look up in the current folder and in PATH
   assert not {"nmap", "nmap.exe"} & set(fakeScanner.kwargs["nmap_search_path"])
+
+@pytest.mark.parametrize("scriptsPath", ["", "scripts", r".\scripts", r"\scripts"])
+def test_windows_ignores_empty_or_relative_scripts_path(monkeypatch, scriptsPath):
+  def fakeScanner(**kwargs):
+    fakeScanner.kwargs = kwargs
+    return FakeScanner()
+  monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", scriptsPath)
+  monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
+  helpernmap.newScanner()
+  assert fakeScanner.kwargs == {"nmap_search_path": helpernmap.WINDOWS_NMAP}
+  assert all(ntpath.splitdrive(path)[0] and ntpath.isabs(path) for path in fakeScanner.kwargs["nmap_search_path"])
+
+@pytest.mark.parametrize("scriptsPath,expected", [
+  (r"D:\Tools\Nmap\scripts", r"D:\Tools\Nmap\nmap.exe"),
+  (r"\\server\share\Nmap\scripts", r"\\server\share\Nmap\nmap.exe"),
+])
+def test_windows_puts_configured_nmap_first_when_scripts_path_is_absolute(monkeypatch, scriptsPath, expected):
+  def fakeScanner(**kwargs):
+    fakeScanner.kwargs = kwargs
+    return FakeScanner()
+  monkeypatch.setattr(helpernmap.sys, "platform", "win32")
+  monkeypatch.setattr(helpernmap.dbmodule, "scriptsPath", scriptsPath)
+  monkeypatch.setattr(nmap, "PortScanner", fakeScanner)
+  helpernmap.newScanner()
+  assert fakeScanner.kwargs == {"nmap_search_path": (expected,) + helpernmap.WINDOWS_NMAP}
+  assert all(ntpath.splitdrive(path)[0] and ntpath.isabs(path) for path in fakeScanner.kwargs["nmap_search_path"])
 
 def test_other_systems_keep_the_default_nmap_lookup(monkeypatch):
   def fakeScanner(**kwargs):
