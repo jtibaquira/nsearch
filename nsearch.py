@@ -11,6 +11,20 @@ import os
 import re
 
 import i18n
+import yaml
+from i18n import resource_loader  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+from i18n.loaders.loader import I18nFileLoadError
+from i18n.loaders.yaml_loader import YamlLoader
+
+
+# Use a safe YAML loader (in C when available) instead of python-i18n's FullLoader
+class SafeYamlLoader(YamlLoader):
+  def parse_file(self, file_content):
+    loader = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+    try:
+      return yaml.load(file_content, Loader=loader)
+    except yaml.YAMLError as error:
+      raise I18nFileLoadError(f"invalid YAML: {error}") from error
 
 
 # Lets the Windows console show the ANSI colors; without it they are printed as text
@@ -39,6 +53,7 @@ def windowsKernel32():
 def configureI18n():
   currentLocale = os.environ.get("LANG", "en")
   currentLocale = re.split(r"[_.]", currentLocale)[0]
+  resource_loader.register_loader(SafeYamlLoader, ["yml", "yaml"])
   i18n.load_path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'i18n'))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
   i18n.set("fallback", "en")  # type: ignore[attr-defined]  # python-i18n sets these at runtime
   i18n.set("locale", currentLocale)  # type: ignore[attr-defined]  # python-i18n sets these at runtime

@@ -61,5 +61,12 @@ def db(tmp_path, monkeypatch):
   monkeypatch.setattr(dbmodule, "currentChecksum", "")
   monkeypatch.setattr(dbmodule, "lastresults", {})
   monkeypatch.setattr(dbmodule, "lastresultsFav", False)
+  connect = dbmodule.lite.connect
+  def testConnect(*args, **kwargs):
+    conn = connect(*args, **kwargs)
+    conn.execute("PRAGMA journal_mode=MEMORY")
+    conn.execute("PRAGMA synchronous=OFF")
+    return conn
+  monkeypatch.setattr(dbmodule.lite, "connect", testConnect)
   dbmodule.initSetup()
   return dbmodule
