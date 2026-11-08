@@ -41,8 +41,11 @@ class FakeScanner:
   def __init__(self):
     self.calls = []
     self.results = {}
+    self.xml = {}
     self.error = None
     self.current = {}
+  def get_nmap_last_output(self):
+    return self.xml.get(len(self.calls) - 1, "")
   def scan(self, hosts, ports=None, arguments=""):
     self.calls.append((hosts, ports, arguments))
     if self.error is not None and len(self.calls) >= self.error[0]:
@@ -60,7 +63,7 @@ class FakeScanner:
 @pytest.fixture
 def scanner(monkeypatch):
   fake = FakeScanner()
-  monkeypatch.setattr(nmap, "PortScanner", lambda: fake)
+  monkeypatch.setattr(nmap, "PortScanner", lambda **kwargs: fake)
   return fake
 
 @pytest.fixture
@@ -310,7 +313,7 @@ def test_interrupted_confirmation_counts_as_no(monkeypatch):
 def test_missing_nmap(db, workflows, answers, monkeypatch, capsys):
   workflows("w", CHAIN)
   monkeypatch.setattr(db, "scriptCategories", lambda: SCRIPTS)
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("not found")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   answers.append("y")
@@ -624,7 +627,7 @@ def test_a_resumed_run_can_stop_and_resume_again(db, scanner, workflows, answers
 def test_resume_without_nmap_changes_nothing(db, workflows, answers, catalog, monkeypatch, capsys):
   runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
   before = db.getRun(runId)
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("not found")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   answers.append("y")
@@ -641,7 +644,8 @@ def test_resume_does_not_print_control_characters(db, scanner, workflows, answer
   assert "\x1b" not in capsys.readouterr().out
 
 def installedScripts():
-  for path in ("/opt/homebrew/share/nmap/scripts/script.db", "/usr/local/share/nmap/scripts/script.db", "/usr/share/nmap/scripts/script.db"):
+  for path in ("/opt/homebrew/share/nmap/scripts/script.db", "/usr/local/share/nmap/scripts/script.db", "/usr/share/nmap/scripts/script.db",
+    r"C:\Program Files (x86)\Nmap\scripts\script.db", r"C:\Program Files\Nmap\scripts\script.db"):
     if helperworkflow.os.path.exists(path):
       with open(path, encoding="utf-8") as f:
         return {name: set(re.findall(r'"([a-z]+)"', categories)) for name, categories in re.findall(r'filename = "([^"]+)\.nse", categories = \{([^}]*)\}', f.read())}
@@ -804,13 +808,21 @@ def test_reports_are_only_readable_by_their_owner(db, scanner, workflows, answer
   assert stat.S_IMODE(os.stat(reports).st_mode) == 0o700
   assert os.listdir(reports) == ["workflow-1." + extension]
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
+def symlinkOrSkip(link, target):
+  try:
+    link.symlink_to(target)
+  except OSError as error:
+    # Windows only lets an Administrator, or Developer Mode, create symbolic links. CI has that right, so it never skips there
+    if getattr(error, "winerror", None) == 1314 and not os.environ.get("CI"):
+      pytest.skip("this Windows account cannot create symbolic links")
+    raise
+
 def test_report_replaces_a_symlink_instead_of_following_it(db, scanner, workflows, answers, catalog, reports, tmp_path):
   fullRun(scanner, workflows, answers)
   reports.mkdir()
   victim = tmp_path / "victim"
   victim.write_text("original", encoding="utf-8")
-  (reports / "workflow-1.md").symlink_to(victim)
+  symlinkOrSkip(reports / "workflow-1.md", victim)
   report()
   assert victim.read_text(encoding="utf-8") == "original"
   assert not (reports / "workflow-1.md").is_symlink()
@@ -1168,7 +1180,7 @@ def test_an_unfinished_suggestion_is_offered_again(db, scanner, catalog, answers
   assert "1. http-headers" in capsys.readouterr().out
 
 def test_suggest_without_nmap_changes_nothing(db, catalog, answers, monkeypatch, capsys):
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("missing")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   runId = foundRun(db)
@@ -1196,13 +1208,7 @@ def test_report_explains_a_suggested_stage(db, scanner, catalog, answers, report
   assert stage["targets"] == [{"target": "10.0.0.1", "ports": "80"}]
 
 def test_every_service_in_the_table_has_real_safe_scripts():
-  dbFile = "/opt/homebrew/share/nmap/scripts/script.db"
-  if not os.path.isfile(dbFile):
-    pytest.skip("nmap is not installed here")
-  scripts = {}
-  with open(dbFile, encoding="utf-8") as f:
-    for name, found in re.findall(r'filename = "([^"]+)\.nse", categories = \{([^}]*)\}', f.read()):
-      scripts[name] = set(re.findall(r'"([a-z]+)"', found))
+  scripts = installedScripts()
   for service in helperworkflow.SUGGESTIONS:
     names = helperworkflow.suggestedScripts(service, scripts, set())
     assert names, service
@@ -1276,12 +1282,23 @@ def test_compare_does_not_warn_about_equal_stages(db, scanner, workflows, answer
   compare()
   assert "different stages" not in capsys.readouterr().out
 
-@pytest.mark.skipif(os.name == "nt", reason="symlink permissions")
 def test_report_rejects_a_symlinked_folder(db, scanner, workflows, answers, catalog, reports, tmp_path, capsys):
   fullRun(scanner, workflows, answers)
   outside = tmp_path / "outside"
   outside.mkdir()
-  reports.symlink_to(outside)
+  symlinkOrSkip(reports, outside)
+  capsys.readouterr()
+  report()
+  assert "symbolic link" in capsys.readouterr().out
+  assert os.listdir(outside) == []
+
+@pytest.mark.skipif(os.name != "nt", reason="junctions only exist on Windows")
+def test_report_rejects_a_junction(db, scanner, workflows, answers, catalog, reports, tmp_path, capsys):
+  import _winapi
+  fullRun(scanner, workflows, answers)
+  outside = tmp_path / "outside"
+  outside.mkdir()
+  _winapi.CreateJunction(str(outside), str(reports))
   capsys.readouterr()
   report()
   assert "symbolic link" in capsys.readouterr().out
@@ -1680,3 +1697,70 @@ def test_a_previous_run_that_did_not_look_for_ports_is_not_compared(db, scanner,
   runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
   last = runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
   assert warningsOf(db.getRun(last)) == [{"type": "port_not_seen", "address": "10.0.0.1", "protocol": "tcp", "port": 80, "run": first}]
+
+# ---- TLS and service tunnels
+
+def test_collect_results_parses_tunnels_from_nmap_xml(scanner):
+  scanner.results = {0: {"10.0.0.1": FakeHost({443: {"state": "open", "name": "http", "product": "nginx", "version": "1.2", "conf": "10"},
+    80: {"state": "open", "name": "http", "conf": "10"}})}}
+  scanner.xml = {0: """<nmaprun><host><address addr="00:11:22:33:44:55" addrtype="mac"/><address addr="10.0.0.1" addrtype="ipv4"/>
+    <ports><port protocol="tcp" portid="443"><state state="open"/><service name="http" tunnel="ssl" conf="10"/></port>
+    <port protocol="tcp" portid="80"><state state="open"/><service name="http" conf="10"/></port></ports></host></nmaprun>"""}
+  scanner.scan("10.0.0.1", "80,443", "-sV")
+  _, services, _ = helperworkflow.collectResults(scanner, {"10.0.0.1"})
+  byPort = {item["port"]: item["tunnel"] for item in services}
+  assert byPort == {80: "", 443: "ssl"}
+
+@pytest.mark.parametrize("port,service", [(22, "ssh"), (80, "http")])
+def test_tls_workflow_skips_non_tls_services_without_asking(db, scanner, monkeypatch, port, service):
+  found = {port: {"state": "open", "name": service, "conf": "10"}}
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": FakeHost(found)}, 2: {"10.0.0.1": FakeHost(found)}}
+  runShipped("tls", monkeypatch, "y")
+  details = db.getRun(1)
+  assert len(scanner.calls) == 3
+  assert [stage["status"] for stage in details["stages"]] == ["completed", "completed", "completed", "skipped", "skipped"]
+
+def test_tls_workflow_scans_explicit_tls_services_and_http_with_ssl_tunnel(db, scanner, monkeypatch):
+  found = {22: {"state": "open", "name": "ssh", "conf": "10"}, 80: {"state": "open", "name": "http", "conf": "10"},
+    443: {"state": "open", "name": "https", "conf": "10"}, 8443: {"state": "open", "name": "http", "conf": "10"}}
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": FakeHost(found)}, 2: {"10.0.0.1": FakeHost(found)}}
+  scanner.xml = {2: """<nmaprun><host><address addr="10.0.0.1" addrtype="ipv4"/><ports>
+    <port protocol="tcp" portid="8443"><state state="open"/><service name="http" tunnel="ssl" conf="10"/></port>
+    </ports></host></nmaprun>"""}
+  runShipped("tls", monkeypatch, "y", "y")
+  assert len(scanner.calls) == 5
+  assert scanner.calls[3][:2] == ("10.0.0.1", "443,8443")
+  assert scanner.calls[4][:2] == ("10.0.0.1", "443,8443")
+  assert [stage["status"] for stage in db.getRun(1)["stages"]] == ["completed"] * 5
+
+@pytest.mark.parametrize("when", [{"service": ["https"]}, {"tunnel": ["ssl"]}, {"service": ["https"], "tunnel": ["ssl"]}])
+def test_when_accepts_service_tunnel_or_both(when):
+  stages = validateWorkflow("w", {"w": {"stages": [CHAIN[0], {"name": "tls", "from": "services", "when": when, "arguments": "-sV"}]}}, SCRIPTS)
+  assert stages[1]["services"] == when.get("service")
+  assert stages[1].get("tunnels") == when.get("tunnel")
+
+@pytest.mark.parametrize("when", [{}, {"service": []}, {"tunnel": []}, {"tunnel": "ssl"}, {"other": ["x"]}, {"service": [""]}, {"tunnel": [1]}])
+def test_when_rejects_invalid_service_and_tunnel_filters(when):
+  with pytest.raises(WorkflowError):
+    validateWorkflow("w", {"w": {"stages": [CHAIN[0], {"name": "tls", "from": "services", "when": when, "arguments": "-sV"}]}}, SCRIPTS)
+
+def test_user_workflows_without_tunnel_keep_their_saved_definition_shape():
+  stage = validateWorkflow("w", {"w": {"stages": CHAIN}}, SCRIPTS)[3]
+  assert "tunnels" not in stage
+  assert json.loads(dbmodule.stageDefinition(stage)) == {
+    "arguments": stage["arguments"], "confirm": False, "name": "enum", "services": ["http"], "source": "services"}
+  withTunnel = validateWorkflow("w", {"w": {"stages": [CHAIN[0], {"name": "t", "from": "services", "when": {"tunnel": ["ssl"]}, "arguments": "-sV"}]}}, SCRIPTS)[1]
+  assert json.loads(dbmodule.stageDefinition(withTunnel))["tunnels"] == ["ssl"]
+
+def test_report_reasons_include_tunnels_in_every_language():
+  both = '{"source": "services", "services": ["https"], "tunnels": ["ssl"]}'
+  onlyTunnel = '{"source": "services", "services": null, "tunnels": ["ssl"]}'
+  badTunnel = '{"source": "services", "services": ["https"], "tunnels": "ssl"}'
+  assert "https" in helperworkflow.stageReason({"definition": both, "status": "completed"})
+  assert "or these tunnels: ssl" in helperworkflow.stageReason({"definition": both, "status": "completed"})
+  assert "with these tunnels: ssl" in helperworkflow.stageReason({"definition": onlyTunnel, "status": "completed"})
+  assert "Not recorded" in helperworkflow.stageReason({"definition": badTunnel, "status": "completed"})
+  for lang in ("en", "es"):
+    with open(os.path.join(dbmodule.BASE_DIR, "i18n", "help." + lang + ".yml"), encoding="utf-8") as f:
+      messages = yaml.safe_load(f)[lang]
+    assert messages["report_reason_tunnels"] and messages["report_reason_or_tunnels"]
