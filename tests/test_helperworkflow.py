@@ -3,6 +3,7 @@ import os
 import re
 import shlex
 import stat
+import xml.etree.ElementTree as ET
 from typing import Any
 
 import nmap
@@ -21,11 +22,12 @@ def args(arguments, source=None, confirm=False):
   return validateArguments(arguments, source, confirm, "15m", SCRIPTS)
 
 class FakeHost(dict):
-  def __init__(self, ports, state="up", hostname="", hostscript=None):
+  def __init__(self, ports, state="up", hostname="", hostscript=None, timedout=False):
     self.ports = ports
     self.hostState = state
     self.name = hostname
     self.hostscript = hostscript
+    self.timedout = timedout
     if hostscript:
       dict.__init__(self, hostscript=hostscript)
   def hostname(self):
@@ -44,8 +46,6 @@ class FakeScanner:
     self.xml = {}
     self.error = None
     self.current = {}
-  def get_nmap_last_output(self):
-    return self.xml.get(len(self.calls) - 1, "")
   def scan(self, hosts, ports=None, arguments=""):
     self.calls.append((hosts, ports, arguments))
     if self.error is not None and len(self.calls) >= self.error[0]:
@@ -59,6 +59,18 @@ class FakeScanner:
     return list(self.current)
   def __getitem__(self, host):
     return self.current[host]
+  def get_nmap_last_output(self):
+    if isinstance(self.xml, dict):
+      if len(self.calls) - 1 in self.xml:
+        return self.xml[len(self.calls) - 1]
+    elif self.xml is not None:
+      return self.xml
+    root = ET.Element("nmaprun")
+    for address, host in self.current.items():
+      item = ET.SubElement(root, "host", {"timedout": "true"} if host.timedout else {})
+      ET.SubElement(item, "status", {"state": host.state()})
+      ET.SubElement(item, "address", {"addr": str(address), "addrtype": "ipv6" if ":" in str(address) else "ipv4"})
+    return ET.tostring(root)
 
 @pytest.fixture
 def scanner(monkeypatch):
@@ -1697,6 +1709,120 @@ def test_a_previous_run_that_did_not_look_for_ports_is_not_compared(db, scanner,
   runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
   last = runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
   assert warningsOf(db.getRun(last)) == [{"type": "port_not_seen", "address": "10.0.0.1", "protocol": "tcp", "port": 80, "run": first}]
+
+def test_a_host_that_times_out_in_a_port_scan_is_reported_and_not_scanned_again(db, scanner, workflows, answers, monkeypatch, capsys):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({}, timedout=True)}})
+  out = capsys.readouterr().out
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert [stage["status"] for stage in details["stages"]] == ["completed", "completed", "skipped", "skipped"]
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert db.getLiveHosts(runId) == []
+  assert len(scanner.calls) == 2
+  assert "[3/4] services: skipped, nothing left to scan after the warnings of this run" in out
+  assert "nothing to scan" not in out
+  assert "    [!] 10.0.0.1 the host timed out in this stage\n" in out
+
+def test_a_host_that_times_out_after_ports_were_found_drops_its_ports_for_later_stages(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({}, timedout=True)}})
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert db.getOpenPorts(runId) == {"10.0.0.1": [80]}
+  assert [item["port"] for item in details["services"]] == [80]
+  assert details["stages"][3]["status"] == "skipped"
+  assert len(scanner.calls) == 3
+
+def test_a_host_timeout_survives_interrupting_and_resuming_the_run(db, scanner, workflows, answers, monkeypatch):
+  two = {"10.0.0.1": FakeHost({}), "10.0.0.2": FakeHost({})}
+  scanner.error = (5, KeyboardInterrupt())
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: two, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.2": FakeHost({80: HTTP_OPEN})},
+    3: {"10.0.0.1": FakeHost({}, timedout=True)}}, net="10.0.0.0/24")
+  assert db.getRun(runId)["run"]["status"] == "interrupted"
+  scanner.error = None
+  scanner.results = {5: {"10.0.0.2": FakeHost({80: HTTP_OPEN})}, 6: {"10.0.0.2": FakeHost({80: HTTP_OPEN})}}
+  answers.append("y")
+  helperworkflow.HelperWorkflow("id:" + str(runId), "resume").process()
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert [(hosts, ports) for hosts, ports, _ in scanner.calls[5:]] == [("10.0.0.2", "80"), ("10.0.0.2", "80")]
+  assert [item["address"] for item in details["services"]] == ["10.0.0.1", "10.0.0.2"]
+
+def test_a_host_that_times_out_in_the_first_stage_is_reported_and_skipped_later(db, scanner, workflows, answers, monkeypatch, capsys):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: {"10.0.0.1": FakeHost({}, timedout=True)}})
+  out = capsys.readouterr().out
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert db.getLiveHosts(runId) == []
+  assert len(scanner.calls) == 1
+  assert "[2/4] ports: skipped, nothing left to scan after the warnings of this run" in out
+
+def test_a_host_timeout_appears_in_the_reports(db, scanner, workflows, answers, monkeypatch, tmp_path):
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(tmp_path / "reports"))
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({}, timedout=True)}})
+  helperworkflow.HelperWorkflow("id:" + str(runId) + " format:json", "report").process()
+  saved = json.loads((tmp_path / "reports" / ("workflow-" + str(runId) + ".json")).read_text(encoding="utf-8"))
+  assert saved["run"]["status"] == "completed_with_warnings"
+  assert saved["stages"][1]["warnings"] == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  helperworkflow.HelperWorkflow("id:" + str(runId), "report").process()
+  text = (tmp_path / "reports" / ("workflow-" + str(runId) + ".md")).read_text(encoding="utf-8")
+  assert "- Warnings:\n  - 10.0.0.1 the host timed out in this stage" in text
+  assert "A missing result does not prove that a port is closed" in text
+
+def test_timed_out_hosts_outside_the_scope_or_with_damaged_xml_are_ignored(scanner):
+  scanner.xml = '<nmaprun><host timedout="false"><address addr="10.0.0.1"/></host><host timedout="true"><address addr="00:11:22:33:44:55" addrtype="mac"/><address addr="8.8.8.8"/></host></nmaprun>'
+  assert helperworkflow.timedOutHosts(scanner, {"10.0.0.1"}) == set()
+  scanner.xml = "not xml"
+  assert helperworkflow.timedOutHosts(scanner, None) == set()
+  scanner.xml = ""
+  assert helperworkflow.timedOutHosts(scanner, None) == set()
+
+@pytest.mark.parametrize("results", [
+  {0: UP, 1: {"10.0.0.1": FakeHost({}, timedout=True)}},
+  {0: {"10.0.0.1": FakeHost({}, timedout=True)}},
+])
+def test_a_host_that_times_out_does_not_also_warn_about_ports_from_an_earlier_run(db, scanner, workflows, answers, monkeypatch, results):
+  runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  second = runChain(db, scanner, workflows, answers, monkeypatch, results)
+  assert warningsOf(db.getRun(second)) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+
+def test_a_discovery_timeout_on_one_host_of_a_network_lets_the_others_continue(db, scanner, workflows, answers, monkeypatch):
+  alive = FakeHost({80: HTTP_OPEN})
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: {"10.0.0.1": FakeHost({}, timedout=True), "10.0.0.2": FakeHost({})},
+    1: {"10.0.0.2": alive},
+    2: {"10.0.0.2": alive},
+    3: {"10.0.0.2": FakeHost({80: {"state": "open", "name": "http", "script": {"http-title": "Home"}}})},
+  }, net="10.0.0.0/24")
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert [(hosts, ports) for hosts, ports, _ in scanner.calls] == [("10.0.0.0/24", None), ("10.0.0.2", None), ("10.0.0.2", "80"), ("10.0.0.2", "80")]
+  assert [item["address"] for item in details["findings"]] == ["10.0.0.2"]
+
+def test_an_ipv6_host_that_times_out_is_reported(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: {"fe80::1": FakeHost({})},
+    1: {"fe80::1": FakeHost({}, timedout=True)},
+  }, net="fe80::1")
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "fe80::1"}]
+  assert len(scanner.calls) == 2
+
+def test_a_suggested_stage_where_a_host_times_out_marks_the_run(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  scanner.calls.clear()
+  scanner.results = {0: {"10.0.0.1": FakeHost({}, timedout=True)}}
+  answers += ["1", "y"]
+  helperworkflow.HelperWorkflow("id:" + str(runId), "suggest").process()
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
 
 # ---- TLS and service tunnels
 

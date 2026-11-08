@@ -60,6 +60,7 @@ es:
   workflow_no_targets_warning: omitida, no queda nada que escanear tras las advertencias de esta ejecución
   workflow_resume_warning: Esta ejecución tiene advertencias y no se puede reanudar. Inicia otra más tarde si hace falta
   workflow_warning_host_missing: el host no respondió a esta etapa
+  workflow_warning_host_timeout: el host agotó el tiempo límite en esta etapa
   workflow_warning_port_changed: abierto antes en esta ejecución, ahora se ve distinto
   workflow_warning_port_missing: abierto antes en esta ejecución, esta etapa no lo informó
   workflow_warning_port_not_seen: visto abierto por una ejecución anterior, esta no lo vio

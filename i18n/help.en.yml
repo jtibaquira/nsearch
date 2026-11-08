@@ -60,6 +60,7 @@ en:
   workflow_no_targets_warning: skipped, nothing left to scan after the warnings of this run
   workflow_resume_warning: This run has warnings and cannot be resumed. Start a new run later if needed
   workflow_warning_host_missing: the host did not answer this stage
+  workflow_warning_host_timeout: the host timed out in this stage
   workflow_warning_port_changed: open earlier in this run, now seen differently
   workflow_warning_port_missing: open earlier in this run, not reported by this stage
   workflow_warning_port_not_seen: seen open by an earlier run, not seen by this one
