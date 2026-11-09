@@ -3,7 +3,9 @@ import os
 import subprocess
 import sys
 
+import i18n
 import pytest
+import yaml
 
 import console
 import nsearch
@@ -132,3 +134,38 @@ def test_windows_kernel32_has_pointer_sized_handles():
   assert kernel32.GetStdHandle.restype is wintypes.HANDLE
   assert kernel32.GetConsoleMode.argtypes[0] is wintypes.HANDLE
   nsearch.enableVirtualTerminal(nsearch.windowsKernel32)
+
+def test_configure_i18n_resolves_english_and_spanish_translations(monkeypatch):
+  monkeypatch.setattr(i18n.resource_loader, "loaders", dict(i18n.resource_loader.loaders))
+  monkeypatch.setattr(i18n.config, "settings", dict(i18n.config.settings))
+  monkeypatch.setattr(i18n.translations, "container", {})
+  monkeypatch.setattr(i18n, "load_path", [])
+  monkeypatch.setenv("LANG", "en_US.UTF-8")
+  nsearch.configureI18n()
+  assert i18n.t("help.doc_header") == "Nsearch Commands"
+  monkeypatch.setenv("LANG", "es_ES.UTF-8")
+  nsearch.configureI18n()
+  assert i18n.t("help.doc_header") == "Comandos de Nsearch"
+
+def test_safe_yaml_loader_uses_csafeloader_when_available_and_falls_back_to_safeloader(monkeypatch):
+  used = []
+  realLoad = yaml.load
+  def recordLoad(stream, Loader=None):
+    used.append(Loader)
+    return realLoad(stream, Loader=Loader)
+  monkeypatch.setattr(yaml, "load", recordLoad)
+  fakeCSafe = type("FakeCSafeLoader", (yaml.SafeLoader,), {})
+  monkeypatch.setattr(yaml, "CSafeLoader", fakeCSafe, raising=False)
+  loader = nsearch.SafeYamlLoader()
+  assert loader.parse_file("en:\n  hello: world\n") == {"en": {"hello": "world"}}
+  assert used[-1] is fakeCSafe
+  monkeypatch.delattr(yaml, "CSafeLoader", raising=False)
+  assert loader.parse_file("en:\n  hello: world\n") == {"en": {"hello": "world"}}
+  assert used[-1] is yaml.SafeLoader
+
+def test_safe_yaml_loader_rejects_python_object_tags_without_executing(tmp_path):
+  marker = tmp_path / "pwned"
+  payload = f"en:\n  cmd: !!python/object/apply:builtins.open ['{marker.as_posix()}', 'w']\n"
+  with pytest.raises(nsearch.I18nFileLoadError):
+    nsearch.SafeYamlLoader().parse_file(payload)
+  assert not marker.exists()
