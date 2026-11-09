@@ -1,6 +1,7 @@
 import ntpath
 import os
 import re
+import shlex
 import sys
 
 import i18n
@@ -10,6 +11,7 @@ import yaml
 import dbmodule
 from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
+from scriptpolicy import analyzeScriptExpression, askConfirmation
 
 WINDOWS_NMAP = (r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")
 
@@ -35,7 +37,7 @@ class HelperNmap:
     self.arguments = ""
 
   def process(self):
-    if self.__validateParams():
+    if self.__validateParams() and self.__confirmScripts():
       print(i18n.t("help.running_scan"))
       try:
         nm = newScanner()
@@ -92,4 +94,60 @@ class HelperNmap:
       print(i18n.t("help.help_run_bad_template"))
       return False
     self.net = net
+    return True
+
+  def __scriptExpressions(self):
+    try:
+      tokens = shlex.split(str(self.arguments))
+    except ValueError:
+      return re.findall(r"--script(?:=|\s+)([^\s]+)", str(self.arguments)), "--script" in str(self.arguments)
+    expressions = []
+    unparsed = False
+    index = 0
+    while index < len(tokens):
+      token = tokens[index]
+      index += 1
+      if token == "--script":
+        if index < len(tokens):
+          expressions.append(tokens[index])
+          index += 1
+        else:
+          unparsed = True
+      elif token.startswith("--script="):
+        value = token.partition("=")[2]
+        if value:
+          expressions.append(value)
+        else:
+          unparsed = True
+    return expressions, unparsed
+
+  def __confirmScripts(self):
+    expressions, unparsed = self.__scriptExpressions()
+    if not expressions and not unparsed:
+      return True
+    try:
+      scripts = dbmodule.scriptCategories()
+    except (dbmodule.lite.Error, OSError):
+      scripts = {}
+    analyses = [analyzeScriptExpression(expression, scripts, template=True) for expression in expressions]
+    if any(item["blockedSelected"] for item in analyses):
+      print(i18n.t("help.help_run_blocked_scripts"))
+      return False
+    reasons = []
+    if any(item["unsafe"] for item in analyses):
+      reasons.append(i18n.t("help.help_run_reason_unsafe"))
+    if any(item["external"] for item in analyses):
+      reasons.append(i18n.t("help.help_run_reason_external"))
+    if any(item["hasNot"] for item in analyses):
+      reasons.append(i18n.t("help.help_run_reason_not"))
+    if unparsed or any(not item["parsed"] for item in analyses):
+      reasons.append(i18n.t("help.help_run_reason_unverified"))
+    if not reasons:
+      return True
+    print(i18n.t("help.help_run_plan") + ": " + sanitize(self.net))
+    print("  " + sanitize(self.arguments))
+    print("  " + i18n.t("help.help_run_reason") + ": " + "; ".join(reasons))
+    if not askConfirmation(i18n.t("help.help_run_confirm")):
+      print(i18n.t("help.help_run_cancelled"))
+      return False
     return True

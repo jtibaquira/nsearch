@@ -13,6 +13,7 @@ import yaml
 import dbmodule
 import helperworkflow
 from helperworkflow import WorkflowError, validateArguments, validateWorkflow
+from scriptpolicy import analyzeScriptExpression
 
 SCRIPTS = {"http-title": {"default", "safe"}, "http-headers": {"discovery", "safe"}, "http-sql": {"intrusive", "vuln"},
   "http-slowloris": {"dos", "intrusive"}, "v-safe": {"safe", "vuln"}, "ssh-hostkey": {"default", "safe"},
@@ -127,16 +128,32 @@ def test_safe_scripts_need_no_confirmation_and_blocked_are_excluded():
   result = args("--script http-headers,http-title", "services")
   assert "(http-headers or http-title) and not (broadcast or dos)" in result
 
-@pytest.mark.parametrize("expression", ["http-sql", "vuln", "http-*", "not safe", "safe and not http-title", "intrusive"])
+@pytest.mark.parametrize("expression", ["http-sql", "vuln", "http-*", "(http-*) and safe", "not safe", "safe and not http-title", "intrusive"])
 def test_unsafe_scripts_require_confirm(expression):
   with pytest.raises(WorkflowError, match="confirm"):
     args("--script '" + expression + "'", "services")
   assert "and not (broadcast or dos)" in args("--script '" + expression + "'", "services", True)
 
-@pytest.mark.parametrize("expression", ["dos", "broadcast", "http-slowloris", "http-title or dos", "unknown-script", "/tmp/evil.lua", "../x", "http-title;id"])
+@pytest.mark.parametrize("expression", ["dos", "broadcast", "not dos", "not broadcast", "http-slowloris", "not http-slowloris", "http-title or dos", "unknown-script", "/tmp/evil.lua", "../x", "http-title;id"])
 def test_forbidden_scripts_are_rejected_even_with_confirm(expression):
   with pytest.raises(WorkflowError):
     args("--script '" + expression + "'", "services", True)
+
+@pytest.mark.parametrize("expression", [
+  "DOS", "Broadcast", "not DOS", "safe and not Dos", "SAFE", "SAFE AND NOT DOS",
+  "http-title OR ssh2-enum-algos", "http-title AND safe", "NOT safe",
+  "ALL", "TRUE", "FALSE", "HTTP-Title", "HTTP-*", "http-title.NSE",
+])
+def test_workflows_reject_uppercase_categories_operators_keywords_and_script_names(expression):
+  for confirm in (False, True):
+    with pytest.raises(WorkflowError):
+      args("--script '" + expression + "'", "services", confirm)
+
+def test_wildcard_matching_only_blocked_scripts_is_allowed_and_filtered_by_suffix():
+  assert "and not (broadcast or dos)" in args("--script 'bc*'", "services")
+  with pytest.raises(WorkflowError, match="confirm"):
+    args("--script 'http-slowloris*'", "services")
+  assert "and not (broadcast or dos)" in args("--script 'http-slowloris*'", "services", True)
 
 @pytest.mark.parametrize("expression", ["bc) or (http-title", "vuln) or (http-title", "(http-title", "http-title)", "http-title) or (", ")("])
 def test_unbalanced_expressions_cannot_escape_the_exclusions(expression):
@@ -150,6 +167,24 @@ def test_script_args_rules():
   with pytest.raises(WorkflowError):
     args("--script-args newtargets", "services", True)
   assert "--script-args a=1" in args("--script-args a=1", "services", True)
+
+def test_external_scripts_marked_safe_still_require_confirm():
+  scripts = dict(SCRIPTS, ext={"safe", "external"})
+  analysis = analyzeScriptExpression("ext", scripts)
+  assert analysis["parsed"] and not analysis["unsafe"] and analysis["external"] and analysis["needsConfirm"]
+  assert analysis["categories"] == {"safe", "external"}
+
+def test_negative_exclusions_are_not_counted_as_selected_categories():
+  scripts = dict(SCRIPTS, ext={"safe", "external"})
+  analysis = analyzeScriptExpression("(http-*) and not (dos or vuln or external)", scripts)
+  assert analysis["parsed"] and not analysis["blockedSelected"]
+  assert analysis["blockedToken"] == {"dos"}
+  assert analysis["selected"] == {"http-title", "http-headers"}
+  assert analysis["categories"] == {"default", "discovery", "safe"}
+  assert not (analysis["categories"] & {"dos", "vuln", "external"})
+  with pytest.raises(WorkflowError):
+    validateArguments("--script '(http-*) and not (dos or vuln or external)'", "services", True, "15m", scripts)
+  assert "and not (broadcast or dos)" in validateArguments("--script '(http-*) and not (vuln or external)'", "services", True, "15m", scripts)
 
 # ---- Workflow structure
 

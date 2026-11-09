@@ -219,10 +219,21 @@ The templates are in the `templates` directory:
 |---|---|
 | `ping` | Checks whether hosts are up, without scanning ports |
 | `default` | Detects services on ports 1-5000 |
-| `http` | Runs the `http-*` scripts, except `http-slowloris` and `http-brute` |
+| `http` | Runs the `http-*` scripts, excluding the `brute`, `dos`, `exploit`, `fuzzer`, and `external` categories |
 | `ssh` | Lists the algorithms supported by SSH servers |
 
-`run` starts the scan without asking for confirmation. The `http` template includes intrusive and brute-force scripts, so only use it where those are allowed. Workflows ask before intrusive stages.
+Templates without `--script`, or whose `--script` selector only chooses scripts in the `safe` category (without `external` or `not`), start without asking for confirmation. If a template selects any script outside `safe`, selects scripts in the `external` category (even if also marked `safe`, because they may contact third-party services), uses `not`, or uses a selector that cannot be verified against `script.db`, `run` shows the target, the nmap arguments, and the reason, and asks `[y/N]` before creating the scanner. The `http` template excludes `brute`, `dos`, `exploit`, `fuzzer`, and `external`, and still includes scripts outside `safe` (such as `intrusive` and `vuln`), so `run` asks for confirmation before running it.
+
+Scripts and categories in `dos` and `broadcast` are rejected in templates too, even if you would confirm them, with the message: `This template uses scripts in the dos or broadcast categories, which are not allowed`.
+
+Use a template (`run`) for a quick single-call nmap scan that passes its configured nmap arguments directly and keeps no history. Use a workflow (`workflow`) when you want a multi-stage chain with progressive scope, saved history in SQLite, `resume`, `report`, `compare`, and `suggest`:
+
+| Template | Approximate workflow equivalent |
+|---|---|
+| `ping` | `discovery` stage (or the `hosts` workflow) |
+| `default` | `basic` workflow |
+| `ssh` | `ssh` workflow |
+| `http` | `web` workflow |
 
 ### Workflows
 

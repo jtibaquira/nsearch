@@ -29,6 +29,15 @@ es:
   help_run_nmap_missing: No se encontró nmap. Instálelo e inténtelo de nuevo
   help_run_scan_error: El escaneo falló
   help_run_interrupted: Escaneo interrumpido
+  help_run_plan: Escaneo con plantilla para el objetivo
+  help_run_reason: Motivo
+  help_run_reason_unsafe: selecciona scripts fuera de la categoría safe
+  help_run_reason_external: selecciona scripts external que pueden contactar servicios de terceros
+  help_run_reason_not: usa una negación en el selector de scripts (not)
+  help_run_reason_unverified: usa un selector de scripts que no se pudo verificar
+  help_run_confirm: ¿Tiene autorización para escanear este objetivo y desea ejecutar esta plantilla?
+  help_run_cancelled: Escaneo cancelado
+  help_run_blocked_scripts: Esta plantilla usa scripts de las categorías dos o broadcast, que no están permitidos
   help_workflow: Ejecuta una cadena de escaneos, donde cada etapa usa lo que encontró la anterior
   help_workflow_name: Nombre del workflow
   help_workflow_id: Número de una ejecución anterior
