@@ -1,4 +1,3 @@
-import fnmatch
 import ipaddress
 import json
 import os
@@ -15,6 +14,7 @@ import dbmodule
 import helpernmap
 from dbmodule import BASE_DIR
 from helper import isValidTarget, parseArgs, sanitize
+from scriptpolicy import BLOCKED_SCRIPTS, analyzeScriptExpression
 
 WORKFLOWS_DIR = os.path.join(BASE_DIR, "workflows")
 REPORTS_DIR = os.path.join(BASE_DIR, "reports")
@@ -26,8 +26,6 @@ FLAGS = {"-sn", "-sT", "-sS", "-sV", "-Pn", "-n", "-v", "-vv", "-F", "-O", "-T0"
 VALUES = {"--script", "--script-args", "--script-timeout", "--top-ports", "-p", "--host-timeout", "--max-retries", "--min-rate", "--max-rate", "--version-intensity"}
 PORT_OPTIONS = {"-p", "--top-ports", "-F"}
 VALUE_RE = r"[A-Za-z0-9._,:=/-]+"
-# These never run: dos can take targets down, and broadcast reaches hosts outside the scope
-BLOCKED_SCRIPTS = {"dos", "broadcast"}
 # nmap's confidence in a service name that only comes from the port number
 NMAP_PORT_TABLE_CONF = "3"
 RESUMABLE_RUNS = ("interrupted", "failed", "running")
@@ -47,47 +45,14 @@ SUGGESTIONS = {
 class WorkflowError(Exception):
   pass
 
-def __scriptMatches(token, scripts):
-  name = re.sub(r"\.nse$", "", token)
-  matches = {script: found for script, found in scripts.items() if fnmatch.fnmatchcase(script, name) or token in found}
-  if not matches:
-    raise WorkflowError("unknown script or category: " + token)
-  return matches
-
 # Returns the script expression that nmap will receive
 def __validateScripts(expression, confirm, scripts):
-  normalized = expression.replace(",", " or ")
-  needsConfirm = False
-  depth = 0
-  for token in re.findall(r"[()]|[^\s()]+", normalized):
-    if token == "(":
-      depth += 1
-      continue
-    if token == ")":
-      depth -= 1
-      # An unbalanced expression could escape the exclusions added below
-      if depth < 0:
-        raise WorkflowError("unbalanced parentheses: " + expression)
-      continue
-    if token in ("and", "or"):
-      continue
-    if token == "not":
-      needsConfirm = True
-      continue
-    if not re.fullmatch(r"[A-Za-z0-9_.*-]+", token):
-      raise WorkflowError("invalid script name: " + token)
-    if token in BLOCKED_SCRIPTS:
-      raise WorkflowError("script category not allowed: " + token)
-    matches = __scriptMatches(token, scripts)
-    name = re.sub(r"\.nse$", "", token)
-    if name in matches and matches[name] & BLOCKED_SCRIPTS:
-      raise WorkflowError("script not allowed: " + token)
-    if any("safe" not in found for found in matches.values()):
-      needsConfirm = True
-  if depth != 0:
-    raise WorkflowError("unbalanced parentheses: " + expression)
-  if needsConfirm and not confirm:
+  analysis = analyzeScriptExpression(expression, scripts)
+  if not analysis["parsed"] or analysis["blockedToken"]:
+    raise WorkflowError(analysis["error"])
+  if (analysis["hasNot"] or analysis["unsafeTerm"]) and not confirm:
     raise WorkflowError("these scripts require confirm: true: " + expression)
+  normalized = expression.replace(",", " or ")
   return "(" + normalized + ") and not (" + " or ".join(sorted(BLOCKED_SCRIPTS)) + ")"
 
 # Only known options are accepted, so a template cannot add targets or read and write files

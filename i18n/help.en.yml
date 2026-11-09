@@ -29,6 +29,15 @@ en:
   help_run_nmap_missing: nmap was not found. Install it and try again
   help_run_scan_error: The scan failed
   help_run_interrupted: Scan interrupted
+  help_run_plan: Template scan for target
+  help_run_reason: Reason
+  help_run_reason_unsafe: selects scripts outside the safe category
+  help_run_reason_external: selects external scripts that may contact third-party services
+  help_run_reason_not: uses a negated script selector (not)
+  help_run_reason_unverified: uses a script selector that could not be verified
+  help_run_confirm: Are you authorized to scan this target, and do you want to run this template?
+  help_run_cancelled: Scan cancelled
+  help_run_blocked_scripts: This template uses scripts in the dos or broadcast categories, which are not allowed
   help_workflow: Run a chain of scans, where each stage uses what the previous one found
   help_workflow_name: Name of the workflow
   help_workflow_id: Number of a previous run
