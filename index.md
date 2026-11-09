@@ -23,6 +23,8 @@ This page is a summary. The [README](https://github.com/jtibaquira/nsearch#readm
 - Python 3.12 or later
 - nmap
 
+On Windows 10/11, install Python 3.12 or later and the official Nmap installer, including Npcap.
+
 ### Installation
 
 The install script supports Debian, Ubuntu, Red Hat, Fedora, CentOS, and macOS. It places the Python dependencies in a local virtual environment. On Linux, it uses `sudo` to install system packages.
@@ -32,6 +34,24 @@ $ git clone https://github.com/jtibaquira/nsearch.git
 $ cd nsearch
 $ bash install.sh
 $ .venv/bin/python nsearch.py
+```
+
+On Windows 10/11, run PowerShell from the project directory:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+If Nmap is installed in a different directory, pass its path with `-NmapDir`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -NmapDir 'D:\Tools\Nmap'
+```
+
+Run NSEarch with the virtual environment's Python:
+
+```powershell
+.\.venv\Scripts\python.exe nsearch.py
 ```
 
 The first run creates the local database. Later runs rebuild it only when nmap's `script.db` changes, and your favorites are kept.
@@ -72,7 +92,7 @@ Use `modfav` to change a ranking and `delfav` to remove a script.
 
 **Only scan systems that you own or are explicitly authorized to test.**
 
-`run` scans a target with one of the templates: `ping`, `default`, `http`, or `ssh`. It starts without asking for confirmation, and the `http` template includes intrusive and brute-force scripts.
+`run` scans a target with one of the templates: `ping`, `default`, `http`, or `ssh`. Templates without scripts, or with selectors that choose only `safe` scripts (without `external` or `not`), start without confirmation. Other unblocked selectors ask `[y/N]` before the scanner is created. Scripts in the `dos` and `broadcast` categories are always rejected in templates. The `http` template excludes `brute`, `dos`, `exploit`, `fuzzer`, and `external`; it still includes scripts outside `safe`, so it asks for confirmation.
 
 ```
 nsearch> run template:ping net:127.0.0.1
@@ -104,7 +124,7 @@ nsearch> workflow suggest id:1
 - **Confirmation:** stages that can be intrusive ask first, and show the hosts and ports they will scan.
 - **Scope:** only an allowed set of nmap options is accepted, and stages after the first only scan hosts found by the first stage. Data from scanned hosts is never used to build nmap arguments.
 - **Blocked scripts:** `dos` and `broadcast` scripts never run in a workflow.
-- **Warnings:** a run that stops seeing a host or port ends as `completed_with_warnings`. NSEarch cannot tell a scan being blocked from a real change, so it does not say which one it was, and it never retries or slows down on its own.
+- **Warnings:** a run that stops seeing a host or port, or where nmap gives up on a host because of `--host-timeout`, ends as `completed_with_warnings`. These runs cannot be resumed or suggested from. NSEarch cannot tell a scan being blocked from a real change, so it does not say which one it was, and it never retries or slows down on its own.
 - **Limits:** workflows use TCP only, and the included ones look at nmap's 1000 most common ports.
 
 ### TODO
@@ -112,7 +132,6 @@ nsearch> workflow suggest id:1
 * GUI
 * Fast-Track
 * Create file output for `run`
-* Windows version
 
 ### Feedback
 
