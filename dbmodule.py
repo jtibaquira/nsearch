@@ -8,6 +8,7 @@ import sys
 import tempfile
 from contextlib import closing
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Any
 
 import i18n
@@ -40,6 +41,13 @@ except (yaml.YAMLError, KeyError, TypeError):
 
 lastresults: dict[int, dict[str, Any]] = {}
 lastresultsFav = False
+__workflowSchemaReady: tuple[str, int, int, int] | None = None
+__workflowSchemaLock = Lock()
+
+def __invalidateWorkflowSchema():
+  global __workflowSchemaReady
+  with __workflowSchemaLock:
+    __workflowSchemaReady = None
 
 def sanitize(text):
   return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]", "?", str(text))
@@ -78,7 +86,10 @@ def __buildDb():
     conn.rollback()
     raise
   finally:
-    conn.close()
+    try:
+      conn.close()
+    finally:
+      __invalidateWorkflowSchema()
 
 def initSetup():
   print(i18n.t("setup.create_db") + " " + dbname)
@@ -342,9 +353,12 @@ WORKFLOW_COLUMNS = (
   ("workflow_services", (("tunnel", "TEXT"), ("ever_open", "INTEGER"), ("last_observation", "TEXT"))),
 )
 
-def __workflowConnect():
-  conn = lite.connect(dbname)
-  conn.row_factory = lite.Row
+def __workflowSchemaKey(conn):
+  info = os.stat(dbname)
+  version = conn.execute("PRAGMA schema_version").fetchone()[0]
+  return (os.path.normcase(os.path.abspath(dbname)), info.st_dev, info.st_ino, version)
+
+def __prepareWorkflowSchema(conn):
   conn.executescript(WORKFLOW_SCHEMA)
   # Stages saved by earlier versions keep these empty: their runs cannot be resumed, and their reports say it was not recorded.
   # Their results keep what they had too, because what a later stage replaced is not known
@@ -353,7 +367,21 @@ def __workflowConnect():
     for column, kind in added:
       if column not in columns:
         conn.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + kind + " NULL")
-  return conn
+
+def __workflowConnect():
+  global __workflowSchemaReady
+  conn = lite.connect(dbname)
+  conn.row_factory = lite.Row
+  try:
+    with __workflowSchemaLock:
+      key = __workflowSchemaKey(conn)
+      if key != __workflowSchemaReady:
+        __prepareWorkflowSchema(conn)
+        __workflowSchemaReady = __workflowSchemaKey(conn)
+    return conn
+  except BaseException:
+    conn.close()
+    raise
 
 def __now():
   return datetime.now(UTC).isoformat(timespec="seconds")
