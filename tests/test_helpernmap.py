@@ -289,7 +289,7 @@ def test_external_safe_script_explicitly_warns_about_third_parties(scanner, temp
   "dos and safe", "DOS and safe", "dos and not dos",
   "FALSE OR DOS", "HTTP-SLOWLORIS", "http-slowloris.NSE", "./http-slowloris.nse",
   "/opt/nmap/scripts/http-slowloris.nse", r"C:\Nmap\scripts\http-slowloris.nse",
-  r"..\scripts\HTTP-SLOWLORIS.NSE", "./scripts/", "/opt/nmap/scripts", r"C:\Nmap\scripts",
+  r"..\scripts\HTTP-SLOWLORIS.NSE",
 ])
 def test_dos_and_broadcast_are_rejected_before_creating_scanner(templates, monkeypatch, capsys, expression):
   templates("bad", f"-sV --script '{expression}'")
@@ -302,6 +302,20 @@ def test_dos_and_broadcast_are_rejected_before_creating_scanner(templates, monke
   helpernmap.HelperNmap("template:bad net:127.0.0.1").process()
   out = capsys.readouterr().out
   assert "This template uses scripts in the dos or broadcast categories, which are not allowed" in out
+
+@pytest.mark.parametrize("expression", ["./scripts/", "/opt/nmap/scripts", r"C:\Nmap\scripts", "./scripts/ or DOS", "DOS or ./scripts/", "./http-slowloris", r"C:\Nmap\scripts\http-slowloris"])
+def test_script_folders_are_rejected_with_their_own_message(templates, monkeypatch, capsys, expression):
+  templates("bad", f"-sV --script '{expression}'")
+  def failScanner():
+    raise AssertionError("PortScanner should not be created")
+  def failInput(prompt):
+    raise AssertionError("should not ask for confirmation")
+  monkeypatch.setattr(nmap, "PortScanner", failScanner)
+  monkeypatch.setattr("builtins.input", failInput)
+  helpernmap.HelperNmap("template:bad net:127.0.0.1").process()
+  out = capsys.readouterr().out
+  assert "This template uses a script folder or a script path without .nse, which is not allowed. Name the scripts or categories instead, or add .nse to the path" in out
+  assert "dos or broadcast categories" not in out
 
 def test_a_safe_script_by_path_still_asks_and_does_not_scan_when_declined(templates, monkeypatch, capsys):
   templates("bypath", "-sV --script ./http-title.nse")
@@ -420,7 +434,7 @@ def test_template_safety_messages_exist_in_every_language():
   keys = (
     "help_run_plan", "help_run_reason", "help_run_reason_unsafe", "help_run_reason_external",
     "help_run_reason_not", "help_run_reason_unverified", "help_run_confirm",
-    "help_run_cancelled", "help_run_blocked_scripts",
+    "help_run_cancelled", "help_run_blocked_scripts", "help_run_blocked_folder",
   )
   for lang in ("en", "es"):
     with open(os.path.join(dbmodule.BASE_DIR, "i18n", f"help.{lang}.yml"), encoding="utf-8") as f:

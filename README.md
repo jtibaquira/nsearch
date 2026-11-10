@@ -226,6 +226,8 @@ Templates without `--script`, or whose `--script` selector only chooses scripts 
 
 Scripts and categories in `dos` and `broadcast` are rejected in templates too, even if you would confirm them, with the message: `This template uses scripts in the dos or broadcast categories, which are not allowed`.
 
+Script folders and script paths without `.nse` are also rejected in templates, even if you would confirm them, because Nmap may resolve a path without `.nse` as a script file or directory. The message is: `This template uses a script folder or a script path without .nse, which is not allowed. Name the scripts or categories instead, or add .nse to the path`.
+
 Use a template (`run`) for a quick single-call nmap scan that passes its configured nmap arguments directly and keeps no history. Use a workflow (`workflow`) when you want a multi-stage chain with progressive scope, saved history in SQLite, `resume`, `report`, `compare`, and `suggest`:
 
 | Template | Approximate workflow equivalent |

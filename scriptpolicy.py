@@ -31,6 +31,7 @@ def analyzeScriptExpression(expression, scripts, template=False):
       "unsafeTerm": False,
       "external": False,
       "needsConfirm": True,
+      "folder": False,
     }
   allScripts = set(scripts)
   pos = 0
@@ -40,6 +41,7 @@ def analyzeScriptExpression(expression, scripts, template=False):
   blockedPositive = set()
   firstError = None
   parseError = None
+  folder = False
 
   # Nmap's NSE parser (nse_main.lua) matches operators, categories, and all/true/false case-insensitively
   def op(token):
@@ -70,7 +72,7 @@ def analyzeScriptExpression(expression, scripts, template=False):
     return parsePrimary(negated)
 
   def parsePrimary(negated):
-    nonlocal pos, unsafeTerm, firstError, parseError
+    nonlocal pos, unsafeTerm, firstError, parseError, folder
     if pos >= len(tokens):
       if "(" in tokens or ")" in tokens:
         raise ValueError("unbalanced parentheses: " + expression)
@@ -94,6 +96,7 @@ def analyzeScriptExpression(expression, scripts, template=False):
       if isPath and not base.lower().endswith(".nse"):
         blockedToken.add(token)
         blockedPositive.update(BLOCKED_SCRIPTS)
+        folder = True
         raise ValueError("script directory not allowed: " + token)
       stem = re.sub(r"\.nse$", "", base, flags=re.IGNORECASE).lower()
       found = set()
@@ -164,6 +167,7 @@ def analyzeScriptExpression(expression, scripts, template=False):
       "unsafeTerm": unsafeTerm,
       "external": False,
       "needsConfirm": True,
+      "folder": folder,
     }
 
   categories = {category for script in selected for category in scripts[script]}
@@ -184,4 +188,5 @@ def analyzeScriptExpression(expression, scripts, template=False):
     "unsafeTerm": unsafeTerm,
     "external": external,
     "needsConfirm": needsConfirm,
+    "folder": folder,
   }

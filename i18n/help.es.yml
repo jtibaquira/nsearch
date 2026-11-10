@@ -38,6 +38,7 @@ es:
   help_run_confirm: ¿Tiene autorización para escanear este objetivo y desea ejecutar esta plantilla?
   help_run_cancelled: Escaneo cancelado
   help_run_blocked_scripts: Esta plantilla usa scripts de las categorías dos o broadcast, que no están permitidos
+  help_run_blocked_folder: Esta plantilla usa una carpeta de scripts o una ruta de script sin .nse, lo cual no está permitido. Indica los scripts o las categorías, o añade .nse a la ruta
   help_workflow: Ejecuta una cadena de escaneos, donde cada etapa usa lo que encontró la anterior
   help_workflow_name: Nombre del workflow
   help_workflow_id: Número de una ejecución anterior

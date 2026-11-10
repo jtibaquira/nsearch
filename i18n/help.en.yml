@@ -38,6 +38,7 @@ en:
   help_run_confirm: Are you authorized to scan this target, and do you want to run this template?
   help_run_cancelled: Scan cancelled
   help_run_blocked_scripts: This template uses scripts in the dos or broadcast categories, which are not allowed
+  help_run_blocked_folder: This template uses a script folder or a script path without .nse, which is not allowed. Name the scripts or categories instead, or add .nse to the path
   help_workflow: Run a chain of scans, where each stage uses what the previous one found
   help_workflow_name: Name of the workflow
   help_workflow_id: Number of a previous run
