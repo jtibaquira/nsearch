@@ -209,7 +209,7 @@ def test_invalid_workflows_are_rejected(stages):
 
 @pytest.mark.parametrize("name", ["basic", "ssh", "web"])
 def test_shipped_workflows_are_valid(name):
-  scripts = dict(SCRIPTS, v={"vuln"})
+  scripts = dict(SCRIPTS, v={"vuln"}, x={"exploit", "vuln"}, e={"external", "safe"})
   with open(helperworkflow.os.path.join(helperworkflow.BASE_DIR, "workflows", name + ".yaml"), encoding="utf-8") as f:
     stages = validateWorkflow(name, yaml.safe_load(f), scripts)
   assert stages[0]["source"] is None
@@ -730,7 +730,7 @@ def test_the_expected_workflows_are_shipped():
 def test_every_shipped_workflow_is_valid_with_the_scripts_of_nmap(name):
   assert validateWorkflow(name, shipped(name), installedScripts())
 
-@pytest.mark.parametrize("name,excluded", [("defaults", "external"), ("vuln", "exploit or external")])
+@pytest.mark.parametrize("name,excluded", [("defaults", "external"), ("vuln", "exploit or external"), ("web", "exploit or external")])
 def test_broad_selections_need_confirmation_and_keep_their_exclusions(name, excluded):
   scripts = installedScripts()
   stage = shipped(name)[name]["stages"][-1]

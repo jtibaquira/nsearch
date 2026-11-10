@@ -305,7 +305,7 @@ These workflows are included:
 | `allports` | Find services on any TCP port. It is slower, and allows 60 minutes per host in each stage | None, but it looks at ports 1-65535 |
 | `defaults` | Run nmap's `default` scripts, like `nmap -sC`, without the ones that query third parties | `default_scripts` (`confirm`) |
 | `tls` | Check certificates and known TLS problems | `tls_info`, then `tls_ciphers` with `ssl-enum-ciphers` (`confirm`), because it opens many connections |
-| `web` | Examine HTTP and HTTPS services | `http_enum`, then `http_vuln` (`confirm`) |
+| `web` | Examine HTTP and HTTPS services, without scripts that exploit them or query third parties | `http_enum`, then `http_vuln` (`confirm`) |
 | `ssh` | Read SSH host keys and algorithms | `ssh_enum` |
 | `smb` | Read information from SMB services | `smb_enum` |
 | `ftp` | Check FTP anonymous access and server information | `ftp_enum` |
@@ -336,7 +336,7 @@ web:
     - name: http_vuln
       from: services
       when: {service: [http, https]}
-      arguments: "--script vuln"
+      arguments: "--script 'vuln and not (exploit or external)'"
       confirm: true
 ```
 

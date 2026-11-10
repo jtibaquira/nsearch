@@ -15,5 +15,5 @@ web:
     - name: http_vuln
       from: services
       when: {service: [http, https]}
-      arguments: "--script vuln"
+      arguments: "--script 'vuln and not (exploit or external)'"
       confirm: true
