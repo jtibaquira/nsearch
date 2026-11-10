@@ -130,6 +130,9 @@ class HelperNmap:
     except (dbmodule.lite.Error, OSError):
       scripts = {}
     analyses = [analyzeScriptExpression(expression, scripts, template=True) for expression in expressions]
+    if any(item["folder"] for item in analyses):
+      print(i18n.t("help.help_run_blocked_folder"))
+      return False
     if any(item["blockedSelected"] for item in analyses):
       print(i18n.t("help.help_run_blocked_scripts"))
       return False
