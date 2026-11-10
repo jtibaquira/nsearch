@@ -100,7 +100,7 @@ nsearch> run template:ping net:127.0.0.1
 
 ### Workflows
 
-A workflow is a chain of scans. Each stage only scans what earlier stages found. NSEarch includes `basic`, `ssh`, `smb`, and `web`, and you can add your own in the `workflows` directory.
+A workflow is a chain of scans. Each stage only scans what earlier stages found. NSEarch includes `hosts`, `basic`, `allports`, `defaults`, `tls`, `web`, `ssh`, `smb`, `ftp`, `mail`, `database`, `remote`, and `vuln`. The `web` and `vuln` workflows check for known vulnerabilities without scripts that exploit them or query third parties, and both ask for confirmation. You can add your own workflows in the `workflows` directory.
 
 ```
 nsearch> workflow list
