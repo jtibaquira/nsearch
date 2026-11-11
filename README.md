@@ -205,6 +205,8 @@ nsearch> delfav name:sslv2.nse
 
 `run` requires a target and a template. The target can be a host name, an IP address, or a network range.
 
+Add `output:<name>` to also save the results as plain text in `reports/<name>.txt`, for example `run template:http net:192.0.2.10 output:http-scan`. The name must be a single file name, without a folder; `.txt` is optional. The file gets the same restricted permissions as workflow reports, and an existing file is never overwritten: `run` says so and does not scan. Nothing is saved if the scan is cancelled, blocked or fails.
+
 ```
 nsearch> run template:ping net:127.0.0.1
 Running scan
@@ -380,7 +382,6 @@ On Windows, run the checks with the virtual environment's Python and executables
 
 * GUI
 * Fast-Track
-* Create file output for `run`
 
 ## Feedback
 

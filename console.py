@@ -248,8 +248,10 @@ class Console(cmd.Cmd):
       "\t" + i18n.t("help.help_run") + "",
       "\tnet     : " + i18n.t("help.help_run_net") + "",
       "\ttemplate : " + i18n.t("help.help_run_template") + "",
+      "\toutput   : " + i18n.t("help.help_run_output") + "",
       '\t' + i18n.t("help.help_usage") + ':',
-      '\t\trun template:http net:target']))
+      '\t\trun template:http net:target',
+      '\t\trun template:http net:target output:http-scan']))
 
 
   def do_workflow(self, args):

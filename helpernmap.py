@@ -15,6 +15,37 @@ from scriptpolicy import analyzeScriptExpression, askConfirmation
 
 WINDOWS_NMAP = (r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")
 
+# shlex drops a backslash outside quotes, so output:sub\scan would reach normalizeOutputName as "subscan".
+# This reads the words again without escapes or comments, to reject any backslash the user typed in output:
+def outputHasBackslash(args):
+  lexer = shlex.shlex(args, posix=True)
+  lexer.whitespace_split = True
+  lexer.commenters = ""
+  lexer.escape = ""
+  try:
+    return any(token.startswith("output:") and "\\" in token for token in lexer)
+  except ValueError:
+    return False
+
+# The output name is a single file name saved in reports/ as .txt, so it cannot point anywhere else
+def normalizeOutputName(name):
+  if not name or name.endswith((" ", ".")):
+    return None
+  extension = os.path.splitext(name)[1].lower()
+  if extension not in ("", ".txt"):
+    return None
+  stem = name[:-4] if extension == ".txt" else name
+  if not stem or stem in (".", "..") or stem.endswith((" ", ".")):
+    return None
+  if any(ord(character) < 32 or character in '<>:"/\\|?*' for character in stem):
+    return None
+  reserved = {"CON", "PRN", "AUX", "NUL"}
+  reserved.update("COM" + str(number) for number in range(1, 10))
+  reserved.update("LPT" + str(number) for number in range(1, 10))
+  if stem.split(".", 1)[0].upper() in reserved:
+    return None
+  return stem + ".txt"
+
 # On Windows, only the nmap.exe next to the configured scripts folder or in the standard install folders is run.
 # A bare "nmap" would also be looked up in the current folder and in PATH, where a fake nmap.exe could be waiting
 def newScanner():
@@ -27,6 +58,23 @@ def newScanner():
     return nmap.PortScanner(nmap_search_path=WINDOWS_NMAP)
   return nmap.PortScanner()
 
+def renderScanResults(nm):
+  lines = []
+  for host in nm.all_hosts():
+    lines.append('----------------------------------------------------')
+    lines.append(f"Host : {sanitize(host)} ({sanitize(nm[host].hostname())})")
+    lines.append(f"State : {sanitize(nm[host].state())}")
+    for proto in nm[host].all_protocols():
+      lines.append('----------')
+      lines.append(f"Protocol : {sanitize(proto)}")
+      for port in sorted(nm[host][proto].keys()):
+        info = nm[host][proto][port]
+        if info['state'] == 'open':
+          lines.append(f"port : {port}\tstate : {sanitize(info['state'])} {sanitize(info.get('product', ''))} {sanitize(info.get('version', ''))} ")
+          for k, v in info.get('script', {}).items():
+            lines.append(sanitize(k) + " => " + sanitize(v))
+  return "".join(line + "\n" for line in lines)
+
 
 class HelperNmap:
 
@@ -35,6 +83,7 @@ class HelperNmap:
     self.net = ""
     self.template = ""
     self.arguments = ""
+    self.output = None
 
   def process(self):
     if self.__validateParams() and self.__confirmScripts():
@@ -52,26 +101,40 @@ class HelperNmap:
       except KeyboardInterrupt:
         print(i18n.t("help.help_run_interrupted"))
         return
-      for host in nm.all_hosts():
-        print('----------------------------------------------------')
-        print(f"Host : {sanitize(host)} ({sanitize(nm[host].hostname())})")
-        print(f"State : {sanitize(nm[host].state())}")
-        for proto in nm[host].all_protocols():
-          print('----------')
-          print(f"Protocol : {sanitize(proto)}")
-          for port in sorted(nm[host][proto].keys()):
-            info = nm[host][proto][port]
-            if info['state'] == 'open':
-              print(f"port : {port}\tstate : {sanitize(info['state'])} {sanitize(info.get('product', ''))} {sanitize(info.get('version', ''))} ")
-              for k, v in info.get('script', {}).items():
-                print(sanitize(k) + " => " + sanitize(v))
+      content = renderScanResults(nm)
+      print(content, end="")
+      if self.output is not None:
+        import helperworkflow
+        try:
+          path = helperworkflow.writeRunOutput(self.output, content)
+        except OSError as e:
+          print(i18n.t("help.help_run_output_error") + ": " + sanitize(e))
+          return
+        print(i18n.t("help.help_run_output_saved") + ": " + sanitize(path))
 
   def __validateParams(self):
-    params = parseArgs(self.args, ("net", "template"))
-    if params is None:
-      print(i18n.t("help.help_run_error"))
+    if outputHasBackslash(self.args):
+      print(i18n.t("help.help_run_bad_output"))
       return False
-    return self.__setParams(**params)
+    params = parseArgs(self.args, ("net", "template", "output"))
+    if params is None:
+      try:
+        tokens = shlex.split(self.args)
+      except ValueError:
+        tokens = []
+      if "output:" in tokens:
+        print(i18n.t("help.help_run_bad_output"))
+      else:
+        print(i18n.t("help.help_run_error"))
+      return False
+    if not self.__setParams(**params):
+      return False
+    if self.output is not None:
+      import helperworkflow
+      if os.path.lexists(os.path.join(helperworkflow.REPORTS_DIR, self.output)):
+        print(i18n.t("help.help_run_output_exists"))
+        return False
+    return True
 
   # Private function to validate and set the params
   def __setParams(self, **kwargs):
@@ -80,6 +143,12 @@ class HelperNmap:
       return False
     net = kwargs["net"]
     template = kwargs["template"]
+    output = kwargs.get("output")
+    if output is not None:
+      output = normalizeOutputName(output)
+      if output is None:
+        print(i18n.t("help.help_run_bad_output"))
+        return False
     if not isValidTarget(net):
       print(i18n.t("help.help_run_bad_target"))
       return False
@@ -94,6 +163,7 @@ class HelperNmap:
       print(i18n.t("help.help_run_bad_template"))
       return False
     self.net = net
+    self.output = output
     return True
 
   def __scriptExpressions(self):

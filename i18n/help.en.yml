@@ -19,6 +19,11 @@ en:
   help_run: Run nmap with a template
   help_run_template: Name of the template
   help_run_net: Target
+  help_run_output: Optional file name, saved as plain text in reports/
+  help_run_bad_output: Invalid output file name
+  help_run_output_exists: The output file already exists
+  help_run_output_error: Could not save the output file
+  help_run_output_saved: Output saved
   help_run_error: "Invalid command. Type 'help run' for usage"
   help_command_error: "Type 'help <command>' to see the help menu"
   running_scan: Running scan

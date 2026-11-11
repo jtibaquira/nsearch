@@ -32,6 +32,12 @@ def test_workflow_command_reports_bad_usage(capsys):
   console.Console().onecmd("workflow nope")
   assert "help workflow" in capsys.readouterr().out
 
+def test_run_help_describes_output(capsys):
+  console.Console().onecmd("help run")
+  out = capsys.readouterr().out
+  assert "Optional file name, saved as plain text in reports/" in out
+  assert "run template:http net:target output:http-scan" in out
+
 def test_workflow_resume_is_in_help_and_completion(capsys):
   shell = console.Console()
   assert shell.complete_workflow("res", "workflow res", 9, 12) == ["resume"]
