@@ -451,6 +451,25 @@ def writeReport(runId, extension, content):
       os.remove(tmppath)
   return path
 
+# The file gets the restricted permissions of reports/ (0600, or the ACL of the install folder on Windows). O_EXCL never overwrites a file, and never follows a symlink left at that path
+def writeRunOutput(filename, content):
+  if os.path.islink(REPORTS_DIR) or os.path.isjunction(REPORTS_DIR):
+    raise OSError(i18n.t("help.workflow_report_symlink"))
+  os.makedirs(REPORTS_DIR, mode=0o700, exist_ok=True)
+  path = os.path.join(REPORTS_DIR, filename)
+  fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0), 0o600)
+  try:
+    with os.fdopen(fd, 'w', encoding="utf-8") as f:
+      f.write(content)
+  except BaseException:
+    try:
+      os.close(fd)
+    except OSError:
+      pass
+    os.remove(path)
+    raise
+  return path
+
 def compareRuns(base, other):
   changes = []
   def compare(kind, before, after):

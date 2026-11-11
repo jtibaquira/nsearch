@@ -19,6 +19,11 @@ es:
   help_run: Ejecuta nmap usando las plantillas
   help_run_template: Nombre de la plantilla
   help_run_net: Red o Host Objetivo
+  help_run_output: Nombre de archivo opcional, guardado como texto en reports/
+  help_run_bad_output: Nombre de archivo de salida no válido
+  help_run_output_exists: El archivo de salida ya existe
+  help_run_output_error: No se pudo guardar el archivo de salida
+  help_run_output_saved: Salida guardada
   help_run_error: El comando no es válido por favor use 'help run'
   help_command_error: Escriba 'help command' para ver el menú de ayuda
   running_scan: Ejecutando Escaneo

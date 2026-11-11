@@ -2,6 +2,7 @@ import ntpath
 import os
 import re
 import shlex
+import stat
 from typing import ClassVar
 
 import nmap
@@ -10,6 +11,7 @@ import yaml
 
 import dbmodule
 import helpernmap
+import helperworkflow
 from scriptpolicy import analyzeScriptExpression
 
 
@@ -56,6 +58,38 @@ def test_rejected_without_scanning(scanner, capsys, args, message):
   assert message in capsys.readouterr().out
   assert scanner.calls == []
 
+@pytest.mark.parametrize("name", ["../x", "/tmp/x", r"C:\x", "sub/x", "CON", "NUL.txt", "bad.json", "x.", "..", "a\tb"])
+def test_bad_output_names_are_rejected_without_scanning(scanner, monkeypatch, tmp_path, capsys, name):
+  reports = tmp_path / "reports"
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(reports))
+  helpernmap.HelperNmap("template:ping net:127.0.0.1 output:" + shlex.quote(name)).process()
+  assert "Invalid output file name" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert not reports.exists()
+
+def test_empty_output_name_is_rejected_without_scanning(scanner, monkeypatch, tmp_path, capsys):
+  reports = tmp_path / "reports"
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(reports))
+  helpernmap.HelperNmap("template:ping net:127.0.0.1 output:").process()
+  assert "Invalid output file name" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert not reports.exists()
+
+@pytest.mark.parametrize("given,expected", [("scan", "scan.txt"), ("scan.txt", "scan.txt"), ("Scan.TXT", "Scan.txt")])
+def test_output_name_gets_one_txt_extension(given, expected):
+  assert helpernmap.normalizeOutputName(given) == expected
+
+def test_existing_output_is_rejected_before_scanning(scanner, monkeypatch, tmp_path, capsys):
+  reports = tmp_path / "reports"
+  reports.mkdir()
+  output = reports / "scan.txt"
+  output.write_text("keep", encoding="utf-8")
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(reports))
+  helpernmap.HelperNmap("template:ping net:127.0.0.1 output:scan").process()
+  assert "The output file already exists" in capsys.readouterr().out
+  assert output.read_text(encoding="utf-8") == "keep"
+  assert scanner.calls == []
+
 @pytest.mark.parametrize("net", ["127.0.0.1", "10.0.0.0/24", "scanme.example.org", "fe80::1", "10.0.0.1-5"])
 def test_valid_targets_reach_scanner(scanner, net):
   helpernmap.HelperNmap("template:ping net:" + net).process()
@@ -78,12 +112,14 @@ def test_missing_nmap_is_reported(monkeypatch, capsys):
   (nmap.PortScannerError("bad"), "The scan failed"),
   (KeyboardInterrupt(), "Scan interrupted"),
 ])
-def test_scan_failures_return_to_prompt(scanner, monkeypatch, capsys, error, message):
+def test_scan_failures_return_to_prompt(scanner, monkeypatch, tmp_path, capsys, error, message):
   def fail(self, hosts, arguments):
     raise error
   monkeypatch.setattr(FakeScanner, "scan", fail)
-  helpernmap.HelperNmap("template:ping net:127.0.0.1").process()
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(tmp_path / "reports"))
+  helpernmap.HelperNmap("template:ping net:127.0.0.1 output:scan").process()
   assert message in capsys.readouterr().out
+  assert not (tmp_path / "reports").exists()
 
 def test_scan_output_is_exact(scanner, capsys):
   helpernmap.HelperNmap("net:127.0.0.1 template:ping").process()
@@ -402,7 +438,45 @@ def test_script_option_forms_and_repeated_flags_are_detected(scanner, templates,
     assert asked == []
     assert scanner.calls == [("127.0.0.1", arguments)]
 
-def test_shipped_http_template_excludes_dangerous_categories_against_real_script_db(scanner, monkeypatch, capsys):
+def test_run_output_saves_the_printed_scan_block(scanner, monkeypatch, tmp_path, capsys):
+  reports = tmp_path / "reports"
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(reports))
+  helpernmap.HelperNmap("template:ping net:127.0.0.1 output:scan").process()
+  printed = capsys.readouterr().out
+  content = (reports / "scan.txt").read_text(encoding="utf-8")
+  start = printed.index("----------------------------------------------------")
+  assert printed[start:] == content + "Output saved: " + str(reports / "scan.txt") + "\n"
+  assert "Host : 127.0.0.1 (evil?[31m)" in content and "\x1b" not in content
+  assert scanner.calls == [("127.0.0.1", "-sn -v")]
+
+def test_run_without_output_does_not_create_reports(scanner, monkeypatch, tmp_path):
+  reports = tmp_path / "reports"
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(reports))
+  helpernmap.HelperNmap("template:ping net:127.0.0.1").process()
+  assert scanner.calls == [("127.0.0.1", "-sn -v")]
+  assert not reports.exists()
+
+# On Windows the file takes the ACL of the install folder, which the clean install tests check
+@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
+def test_run_output_permissions_are_restricted(scanner, monkeypatch, tmp_path):
+  reports = tmp_path / "reports"
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(reports))
+  helpernmap.HelperNmap("template:ping net:127.0.0.1 output:scan").process()
+  assert stat.S_IMODE(os.stat(reports / "scan.txt").st_mode) == 0o600
+  assert stat.S_IMODE(os.stat(reports).st_mode) == 0o700
+
+def test_run_output_write_failure_leaves_no_partial_file(scanner, monkeypatch, tmp_path, capsys):
+  reports = tmp_path / "reports"
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(reports))
+  def fail(*args, **kwargs):
+    raise OSError("write failed")
+  monkeypatch.setattr(helperworkflow.os, "fdopen", fail)
+  helpernmap.HelperNmap("template:ping net:127.0.0.1 output:scan").process()
+  assert "Could not save the output file: write failed" in capsys.readouterr().out
+  assert list(reports.iterdir()) == []
+  assert scanner.calls == [("127.0.0.1", "-sn -v")]
+
+def test_shipped_http_template_excludes_dangerous_categories_against_real_script_db(scanner, monkeypatch, tmp_path, capsys):
   realScripts = repoScriptDb()
   assert len(realScripts) == 470
   with open(os.path.join(dbmodule.BASE_DIR, "templates", "http.yaml"), encoding="utf-8") as f:
@@ -422,19 +496,23 @@ def test_shipped_http_template_excludes_dangerous_categories_against_real_script
   upperAnalysis = analyzeScriptExpression("(http-*) AND NOT (BRUTE OR DOS OR EXPLOIT OR FUZZER OR EXTERNAL)", realScripts, template=True)
   assert upperAnalysis["selected"] == analysis["selected"] and upperAnalysis["blockedSelected"] == set()
   monkeypatch.setattr(dbmodule, "scriptCategories", lambda: realScripts)
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(tmp_path / "reports"))
   monkeypatch.setattr("builtins.input", lambda prompt: "n")
-  helpernmap.HelperNmap("template:http net:127.0.0.1").process()
+  helpernmap.HelperNmap("template:http net:127.0.0.1 output:scan").process()
   assert scanner.calls == []
   assert "Scan cancelled" in capsys.readouterr().out
+  assert not (tmp_path / "reports").exists()
   monkeypatch.setattr("builtins.input", lambda prompt: "y")
-  helpernmap.HelperNmap("template:http net:127.0.0.1").process()
+  helpernmap.HelperNmap("template:http net:127.0.0.1 output:scan").process()
   assert scanner.calls == [("127.0.0.1", arguments)]
+  assert (tmp_path / "reports" / "scan.txt").is_file()
 
 def test_template_safety_messages_exist_in_every_language():
   keys = (
     "help_run_plan", "help_run_reason", "help_run_reason_unsafe", "help_run_reason_external",
     "help_run_reason_not", "help_run_reason_unverified", "help_run_confirm",
     "help_run_cancelled", "help_run_blocked_scripts", "help_run_blocked_folder",
+    "help_run_output", "help_run_bad_output", "help_run_output_exists", "help_run_output_error", "help_run_output_saved",
   )
   for lang in ("en", "es"):
     with open(os.path.join(dbmodule.BASE_DIR, "i18n", f"help.{lang}.yml"), encoding="utf-8") as f:
