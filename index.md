@@ -92,10 +92,13 @@ Use `modfav` to change a ranking and `delfav` to remove a script.
 
 **Only scan systems that you own or are explicitly authorized to test.**
 
-`run` scans a target with one of the templates: `ping`, `default`, `http`, or `ssh`. Templates without scripts, or with selectors that choose only `safe` scripts (without `external` or `not`), start without confirmation. Other unblocked selectors ask `[y/N]` before the scanner is created. Scripts in the `dos` and `broadcast` categories are always rejected in templates. The `http` template excludes `brute`, `dos`, `exploit`, `fuzzer`, and `external`; it still includes scripts outside `safe`, so it asks for confirmation.
+`run` scans a target with one of the templates: `ping`, `default`, `http`, or `ssh`. Templates without scripts, or with selectors that choose only `safe` scripts (without `external` or `not`), start without confirmation. Other unblocked selectors ask `[y/N]` before the scanner is created. Scripts in the `dos` and `broadcast` categories are always rejected in templates, and so are script folders and script paths without `.nse`, which nmap could resolve as a script file or a folder. The `http` template excludes `brute`, `dos`, `exploit`, `fuzzer`, and `external`; it still includes scripts outside `safe`, so it asks for confirmation.
+
+Add `output:<name>` to also save the results as plain text in `reports/<name>.txt`. The name must be a single file name, without a folder; `.txt` is optional. The file gets the same restricted permissions as workflow reports, an existing file is never overwritten (`run` says so and does not scan), and nothing is saved if the scan is cancelled, blocked or fails.
 
 ```
 nsearch> run template:ping net:127.0.0.1
+nsearch> run template:http net:192.0.2.10 output:http-scan
 ```
 
 ### Workflows
@@ -131,7 +134,6 @@ nsearch> workflow suggest id:1
 
 * GUI
 * Fast-Track
-* Create file output for `run`
 
 ### Feedback
 

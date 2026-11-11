@@ -1,7 +1,7 @@
 title: NSEarch
 description: Find nmap NSE scripts and run stage-based scan workflows
 show_downloads: true
-theme: jekyll-theme-architect
+theme: jekyll-theme-hacker
 
 plugins:
   - jekyll-mentions
