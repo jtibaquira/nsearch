@@ -15,6 +15,18 @@ from scriptpolicy import analyzeScriptExpression, askConfirmation
 
 WINDOWS_NMAP = (r"C:\Program Files (x86)\Nmap\nmap.exe", r"C:\Program Files\Nmap\nmap.exe")
 
+# shlex drops a backslash outside quotes, so output:sub\scan would reach normalizeOutputName as "subscan".
+# This reads the words again without escapes or comments, to reject any backslash the user typed in output:
+def outputHasBackslash(args):
+  lexer = shlex.shlex(args, posix=True)
+  lexer.whitespace_split = True
+  lexer.commenters = ""
+  lexer.escape = ""
+  try:
+    return any(token.startswith("output:") and "\\" in token for token in lexer)
+  except ValueError:
+    return False
+
 # The output name is a single file name saved in reports/ as .txt, so it cannot point anywhere else
 def normalizeOutputName(name):
   if not name or name.endswith((" ", ".")):
@@ -101,6 +113,9 @@ class HelperNmap:
         print(i18n.t("help.help_run_output_saved") + ": " + sanitize(path))
 
   def __validateParams(self):
+    if outputHasBackslash(self.args):
+      print(i18n.t("help.help_run_bad_output"))
+      return False
     params = parseArgs(self.args, ("net", "template", "output"))
     if params is None:
       try:

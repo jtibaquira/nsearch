@@ -75,6 +75,22 @@ def test_empty_output_name_is_rejected_without_scanning(scanner, monkeypatch, tm
   assert scanner.calls == []
   assert not reports.exists()
 
+@pytest.mark.parametrize("output", [
+  r"output:..\r13-bad",
+  r"output:sub\scan",
+  r'"output:sub\scan"',
+  r'output:"a\b"',
+  r"'output:a'\b",
+  r"output:x#\y",
+])
+def test_output_backslashes_are_rejected_before_scanning(scanner, monkeypatch, tmp_path, capsys, output):
+  reports = tmp_path / "reports"
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(reports))
+  helpernmap.HelperNmap("template:ping net:127.0.0.1 " + output).process()
+  assert "Invalid output file name" in capsys.readouterr().out
+  assert scanner.calls == []
+  assert not reports.exists()
+
 @pytest.mark.parametrize("given,expected", [("scan", "scan.txt"), ("scan.txt", "scan.txt"), ("Scan.TXT", "Scan.txt")])
 def test_output_name_gets_one_txt_extension(given, expected):
   assert helpernmap.normalizeOutputName(given) == expected
