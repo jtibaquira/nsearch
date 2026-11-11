@@ -167,6 +167,54 @@ def test_workflow_tables_are_added_to_existing_databases(db):
   assert tables == []
   assert db.getRuns() == []
 
+def test_workflow_schema_is_prepared_once_for_repeated_connections(db, monkeypatch):
+  prepared = []
+  original = db.__prepareWorkflowSchema
+  def countPreparation(conn):
+    prepared.append(db.dbname)
+    original(conn)
+  monkeypatch.setattr(db, "__prepareWorkflowSchema", countPreparation)
+  for _ in range(4):
+    conn = db.__workflowConnect()
+    conn.close()
+  assert prepared == [db.dbname]
+
+def test_workflow_schema_cache_tracks_dbname_changes(db, monkeypatch, tmp_path):
+  prepared = []
+  original = db.__prepareWorkflowSchema
+  def countPreparation(conn):
+    prepared.append(os.path.normcase(os.path.abspath(db.dbname)))
+    original(conn)
+  monkeypatch.setattr(db, "__prepareWorkflowSchema", countPreparation)
+  firstPath = db.dbname
+  secondPath = str(tmp_path / "other.sqlite3")
+  for path in (firstPath, secondPath, firstPath):
+    monkeypatch.setattr(db, "dbname", path)
+    conn = db.__workflowConnect()
+    conn.close()
+  assert prepared == [
+    os.path.normcase(os.path.abspath(firstPath)),
+    os.path.normcase(os.path.abspath(secondPath)),
+    os.path.normcase(os.path.abspath(firstPath)),
+  ]
+
+def test_workflow_schema_is_prepared_again_after_script_db_rebuild(db, monkeypatch):
+  runId = db.createRun("web", "10.0.0.0/24", STAGES)
+  oldHash = checksum(db)
+  prepared = []
+  original = db.__prepareWorkflowSchema
+  def countPreparation(conn):
+    prepared.append(db.dbname)
+    original(conn)
+  monkeypatch.setattr(db, "__prepareWorkflowSchema", countPreparation)
+  monkeypatch.setattr(db, "currentChecksum", oldHash)
+  with open(db.filePath, "a", encoding="utf-8") as scriptDb:
+    scriptDb.write('Entry { filename = "new.nse", categories = { "safe", } }\n')
+  db.updateApp()
+  details = db.getRun(runId)
+  assert prepared == [db.dbname]
+  assert details["run"]["id"] == runId
+
 def test_script_categories(db):
   categories = db.scriptCategories()
   assert categories["http-title"] == {"default", "safe"}
