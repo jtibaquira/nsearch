@@ -23,7 +23,7 @@ banner = '\033[0;36m' + r'''
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-    Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira
+    Version 0.6b  https://github.com/jtibaquira/nsearch  @jjtibaquira
     Email: jacobotibaquira@gmail.com
   ================================================
 ''' + '\033[0m'

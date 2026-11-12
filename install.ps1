@@ -13,7 +13,7 @@ Write-Host '| . ` | `--. \|  __|  / _` || ''__| / __|| ''_  |'
 Write-Host '| |\  |/\__/ /| |___ | (_| || |   | (__ | | | |'
 Write-Host '\_| \_/\____/ \____/  \__,_||_|    \___||_| |_|'
 Write-Host '================================================='
-Write-Host " Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira"
+Write-Host " Version 0.6b  https://github.com/jtibaquira/nsearch  @jjtibaquira"
 Write-Host " Email: jacobotibaquira@gmail.com"
 Write-Host '================================================='
 Write-Host ""

@@ -17,7 +17,7 @@ echo "| . \` | \`--. \|  __|  / _\` || '__| / __|| '_ \ ";
 echo "| |\  |/\__/ /| |___ | (_| || |   | (__ | | | |";
 echo "\_| \_/\____/ \____/  \__,_||_|    \___||_| |_|";
 echo "=================================================";
-echo " Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira";
+echo " Version 0.6b  https://github.com/jtibaquira/nsearch  @jjtibaquira";
 echo " Email: jacobotibaquira@gmail.com";
 echo "=================================================";
 printf "\n"

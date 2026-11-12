@@ -7,7 +7,7 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira
+   Version 0.6b  https://github.com/jtibaquira/nsearch  @jjtibaquira
    Email: jacobotibaquira@gmail.com
   ================================================
 ```
@@ -20,7 +20,7 @@ NSEarch helps you find the scripts used by nmap (NSE). You can search by name, c
 
 ## Version
 
-0.5b
+0.6b
 
 ## Requirements
 
