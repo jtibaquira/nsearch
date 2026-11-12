@@ -3,6 +3,7 @@ import os
 import re
 import shlex
 import stat
+import xml.etree.ElementTree as ET
 from typing import Any
 
 import nmap
@@ -12,6 +13,7 @@ import yaml
 import dbmodule
 import helperworkflow
 from helperworkflow import WorkflowError, validateArguments, validateWorkflow
+from scriptpolicy import analyzeScriptExpression
 
 SCRIPTS = {"http-title": {"default", "safe"}, "http-headers": {"discovery", "safe"}, "http-sql": {"intrusive", "vuln"},
   "http-slowloris": {"dos", "intrusive"}, "v-safe": {"safe", "vuln"}, "ssh-hostkey": {"default", "safe"},
@@ -21,11 +23,12 @@ def args(arguments, source=None, confirm=False):
   return validateArguments(arguments, source, confirm, "15m", SCRIPTS)
 
 class FakeHost(dict):
-  def __init__(self, ports, state="up", hostname="", hostscript=None):
+  def __init__(self, ports, state="up", hostname="", hostscript=None, timedout=False):
     self.ports = ports
     self.hostState = state
     self.name = hostname
     self.hostscript = hostscript
+    self.timedout = timedout
     if hostscript:
       dict.__init__(self, hostscript=hostscript)
   def hostname(self):
@@ -41,6 +44,7 @@ class FakeScanner:
   def __init__(self):
     self.calls = []
     self.results = {}
+    self.xml = {}
     self.error = None
     self.current = {}
   def scan(self, hosts, ports=None, arguments=""):
@@ -56,11 +60,23 @@ class FakeScanner:
     return list(self.current)
   def __getitem__(self, host):
     return self.current[host]
+  def get_nmap_last_output(self):
+    if isinstance(self.xml, dict):
+      if len(self.calls) - 1 in self.xml:
+        return self.xml[len(self.calls) - 1]
+    elif self.xml is not None:
+      return self.xml
+    root = ET.Element("nmaprun")
+    for address, host in self.current.items():
+      item = ET.SubElement(root, "host", {"timedout": "true"} if host.timedout else {})
+      ET.SubElement(item, "status", {"state": host.state()})
+      ET.SubElement(item, "address", {"addr": str(address), "addrtype": "ipv6" if ":" in str(address) else "ipv4"})
+    return ET.tostring(root)
 
 @pytest.fixture
 def scanner(monkeypatch):
   fake = FakeScanner()
-  monkeypatch.setattr(nmap, "PortScanner", lambda: fake)
+  monkeypatch.setattr(nmap, "PortScanner", lambda **kwargs: fake)
   return fake
 
 @pytest.fixture
@@ -112,16 +128,32 @@ def test_safe_scripts_need_no_confirmation_and_blocked_are_excluded():
   result = args("--script http-headers,http-title", "services")
   assert "(http-headers or http-title) and not (broadcast or dos)" in result
 
-@pytest.mark.parametrize("expression", ["http-sql", "vuln", "http-*", "not safe", "safe and not http-title", "intrusive"])
+@pytest.mark.parametrize("expression", ["http-sql", "vuln", "http-*", "(http-*) and safe", "not safe", "safe and not http-title", "intrusive"])
 def test_unsafe_scripts_require_confirm(expression):
   with pytest.raises(WorkflowError, match="confirm"):
     args("--script '" + expression + "'", "services")
   assert "and not (broadcast or dos)" in args("--script '" + expression + "'", "services", True)
 
-@pytest.mark.parametrize("expression", ["dos", "broadcast", "http-slowloris", "http-title or dos", "unknown-script", "/tmp/evil.lua", "../x", "http-title;id"])
+@pytest.mark.parametrize("expression", ["dos", "broadcast", "not dos", "not broadcast", "http-slowloris", "not http-slowloris", "http-title or dos", "unknown-script", "/tmp/evil.lua", "../x", "http-title;id"])
 def test_forbidden_scripts_are_rejected_even_with_confirm(expression):
   with pytest.raises(WorkflowError):
     args("--script '" + expression + "'", "services", True)
+
+@pytest.mark.parametrize("expression", [
+  "DOS", "Broadcast", "not DOS", "safe and not Dos", "SAFE", "SAFE AND NOT DOS",
+  "http-title OR ssh2-enum-algos", "http-title AND safe", "NOT safe",
+  "ALL", "TRUE", "FALSE", "HTTP-Title", "HTTP-*", "http-title.NSE",
+])
+def test_workflows_reject_uppercase_categories_operators_keywords_and_script_names(expression):
+  for confirm in (False, True):
+    with pytest.raises(WorkflowError):
+      args("--script '" + expression + "'", "services", confirm)
+
+def test_wildcard_matching_only_blocked_scripts_is_allowed_and_filtered_by_suffix():
+  assert "and not (broadcast or dos)" in args("--script 'bc*'", "services")
+  with pytest.raises(WorkflowError, match="confirm"):
+    args("--script 'http-slowloris*'", "services")
+  assert "and not (broadcast or dos)" in args("--script 'http-slowloris*'", "services", True)
 
 @pytest.mark.parametrize("expression", ["bc) or (http-title", "vuln) or (http-title", "(http-title", "http-title)", "http-title) or (", ")("])
 def test_unbalanced_expressions_cannot_escape_the_exclusions(expression):
@@ -135,6 +167,24 @@ def test_script_args_rules():
   with pytest.raises(WorkflowError):
     args("--script-args newtargets", "services", True)
   assert "--script-args a=1" in args("--script-args a=1", "services", True)
+
+def test_external_scripts_marked_safe_still_require_confirm():
+  scripts = dict(SCRIPTS, ext={"safe", "external"})
+  analysis = analyzeScriptExpression("ext", scripts)
+  assert analysis["parsed"] and not analysis["unsafe"] and analysis["external"] and analysis["needsConfirm"]
+  assert analysis["categories"] == {"safe", "external"}
+
+def test_negative_exclusions_are_not_counted_as_selected_categories():
+  scripts = dict(SCRIPTS, ext={"safe", "external"})
+  analysis = analyzeScriptExpression("(http-*) and not (dos or vuln or external)", scripts)
+  assert analysis["parsed"] and not analysis["blockedSelected"]
+  assert analysis["blockedToken"] == {"dos"}
+  assert analysis["selected"] == {"http-title", "http-headers"}
+  assert analysis["categories"] == {"default", "discovery", "safe"}
+  assert not (analysis["categories"] & {"dos", "vuln", "external"})
+  with pytest.raises(WorkflowError):
+    validateArguments("--script '(http-*) and not (dos or vuln or external)'", "services", True, "15m", scripts)
+  assert "and not (broadcast or dos)" in validateArguments("--script '(http-*) and not (vuln or external)'", "services", True, "15m", scripts)
 
 # ---- Workflow structure
 
@@ -159,7 +209,7 @@ def test_invalid_workflows_are_rejected(stages):
 
 @pytest.mark.parametrize("name", ["basic", "ssh", "web"])
 def test_shipped_workflows_are_valid(name):
-  scripts = dict(SCRIPTS, v={"vuln"})
+  scripts = dict(SCRIPTS, v={"vuln"}, x={"exploit", "vuln"}, e={"external", "safe"})
   with open(helperworkflow.os.path.join(helperworkflow.BASE_DIR, "workflows", name + ".yaml"), encoding="utf-8") as f:
     stages = validateWorkflow(name, yaml.safe_load(f), scripts)
   assert stages[0]["source"] is None
@@ -310,7 +360,7 @@ def test_interrupted_confirmation_counts_as_no(monkeypatch):
 def test_missing_nmap(db, workflows, answers, monkeypatch, capsys):
   workflows("w", CHAIN)
   monkeypatch.setattr(db, "scriptCategories", lambda: SCRIPTS)
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("not found")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   answers.append("y")
@@ -624,7 +674,7 @@ def test_a_resumed_run_can_stop_and_resume_again(db, scanner, workflows, answers
 def test_resume_without_nmap_changes_nothing(db, workflows, answers, catalog, monkeypatch, capsys):
   runId = savedRun(db, ["completed", "interrupted"], workflows=workflows)
   before = db.getRun(runId)
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("not found")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   answers.append("y")
@@ -641,7 +691,8 @@ def test_resume_does_not_print_control_characters(db, scanner, workflows, answer
   assert "\x1b" not in capsys.readouterr().out
 
 def installedScripts():
-  for path in ("/opt/homebrew/share/nmap/scripts/script.db", "/usr/local/share/nmap/scripts/script.db", "/usr/share/nmap/scripts/script.db"):
+  for path in ("/opt/homebrew/share/nmap/scripts/script.db", "/usr/local/share/nmap/scripts/script.db", "/usr/share/nmap/scripts/script.db",
+    r"C:\Program Files (x86)\Nmap\scripts\script.db", r"C:\Program Files\Nmap\scripts\script.db"):
     if helperworkflow.os.path.exists(path):
       with open(path, encoding="utf-8") as f:
         return {name: set(re.findall(r'"([a-z]+)"', categories)) for name, categories in re.findall(r'filename = "([^"]+)\.nse", categories = \{([^}]*)\}', f.read())}
@@ -679,7 +730,7 @@ def test_the_expected_workflows_are_shipped():
 def test_every_shipped_workflow_is_valid_with_the_scripts_of_nmap(name):
   assert validateWorkflow(name, shipped(name), installedScripts())
 
-@pytest.mark.parametrize("name,excluded", [("defaults", "external"), ("vuln", "exploit or external")])
+@pytest.mark.parametrize("name,excluded", [("defaults", "external"), ("vuln", "exploit or external"), ("web", "exploit or external")])
 def test_broad_selections_need_confirmation_and_keep_their_exclusions(name, excluded):
   scripts = installedScripts()
   stage = shipped(name)[name]["stages"][-1]
@@ -804,13 +855,21 @@ def test_reports_are_only_readable_by_their_owner(db, scanner, workflows, answer
   assert stat.S_IMODE(os.stat(reports).st_mode) == 0o700
   assert os.listdir(reports) == ["workflow-1." + extension]
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions")
+def symlinkOrSkip(link, target):
+  try:
+    link.symlink_to(target)
+  except OSError as error:
+    # Windows only lets an Administrator, or Developer Mode, create symbolic links. CI has that right, so it never skips there
+    if getattr(error, "winerror", None) == 1314 and not os.environ.get("CI"):
+      pytest.skip("this Windows account cannot create symbolic links")
+    raise
+
 def test_report_replaces_a_symlink_instead_of_following_it(db, scanner, workflows, answers, catalog, reports, tmp_path):
   fullRun(scanner, workflows, answers)
   reports.mkdir()
   victim = tmp_path / "victim"
   victim.write_text("original", encoding="utf-8")
-  (reports / "workflow-1.md").symlink_to(victim)
+  symlinkOrSkip(reports / "workflow-1.md", victim)
   report()
   assert victim.read_text(encoding="utf-8") == "original"
   assert not (reports / "workflow-1.md").is_symlink()
@@ -1168,7 +1227,7 @@ def test_an_unfinished_suggestion_is_offered_again(db, scanner, catalog, answers
   assert "1. http-headers" in capsys.readouterr().out
 
 def test_suggest_without_nmap_changes_nothing(db, catalog, answers, monkeypatch, capsys):
-  def missing():
+  def missing(**kwargs):
     raise nmap.PortScannerError("missing")
   monkeypatch.setattr(nmap, "PortScanner", missing)
   runId = foundRun(db)
@@ -1196,13 +1255,7 @@ def test_report_explains_a_suggested_stage(db, scanner, catalog, answers, report
   assert stage["targets"] == [{"target": "10.0.0.1", "ports": "80"}]
 
 def test_every_service_in_the_table_has_real_safe_scripts():
-  dbFile = "/opt/homebrew/share/nmap/scripts/script.db"
-  if not os.path.isfile(dbFile):
-    pytest.skip("nmap is not installed here")
-  scripts = {}
-  with open(dbFile, encoding="utf-8") as f:
-    for name, found in re.findall(r'filename = "([^"]+)\.nse", categories = \{([^}]*)\}', f.read()):
-      scripts[name] = set(re.findall(r'"([a-z]+)"', found))
+  scripts = installedScripts()
   for service in helperworkflow.SUGGESTIONS:
     names = helperworkflow.suggestedScripts(service, scripts, set())
     assert names, service
@@ -1276,12 +1329,23 @@ def test_compare_does_not_warn_about_equal_stages(db, scanner, workflows, answer
   compare()
   assert "different stages" not in capsys.readouterr().out
 
-@pytest.mark.skipif(os.name == "nt", reason="symlink permissions")
 def test_report_rejects_a_symlinked_folder(db, scanner, workflows, answers, catalog, reports, tmp_path, capsys):
   fullRun(scanner, workflows, answers)
   outside = tmp_path / "outside"
   outside.mkdir()
-  reports.symlink_to(outside)
+  symlinkOrSkip(reports, outside)
+  capsys.readouterr()
+  report()
+  assert "symbolic link" in capsys.readouterr().out
+  assert os.listdir(outside) == []
+
+@pytest.mark.skipif(os.name != "nt", reason="junctions only exist on Windows")
+def test_report_rejects_a_junction(db, scanner, workflows, answers, catalog, reports, tmp_path, capsys):
+  import _winapi
+  fullRun(scanner, workflows, answers)
+  outside = tmp_path / "outside"
+  outside.mkdir()
+  _winapi.CreateJunction(str(outside), str(reports))
   capsys.readouterr()
   report()
   assert "symbolic link" in capsys.readouterr().out
@@ -1680,3 +1744,184 @@ def test_a_previous_run_that_did_not_look_for_ports_is_not_compared(db, scanner,
   runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
   last = runChain(db, scanner, workflows, answers, monkeypatch, {0: {}})
   assert warningsOf(db.getRun(last)) == [{"type": "port_not_seen", "address": "10.0.0.1", "protocol": "tcp", "port": 80, "run": first}]
+
+def test_a_host_that_times_out_in_a_port_scan_is_reported_and_not_scanned_again(db, scanner, workflows, answers, monkeypatch, capsys):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({}, timedout=True)}})
+  out = capsys.readouterr().out
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert [stage["status"] for stage in details["stages"]] == ["completed", "completed", "skipped", "skipped"]
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert db.getLiveHosts(runId) == []
+  assert len(scanner.calls) == 2
+  assert "[3/4] services: skipped, nothing left to scan after the warnings of this run" in out
+  assert "nothing to scan" not in out
+  assert "    [!] 10.0.0.1 the host timed out in this stage\n" in out
+
+def test_a_host_that_times_out_after_ports_were_found_drops_its_ports_for_later_stages(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: UP, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.1": FakeHost({}, timedout=True)}})
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert db.getOpenPorts(runId) == {"10.0.0.1": [80]}
+  assert [item["port"] for item in details["services"]] == [80]
+  assert details["stages"][3]["status"] == "skipped"
+  assert len(scanner.calls) == 3
+
+def test_a_host_timeout_survives_interrupting_and_resuming_the_run(db, scanner, workflows, answers, monkeypatch):
+  two = {"10.0.0.1": FakeHost({}), "10.0.0.2": FakeHost({})}
+  scanner.error = (5, KeyboardInterrupt())
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: two, 1: {"10.0.0.1": FakeHost({80: HTTP_OPEN})}, 2: {"10.0.0.2": FakeHost({80: HTTP_OPEN})},
+    3: {"10.0.0.1": FakeHost({}, timedout=True)}}, net="10.0.0.0/24")
+  assert db.getRun(runId)["run"]["status"] == "interrupted"
+  scanner.error = None
+  scanner.results = {5: {"10.0.0.2": FakeHost({80: HTTP_OPEN})}, 6: {"10.0.0.2": FakeHost({80: HTTP_OPEN})}}
+  answers.append("y")
+  helperworkflow.HelperWorkflow("id:" + str(runId), "resume").process()
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert [(hosts, ports) for hosts, ports, _ in scanner.calls[5:]] == [("10.0.0.2", "80"), ("10.0.0.2", "80")]
+  assert [item["address"] for item in details["services"]] == ["10.0.0.1", "10.0.0.2"]
+
+def test_a_host_that_times_out_in_the_first_stage_is_reported_and_skipped_later(db, scanner, workflows, answers, monkeypatch, capsys):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: {"10.0.0.1": FakeHost({}, timedout=True)}})
+  out = capsys.readouterr().out
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert db.getLiveHosts(runId) == []
+  assert len(scanner.calls) == 1
+  assert "[2/4] ports: skipped, nothing left to scan after the warnings of this run" in out
+
+def test_a_host_timeout_appears_in_the_reports(db, scanner, workflows, answers, monkeypatch, tmp_path):
+  monkeypatch.setattr(helperworkflow, "REPORTS_DIR", str(tmp_path / "reports"))
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {0: UP, 1: {"10.0.0.1": FakeHost({}, timedout=True)}})
+  helperworkflow.HelperWorkflow("id:" + str(runId) + " format:json", "report").process()
+  saved = json.loads((tmp_path / "reports" / ("workflow-" + str(runId) + ".json")).read_text(encoding="utf-8"))
+  assert saved["run"]["status"] == "completed_with_warnings"
+  assert saved["stages"][1]["warnings"] == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  helperworkflow.HelperWorkflow("id:" + str(runId), "report").process()
+  text = (tmp_path / "reports" / ("workflow-" + str(runId) + ".md")).read_text(encoding="utf-8")
+  assert "- Warnings:\n  - 10.0.0.1 the host timed out in this stage" in text
+  assert "A missing result does not prove that a port is closed" in text
+
+def test_timed_out_hosts_outside_the_scope_or_with_damaged_xml_are_ignored(scanner):
+  scanner.xml = '<nmaprun><host timedout="false"><address addr="10.0.0.1"/></host><host timedout="true"><address addr="00:11:22:33:44:55" addrtype="mac"/><address addr="8.8.8.8"/></host></nmaprun>'
+  assert helperworkflow.timedOutHosts(scanner, {"10.0.0.1"}) == set()
+  scanner.xml = "not xml"
+  assert helperworkflow.timedOutHosts(scanner, None) == set()
+  scanner.xml = ""
+  assert helperworkflow.timedOutHosts(scanner, None) == set()
+
+@pytest.mark.parametrize("results", [
+  {0: UP, 1: {"10.0.0.1": FakeHost({}, timedout=True)}},
+  {0: {"10.0.0.1": FakeHost({}, timedout=True)}},
+])
+def test_a_host_that_times_out_does_not_also_warn_about_ports_from_an_earlier_run(db, scanner, workflows, answers, monkeypatch, results):
+  runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  second = runChain(db, scanner, workflows, answers, monkeypatch, results)
+  assert warningsOf(db.getRun(second)) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+
+def test_a_discovery_timeout_on_one_host_of_a_network_lets_the_others_continue(db, scanner, workflows, answers, monkeypatch):
+  alive = FakeHost({80: HTTP_OPEN})
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: {"10.0.0.1": FakeHost({}, timedout=True), "10.0.0.2": FakeHost({})},
+    1: {"10.0.0.2": alive},
+    2: {"10.0.0.2": alive},
+    3: {"10.0.0.2": FakeHost({80: {"state": "open", "name": "http", "script": {"http-title": "Home"}}})},
+  }, net="10.0.0.0/24")
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+  assert [(hosts, ports) for hosts, ports, _ in scanner.calls] == [("10.0.0.0/24", None), ("10.0.0.2", None), ("10.0.0.2", "80"), ("10.0.0.2", "80")]
+  assert [item["address"] for item in details["findings"]] == ["10.0.0.2"]
+
+def test_an_ipv6_host_that_times_out_is_reported(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, {
+    0: {"fe80::1": FakeHost({})},
+    1: {"fe80::1": FakeHost({}, timedout=True)},
+  }, net="fe80::1")
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "fe80::1"}]
+  assert len(scanner.calls) == 2
+
+def test_a_suggested_stage_where_a_host_times_out_marks_the_run(db, scanner, workflows, answers, monkeypatch):
+  runId = runChain(db, scanner, workflows, answers, monkeypatch, FULL_RUN)
+  scanner.calls.clear()
+  scanner.results = {0: {"10.0.0.1": FakeHost({}, timedout=True)}}
+  answers += ["1", "y"]
+  helperworkflow.HelperWorkflow("id:" + str(runId), "suggest").process()
+  details = db.getRun(runId)
+  assert details["run"]["status"] == "completed_with_warnings"
+  assert warningsOf(details) == [{"type": "host_timeout", "address": "10.0.0.1"}]
+
+# ---- TLS and service tunnels
+
+def test_collect_results_parses_tunnels_from_nmap_xml(scanner):
+  scanner.results = {0: {"10.0.0.1": FakeHost({443: {"state": "open", "name": "http", "product": "nginx", "version": "1.2", "conf": "10"},
+    80: {"state": "open", "name": "http", "conf": "10"}})}}
+  scanner.xml = {0: """<nmaprun><host><address addr="00:11:22:33:44:55" addrtype="mac"/><address addr="10.0.0.1" addrtype="ipv4"/>
+    <ports><port protocol="tcp" portid="443"><state state="open"/><service name="http" tunnel="ssl" conf="10"/></port>
+    <port protocol="tcp" portid="80"><state state="open"/><service name="http" conf="10"/></port></ports></host></nmaprun>"""}
+  scanner.scan("10.0.0.1", "80,443", "-sV")
+  _, services, _ = helperworkflow.collectResults(scanner, {"10.0.0.1"})
+  byPort = {item["port"]: item["tunnel"] for item in services}
+  assert byPort == {80: "", 443: "ssl"}
+
+@pytest.mark.parametrize("port,service", [(22, "ssh"), (80, "http")])
+def test_tls_workflow_skips_non_tls_services_without_asking(db, scanner, monkeypatch, port, service):
+  found = {port: {"state": "open", "name": service, "conf": "10"}}
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": FakeHost(found)}, 2: {"10.0.0.1": FakeHost(found)}}
+  runShipped("tls", monkeypatch, "y")
+  details = db.getRun(1)
+  assert len(scanner.calls) == 3
+  assert [stage["status"] for stage in details["stages"]] == ["completed", "completed", "completed", "skipped", "skipped"]
+
+def test_tls_workflow_scans_explicit_tls_services_and_http_with_ssl_tunnel(db, scanner, monkeypatch):
+  found = {22: {"state": "open", "name": "ssh", "conf": "10"}, 80: {"state": "open", "name": "http", "conf": "10"},
+    443: {"state": "open", "name": "https", "conf": "10"}, 8443: {"state": "open", "name": "http", "conf": "10"}}
+  scanner.results = {0: {"10.0.0.1": FakeHost({})}, 1: {"10.0.0.1": FakeHost(found)}, 2: {"10.0.0.1": FakeHost(found)}}
+  scanner.xml = {2: """<nmaprun><host><address addr="10.0.0.1" addrtype="ipv4"/><ports>
+    <port protocol="tcp" portid="8443"><state state="open"/><service name="http" tunnel="ssl" conf="10"/></port>
+    </ports></host></nmaprun>"""}
+  runShipped("tls", monkeypatch, "y", "y")
+  assert len(scanner.calls) == 5
+  assert scanner.calls[3][:2] == ("10.0.0.1", "443,8443")
+  assert scanner.calls[4][:2] == ("10.0.0.1", "443,8443")
+  assert [stage["status"] for stage in db.getRun(1)["stages"]] == ["completed"] * 5
+
+@pytest.mark.parametrize("when", [{"service": ["https"]}, {"tunnel": ["ssl"]}, {"service": ["https"], "tunnel": ["ssl"]}])
+def test_when_accepts_service_tunnel_or_both(when):
+  stages = validateWorkflow("w", {"w": {"stages": [CHAIN[0], {"name": "tls", "from": "services", "when": when, "arguments": "-sV"}]}}, SCRIPTS)
+  assert stages[1]["services"] == when.get("service")
+  assert stages[1].get("tunnels") == when.get("tunnel")
+
+@pytest.mark.parametrize("when", [{}, {"service": []}, {"tunnel": []}, {"tunnel": "ssl"}, {"other": ["x"]}, {"service": [""]}, {"tunnel": [1]}])
+def test_when_rejects_invalid_service_and_tunnel_filters(when):
+  with pytest.raises(WorkflowError):
+    validateWorkflow("w", {"w": {"stages": [CHAIN[0], {"name": "tls", "from": "services", "when": when, "arguments": "-sV"}]}}, SCRIPTS)
+
+def test_user_workflows_without_tunnel_keep_their_saved_definition_shape():
+  stage = validateWorkflow("w", {"w": {"stages": CHAIN}}, SCRIPTS)[3]
+  assert "tunnels" not in stage
+  assert json.loads(dbmodule.stageDefinition(stage)) == {
+    "arguments": stage["arguments"], "confirm": False, "name": "enum", "services": ["http"], "source": "services"}
+  withTunnel = validateWorkflow("w", {"w": {"stages": [CHAIN[0], {"name": "t", "from": "services", "when": {"tunnel": ["ssl"]}, "arguments": "-sV"}]}}, SCRIPTS)[1]
+  assert json.loads(dbmodule.stageDefinition(withTunnel))["tunnels"] == ["ssl"]
+
+def test_report_reasons_include_tunnels_in_every_language():
+  both = '{"source": "services", "services": ["https"], "tunnels": ["ssl"]}'
+  onlyTunnel = '{"source": "services", "services": null, "tunnels": ["ssl"]}'
+  badTunnel = '{"source": "services", "services": ["https"], "tunnels": "ssl"}'
+  assert "https" in helperworkflow.stageReason({"definition": both, "status": "completed"})
+  assert "or these tunnels: ssl" in helperworkflow.stageReason({"definition": both, "status": "completed"})
+  assert "with these tunnels: ssl" in helperworkflow.stageReason({"definition": onlyTunnel, "status": "completed"})
+  assert "Not recorded" in helperworkflow.stageReason({"definition": badTunnel, "status": "completed"})
+  for lang in ("en", "es"):
+    with open(os.path.join(dbmodule.BASE_DIR, "i18n", "help." + lang + ".yml"), encoding="utf-8") as f:
+      messages = yaml.safe_load(f)[lang]
+    assert messages["report_reason_tunnels"] and messages["report_reason_or_tunnels"]

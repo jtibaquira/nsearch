@@ -19,6 +19,11 @@ en:
   help_run: Run nmap with a template
   help_run_template: Name of the template
   help_run_net: Target
+  help_run_output: Optional file name, saved as plain text in reports/
+  help_run_bad_output: Invalid output file name
+  help_run_output_exists: The output file already exists
+  help_run_output_error: Could not save the output file
+  help_run_output_saved: Output saved
   help_run_error: "Invalid command. Type 'help run' for usage"
   help_command_error: "Type 'help <command>' to see the help menu"
   running_scan: Running scan
@@ -29,6 +34,16 @@ en:
   help_run_nmap_missing: nmap was not found. Install it and try again
   help_run_scan_error: The scan failed
   help_run_interrupted: Scan interrupted
+  help_run_plan: Template scan for target
+  help_run_reason: Reason
+  help_run_reason_unsafe: selects scripts outside the safe category
+  help_run_reason_external: selects external scripts that may contact third-party services
+  help_run_reason_not: uses a negated script selector (not)
+  help_run_reason_unverified: uses a script selector that could not be verified
+  help_run_confirm: Are you authorized to scan this target, and do you want to run this template?
+  help_run_cancelled: Scan cancelled
+  help_run_blocked_scripts: This template uses scripts in the dos or broadcast categories, which are not allowed
+  help_run_blocked_folder: This template uses a script folder or a script path without .nse, which is not allowed. Name the scripts or categories instead, or add .nse to the path
   help_workflow: Run a chain of scans, where each stage uses what the previous one found
   help_workflow_name: Name of the workflow
   help_workflow_id: Number of a previous run
@@ -60,6 +75,7 @@ en:
   workflow_no_targets_warning: skipped, nothing left to scan after the warnings of this run
   workflow_resume_warning: This run has warnings and cannot be resumed. Start a new run later if needed
   workflow_warning_host_missing: the host did not answer this stage
+  workflow_warning_host_timeout: the host timed out in this stage
   workflow_warning_port_changed: open earlier in this run, now seen differently
   workflow_warning_port_missing: open earlier in this run, not reported by this stage
   workflow_warning_port_not_seen: seen open by an earlier run, not seen by this one
@@ -99,6 +115,8 @@ en:
   report_reason_live_hosts: It scans the live hosts found in this run
   report_reason_open_ports: It scans the open ports found in this run
   report_reason_services: It scans the open ports found in this run with these services
+  report_reason_tunnels: It scans the open ports found in this run with these tunnels
+  report_reason_or_tunnels: or these tunnels
   report_reason_all_services: It scans the services found in this run
   report_reason_suggestion: Suggested by workflow suggest and approved by the operator, for this service
   report_reason_unknown: Not recorded by the version that ran this stage

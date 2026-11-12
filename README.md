@@ -7,7 +7,7 @@
    | |\  |/\__/ /| |___ | (_| || |   | (__ | | | |
    \_| \_/\____/ \____/  \__,_||_|    \___||_| |_|
   ================================================
-   Version 0.5b  https://github.com/jtibaquira/nsearch  @jjtibaquira
+   Version 0.6b  https://github.com/jtibaquira/nsearch  @jjtibaquira
    Email: jacobotibaquira@gmail.com
   ================================================
 ```
@@ -20,12 +20,14 @@ NSEarch helps you find the scripts used by nmap (NSE). You can search by name, c
 
 ## Version
 
-0.5b
+0.6b
 
 ## Requirements
 
 - Python 3.12 or later. It is the oldest version with at least one more year of security support, until October 2028
 - nmap
+
+On Windows 10/11, install Python 3.12 or later and the official Nmap installer, including Npcap. The Windows installer accepts either the Python launcher (`py -3`) or `python`.
 
 The Python dependencies are listed in `requirements.txt`. The install script places them in a local virtual environment.
 
@@ -47,6 +49,44 @@ $ bash install.sh
 ```
 
 Use `bash`, not `sh`: under `sh`, the script stops and asks you to run it with `bash`.
+
+### Windows 10/11 installation
+
+Run PowerShell from the project directory:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1
+```
+
+The installer creates `.venv` and `config.yaml`. If Nmap is installed in a different directory, pass its installation path with `-NmapDir`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -NmapDir 'D:\Tools\Nmap'
+```
+
+NSEarch runs the `nmap.exe` in the folder above `scriptsPath` when `scriptsPath` is a full path with a drive letter or a network share, or the one in a standard Nmap install folder. It never runs an `nmap.exe` from `PATH` or from the current folder.
+
+The installer restricts the project folder to your account, `SYSTEM`, and `Administrators`. New files and folders inside it, including the configuration and the SQLite database, inherit those permissions, while `reports` gets its own ACL restricted to your account as owner, `SYSTEM`, and `Administrators`. It does not request or need Administrator privileges. If it cannot apply the permissions, it stops and advises you to clone the project into a folder you own.
+
+In `config.yaml`, quote Windows paths with single quotes. Do not put a trailing slash on `scriptsPath`:
+
+```yaml
+config:
+  scriptsPath: 'C:\Program Files (x86)\Nmap\scripts'
+  filePath: 'C:\Program Files (x86)\Nmap\scripts\script.db'
+```
+
+Run NSEarch with the virtual environment's Python:
+
+```powershell
+.\.venv\Scripts\python.exe nsearch.py
+```
+
+Without Administrator privileges, nmap uses a connect scan (`-sT`), as it does without root on Unix. The included templates and workflows do not use `-sS`, `-O`, `-sU`, or `-A`.
+
+The Windows console does not provide readline, so Tab autocompletion is unavailable. NSEarch enables ANSI colors at startup; older consoles that do not support them may show the color codes as text. Windows Terminal is recommended.
+
+If you press Ctrl+C during a workflow, nmap is stopped. Use `workflow resume id:<id>` to continue with the saved results; see [Workflows](#workflows) for resume behavior.
 
 ### Manual installation
 
@@ -165,6 +205,8 @@ nsearch> delfav name:sslv2.nse
 
 `run` requires a target and a template. The target can be a host name, an IP address, or a network range.
 
+Add `output:<name>` to also save the results as plain text in `reports/<name>.txt`, for example `run template:http net:192.0.2.10 output:http-scan`. The name must be a single file name, without a folder; `.txt` is optional. The file gets the same restricted permissions as workflow reports, and an existing file is never overwritten: `run` says so and does not scan. Nothing is saved if the scan is cancelled, blocked or fails.
+
 ```
 nsearch> run template:ping net:127.0.0.1
 Running scan
@@ -179,10 +221,23 @@ The templates are in the `templates` directory:
 |---|---|
 | `ping` | Checks whether hosts are up, without scanning ports |
 | `default` | Detects services on ports 1-5000 |
-| `http` | Runs the `http-*` scripts, except `http-slowloris` and `http-brute` |
+| `http` | Runs the `http-*` scripts, excluding the `brute`, `dos`, `exploit`, `fuzzer`, and `external` categories |
 | `ssh` | Lists the algorithms supported by SSH servers |
 
-`run` starts the scan without asking for confirmation. The `http` template includes intrusive and brute-force scripts, so only use it where those are allowed. Workflows ask before intrusive stages.
+Templates without `--script`, or whose `--script` selector only chooses scripts in the `safe` category (without `external` or `not`), start without asking for confirmation. If a template selects any script outside `safe`, selects scripts in the `external` category (even if also marked `safe`, because they may contact third-party services), uses `not`, or uses a selector that cannot be verified against `script.db`, `run` shows the target, the nmap arguments, and the reason, and asks `[y/N]` before creating the scanner. The `http` template excludes `brute`, `dos`, `exploit`, `fuzzer`, and `external`, and still includes scripts outside `safe` (such as `intrusive` and `vuln`), so `run` asks for confirmation before running it.
+
+Scripts and categories in `dos` and `broadcast` are rejected in templates too, even if you would confirm them, with the message: `This template uses scripts in the dos or broadcast categories, which are not allowed`.
+
+Script folders and script paths without `.nse` are also rejected in templates, even if you would confirm them, because Nmap may resolve a path without `.nse` as a script file or directory. The message is: `This template uses a script folder or a script path without .nse, which is not allowed. Name the scripts or categories instead, or add .nse to the path`.
+
+Use a template (`run`) for a quick single-call nmap scan that passes its configured nmap arguments directly and keeps no history. Use a workflow (`workflow`) when you want a multi-stage chain with progressive scope, saved history in SQLite, `resume`, `report`, `compare`, and `suggest`:
+
+| Template | Approximate workflow equivalent |
+|---|---|
+| `ping` | `discovery` stage (or the `hosts` workflow) |
+| `default` | `basic` workflow |
+| `ssh` | `ssh` workflow |
+| `http` | `web` workflow |
 
 ### Workflows
 
@@ -237,9 +292,9 @@ If a workflow is interrupted or fails, use `workflow resume id:<id>` to continue
 - It only scans the hosts and ports of that service in that run. Each approved set is added to the run as a new stage, and appears in its status and report.
 - If a suggested stage is interrupted or fails, the run stays `completed`, what was saved is kept, and `workflow suggest` offers the scripts again.
 
-A run that stops seeing something it found ends with status `completed_with_warnings`, and its status and reports say what happened. This covers a port that was open and a later stage sees as filtered or closed, or does not report, a host that stops answering, and a port that the previous comparable run of the same target saw and this one did not. NSEarch cannot tell a scan being blocked from a real change, so a warning does not say which one it was:
+A run that stops seeing something it found, or where nmap gives up on a host because of `--host-timeout`, ends with status `completed_with_warnings`, and its status and reports say what happened. This covers a port that was open and a later stage sees as filtered or closed, or does not report, a host that stops answering or times out, and a port that the previous comparable run of the same target saw and this one did not. NSEarch cannot tell a scan being blocked from a real change, so a warning does not say which one it was:
 
-- Hosts and ports that were not seen again are not scanned by later stages, and the stages left without targets are skipped.
+- Hosts and ports that were not seen again, or that timed out, are not scanned by later stages, and the stages left without targets are skipped.
 - NSEarch never retries or slows down a scan on its own. If you want to check again, start a new run later.
 - These runs cannot be resumed, and `workflow suggest` does not work on them, because they may not have seen everything. `workflow compare` works, and warns you.
 - A previous run is only comparable if it finished and looked for ports in the same way. A port that really closed is only reported by the first run after it.
@@ -254,7 +309,7 @@ These workflows are included:
 | `allports` | Find services on any TCP port. It is slower, and allows 60 minutes per host in each stage | None, but it looks at ports 1-65535 |
 | `defaults` | Run nmap's `default` scripts, like `nmap -sC`, without the ones that query third parties | `default_scripts` (`confirm`) |
 | `tls` | Check certificates and known TLS problems | `tls_info`, then `tls_ciphers` with `ssl-enum-ciphers` (`confirm`), because it opens many connections |
-| `web` | Examine HTTP and HTTPS services | `http_enum`, then `http_vuln` (`confirm`) |
+| `web` | Examine HTTP and HTTPS services, without scripts that exploit them or query third parties | `http_enum`, then `http_vuln` (`confirm`) |
 | `ssh` | Read SSH host keys and algorithms | `ssh_enum` |
 | `smb` | Read information from SMB services | `smb_enum` |
 | `ftp` | Check FTP anonymous access and server information | `ftp_enum` |
@@ -285,14 +340,14 @@ web:
     - name: http_vuln
       from: services
       when: {service: [http, https]}
-      arguments: "--script vuln"
+      arguments: "--script 'vuln and not (exploit or external)'"
       confirm: true
 ```
 
 | Key | Meaning |
 |---|---|
 | `from` | What the stage scans: `live_hosts`, `open_ports`, or `services`. Only the first stage has no `from`, and it scans the target you gave. |
-| `when` | With `from: services`, limits the stage to these service names. These stages always use version detection (`-sV`), so scripts also work on services on other ports. |
+| `when` | With `from: services`, limits the stage to ports matching the `service` list, the `tunnel` list (such as `ssl`), or either list when both are present. These stages always use version detection (`-sV`), so scripts also work on services on other ports. |
 | `confirm` | Asks before running the stage. Required for any script that is not in the `safe` category, and for any script expression that uses `not`. |
 | `host_timeout` | Maximum time per host. The default is 15 minutes. |
 
@@ -314,12 +369,19 @@ $ .venv/bin/ruff check .
 $ .venv/bin/mypy .
 ```
 
+On Windows, run the checks with the virtual environment's Python and executables:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pytest
+.\.venv\Scripts\ruff.exe check .
+.\.venv\Scripts\mypy.exe .
+```
+
 ## TODO
 
 * GUI
 * Fast-Track
-* Create file output for `run`
-* Windows version
 
 ## Feedback
 

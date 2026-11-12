@@ -18,3 +18,5 @@ en:
   del_fav_ok: The script was removed successfully
   del_fav_error: The script is not in favorites
   bad_params: Invalid parameters
+  config_missing_windows: "Error: config.yaml not found. Run 'install.ps1' or copy config.yaml.example to config.yaml"
+  config_invalid_windows: "Error: config.yaml is not valid. Run 'install.ps1' or compare it with config.yaml.example"

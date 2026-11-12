@@ -8,6 +8,7 @@ import sys
 import tempfile
 from contextlib import closing
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Any
 
 import i18n
@@ -26,14 +27,27 @@ try:
   scriptsPath = item["config"]["scriptsPath"]
   currentChecksum = item["config"].get("checksum", "")
 except FileNotFoundError:
-  print("Error: config.yaml not found. Run 'bash install.sh' or copy config.yaml.example to config.yaml")
+  if sys.platform == "win32":
+    print(i18n.t("setup.config_missing_windows"))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+  else:
+    print("Error: config.yaml not found. Run 'bash install.sh' or copy config.yaml.example to config.yaml")
   sys.exit(1)
 except (yaml.YAMLError, KeyError, TypeError):
-  print("Error: config.yaml is not valid. Run 'bash install.sh' or compare it with config.yaml.example")
+  if sys.platform == "win32":
+    print(i18n.t("setup.config_invalid_windows"))  # type: ignore[attr-defined]  # python-i18n sets these at runtime
+  else:
+    print("Error: config.yaml is not valid. Run 'bash install.sh' or compare it with config.yaml.example")
   sys.exit(1)
 
 lastresults: dict[int, dict[str, Any]] = {}
 lastresultsFav = False
+__workflowSchemaReady: tuple[str, int, int, int] | None = None
+__workflowSchemaLock = Lock()
+
+def __invalidateWorkflowSchema():
+  global __workflowSchemaReady
+  with __workflowSchemaLock:
+    __workflowSchemaReady = None
 
 def sanitize(text):
   return re.sub(r"[\x00-\x08\x0b-\x1f\x7f-\x9f\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]", "?", str(text))
@@ -72,7 +86,10 @@ def __buildDb():
     conn.rollback()
     raise
   finally:
-    conn.close()
+    try:
+      conn.close()
+    finally:
+      __invalidateWorkflowSchema()
 
 def initSetup():
   print(i18n.t("setup.create_db") + " " + dbname)
@@ -323,7 +340,7 @@ WORKFLOW_SCHEMA = """
     hostname TEXT NULL, state TEXT NOT NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address));
   create table if not exists workflow_services(run_id INTEGER NOT NULL, address TEXT NOT NULL,
     protocol TEXT NOT NULL, port INTEGER NOT NULL, state TEXT NOT NULL, service TEXT NULL,
-    product TEXT NULL, version TEXT NULL, ever_open INTEGER NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address, protocol, port));
+    product TEXT NULL, version TEXT NULL, tunnel TEXT NULL, ever_open INTEGER NULL, last_observation TEXT NULL, PRIMARY KEY(run_id, address, protocol, port));
   create table if not exists workflow_findings(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     run_id INTEGER NOT NULL, stage TEXT NOT NULL, address TEXT NOT NULL, port INTEGER NULL,
     script TEXT NOT NULL, output TEXT NOT NULL);
@@ -333,12 +350,15 @@ WORKFLOW_SCHEMA = """
 WORKFLOW_COLUMNS = (
   ("workflow_stages", (("definition", "TEXT"), ("targets", "TEXT"), ("warnings", "TEXT"))),
   ("workflow_hosts", (("last_observation", "TEXT"),)),
-  ("workflow_services", (("ever_open", "INTEGER"), ("last_observation", "TEXT"))),
+  ("workflow_services", (("tunnel", "TEXT"), ("ever_open", "INTEGER"), ("last_observation", "TEXT"))),
 )
 
-def __workflowConnect():
-  conn = lite.connect(dbname)
-  conn.row_factory = lite.Row
+def __workflowSchemaKey(conn):
+  info = os.stat(dbname)
+  version = conn.execute("PRAGMA schema_version").fetchone()[0]
+  return (os.path.normcase(os.path.abspath(dbname)), info.st_dev, info.st_ino, version)
+
+def __prepareWorkflowSchema(conn):
   conn.executescript(WORKFLOW_SCHEMA)
   # Stages saved by earlier versions keep these empty: their runs cannot be resumed, and their reports say it was not recorded.
   # Their results keep what they had too, because what a later stage replaced is not known
@@ -347,14 +367,31 @@ def __workflowConnect():
     for column, kind in added:
       if column not in columns:
         conn.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + kind + " NULL")
-  return conn
+
+def __workflowConnect():
+  global __workflowSchemaReady
+  conn = lite.connect(dbname)
+  conn.row_factory = lite.Row
+  try:
+    with __workflowSchemaLock:
+      key = __workflowSchemaKey(conn)
+      if key != __workflowSchemaReady:
+        __prepareWorkflowSchema(conn)
+        __workflowSchemaReady = __workflowSchemaKey(conn)
+    return conn
+  except BaseException:
+    conn.close()
+    raise
 
 def __now():
   return datetime.now(UTC).isoformat(timespec="seconds")
 
 # Everything that decides what a stage scans and whether it asks first
 def stageDefinition(stage):
-  return json.dumps({key: stage.get(key) for key in ("name", "source", "services", "confirm", "arguments")}, sort_keys=True)
+  definition = {key: stage.get(key) for key in ("name", "source", "services", "confirm", "arguments")}
+  if stage.get("tunnels"):
+    definition["tunnels"] = stage["tunnels"]
+  return json.dumps(definition, sort_keys=True)
 
 # Create a workflow run and its pending stages
 def createRun(workflow, target, stages):
@@ -404,14 +441,16 @@ def saveStageResults(runId, stage, hosts, services, findings):
       ON CONFLICT(run_id, address) DO UPDATE SET state=excluded.state, last_observation='reported',
       hostname=COALESCE(NULLIF(excluded.hostname, ''), hostname)""",
       [(runId, host["address"], host["hostname"], host["state"]) for host in hosts])
-    conn.executemany("""INSERT INTO workflow_services (run_id, address, protocol, port, state, service, product, version, ever_open, last_observation)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'reported')
+    conn.executemany("""INSERT INTO workflow_services (run_id, address, protocol, port, state, service, product, version, tunnel, ever_open, last_observation)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reported')
       ON CONFLICT(run_id, address, protocol, port) DO UPDATE SET state=excluded.state, last_observation='reported',
       ever_open=CASE WHEN excluded.state='open' OR state='open' THEN 1 ELSE ever_open END,
       service=CASE WHEN ? THEN COALESCE(NULLIF(service, ''), excluded.service) ELSE COALESCE(NULLIF(excluded.service, ''), service) END,
       product=COALESCE(NULLIF(excluded.product, ''), product),
-      version=COALESCE(NULLIF(excluded.version, ''), version)""",
-      [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"], int(item["state"] == "open"), item.get("guess", False))
+      version=COALESCE(NULLIF(excluded.version, ''), version),
+      tunnel=CASE WHEN ? THEN COALESCE(NULLIF(tunnel, ''), excluded.tunnel) ELSE COALESCE(excluded.tunnel, tunnel) END""",
+      [(runId, item["address"], item["protocol"], item["port"], item["state"], item["service"], item["product"], item["version"],
+        item.get("tunnel"), int(item["state"] == "open"), item.get("guess", False), item.get("guess", False))
         for item in services])
     # A resumed stage scans its targets again, and the new findings replace the old ones
     conn.executemany("DELETE FROM workflow_findings WHERE run_id=? AND stage=? AND address=?",
@@ -439,13 +478,19 @@ def getLiveHosts(runId):
     return [row["address"] for row in conn.execute(
       "SELECT address FROM workflow_hosts WHERE run_id=? AND state='up' AND " + OBSERVED + " ORDER BY address", (runId,))]
 
-# Open ports per host, optionally only for the given service names
-def getOpenPorts(runId, services=None):
+# Open ports per host, optionally filtered by service names, tunnels, or either of the two
+def getOpenPorts(runId, services=None, tunnels=None):
   sql = "SELECT address, port FROM workflow_services WHERE run_id=? AND state='open' AND " + OBSERVED
   params = [runId]
+  filters = []
   if services:
-    sql += " AND service IN (" + ", ".join("?" for _ in services) + ")"
+    filters.append("service IN (" + ", ".join("?" for _ in services) + ")")
     params += services
+  if tunnels:
+    filters.append("tunnel IN (" + ", ".join("?" for _ in tunnels) + ")")
+    params += tunnels
+  if filters:
+    sql += " AND (" + " OR ".join(filters) + ")"
   ports = {}
   with closing(__workflowConnect()) as conn:
     for row in conn.execute(sql + " ORDER BY address, port", params):

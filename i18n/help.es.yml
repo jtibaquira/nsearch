@@ -19,6 +19,11 @@ es:
   help_run: Ejecuta nmap usando las plantillas
   help_run_template: Nombre de la plantilla
   help_run_net: Red o Host Objetivo
+  help_run_output: Nombre de archivo opcional, guardado como texto en reports/
+  help_run_bad_output: Nombre de archivo de salida no válido
+  help_run_output_exists: El archivo de salida ya existe
+  help_run_output_error: No se pudo guardar el archivo de salida
+  help_run_output_saved: Salida guardada
   help_run_error: El comando no es válido por favor use 'help run'
   help_command_error: Escriba 'help command' para ver el menú de ayuda
   running_scan: Ejecutando Escaneo
@@ -29,6 +34,16 @@ es:
   help_run_nmap_missing: No se encontró nmap. Instálelo e inténtelo de nuevo
   help_run_scan_error: El escaneo falló
   help_run_interrupted: Escaneo interrumpido
+  help_run_plan: Escaneo con plantilla para el objetivo
+  help_run_reason: Motivo
+  help_run_reason_unsafe: selecciona scripts fuera de la categoría safe
+  help_run_reason_external: selecciona scripts external que pueden contactar servicios de terceros
+  help_run_reason_not: usa una negación en el selector de scripts (not)
+  help_run_reason_unverified: usa un selector de scripts que no se pudo verificar
+  help_run_confirm: ¿Tiene autorización para escanear este objetivo y desea ejecutar esta plantilla?
+  help_run_cancelled: Escaneo cancelado
+  help_run_blocked_scripts: Esta plantilla usa scripts de las categorías dos o broadcast, que no están permitidos
+  help_run_blocked_folder: Esta plantilla usa una carpeta de scripts o una ruta de script sin .nse, lo cual no está permitido. Indica los scripts o las categorías, o añade .nse a la ruta
   help_workflow: Ejecuta una cadena de escaneos, donde cada etapa usa lo que encontró la anterior
   help_workflow_name: Nombre del workflow
   help_workflow_id: Número de una ejecución anterior
@@ -60,6 +75,7 @@ es:
   workflow_no_targets_warning: omitida, no queda nada que escanear tras las advertencias de esta ejecución
   workflow_resume_warning: Esta ejecución tiene advertencias y no se puede reanudar. Inicia otra más tarde si hace falta
   workflow_warning_host_missing: el host no respondió a esta etapa
+  workflow_warning_host_timeout: el host agotó el tiempo límite en esta etapa
   workflow_warning_port_changed: abierto antes en esta ejecución, ahora se ve distinto
   workflow_warning_port_missing: abierto antes en esta ejecución, esta etapa no lo informó
   workflow_warning_port_not_seen: visto abierto por una ejecución anterior, esta no lo vio
@@ -99,6 +115,8 @@ es:
   report_reason_live_hosts: Escanea los hosts activos encontrados en esta ejecución
   report_reason_open_ports: Escanea los puertos abiertos encontrados en esta ejecución
   report_reason_services: Escanea los puertos abiertos encontrados en esta ejecución con estos servicios
+  report_reason_tunnels: Escanea los puertos abiertos encontrados en esta ejecución con estos túneles
+  report_reason_or_tunnels: o estos túneles
   report_reason_all_services: Escanea los servicios encontrados en esta ejecución
   report_reason_suggestion: Sugerida por workflow suggest y aprobada por el operador, para este servicio
   report_reason_unknown: No lo registró la versión que ejecutó esta etapa
